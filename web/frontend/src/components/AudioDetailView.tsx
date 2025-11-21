@@ -130,19 +130,19 @@ const getDiarizationModelDisplayName = (model: string): string => {
 // Helper function to calculate audio duration from transcript segments
 const getAudioDurationFromTranscript = (transcript: Transcript | null): number | null => {
     if (!transcript) return null;
-    
+
     // Try word segments first (most accurate)
     if (transcript.word_segments && transcript.word_segments.length > 0) {
         const lastWord = transcript.word_segments[transcript.word_segments.length - 1];
         return lastWord.end;
     }
-    
+
     // Fall back to segments
     if (transcript.segments && transcript.segments.length > 0) {
         const lastSegment = transcript.segments[transcript.segments.length - 1];
         return lastSegment.end;
     }
-    
+
     return null;
 };
 
@@ -151,14 +151,14 @@ const formatDuration = (seconds: number): string => {
     if (seconds < 60) {
         return `${seconds.toFixed(1)}s`;
     }
-    
+
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    
+
     if (minutes < 60) {
         return `${minutes}m ${remainingSeconds.toFixed(0)}s`;
     }
-    
+
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
     return `${hours}h ${remainingMinutes}m ${remainingSeconds.toFixed(0)}s`;
@@ -176,7 +176,7 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
 	const { getAuthHeaders } = useAuth();
 	const [audioFile, setAudioFile] = useState<AudioFile | null>(null);
 	const [transcript, setTranscript] = useState<Transcript | null>(null);
-	
+
 	// Debug transcript changes
 	useEffect(() => {
 		console.log("[DEBUG] *** TRANSCRIPT STATE CHANGED ***");
@@ -197,11 +197,11 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
 	const [downloadFormat, setDownloadFormat] = useState<'txt' | 'json'>('txt');
 	const [includeSpeakerLabels, setIncludeSpeakerLabels] = useState(true);
 	const [includeTimestamps, setIncludeTimestamps] = useState(true);
-	
+
 	// Speaker renaming state
 	const [speakerRenameDialogOpen, setSpeakerRenameDialogOpen] = useState(false);
 	const [speakerMappings, setSpeakerMappings] = useState<Record<string, string>>({});
-	
+
 	// Polling state
 	const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 	const [processingStartTime, setProcessingStartTime] = useState<Date | null>(null);
@@ -298,19 +298,19 @@ useEffect(() => {
 		if (!processingStartTime && status === "processing") {
 			setProcessingStartTime(new Date());
 		}
-		
+
 		// Clear any existing interval
 		if (pollingInterval) {
 			clearInterval(pollingInterval);
 		}
-		
+
 		// Start polling every 3 seconds
 		const interval = setInterval(async () => {
 			await fetchStatusOnly();
 		}, 3000);
-		
+
 		setPollingInterval(interval);
-		
+
 		// Cleanup interval on unmount or when status changes
 		return () => {
 			if (interval) {
@@ -341,7 +341,7 @@ useEffect(() => {
 			const elapsed = Math.floor((now.getTime() - processingStartTime.getTime()) / 1000);
 			setElapsedTime(elapsed);
 		}, 1000);
-		
+
 		return () => clearInterval(timer);
 	}
 }, [processingStartTime, currentStatus, audioFile?.status]);
@@ -505,7 +505,7 @@ useEffect(() => {
 		);
 
 		// If no exact match, find the closest upcoming word
-		const fallbackWordIdx = currentWordIdx === -1 
+		const fallbackWordIdx = currentWordIdx === -1
 			? transcript.word_segments.findIndex(word => word.start > currentTime) - 1
 			: currentWordIdx;
 
@@ -525,17 +525,17 @@ useEffect(() => {
 	useEffect(() => {
 		if (currentWordIndex !== null && highlightedWordRef.current) {
 			const highlightedElement = highlightedWordRef.current;
-			
+
 			// Check if the highlighted word is outside the visible viewport
 			const highlightedRect = highlightedElement.getBoundingClientRect();
 			const viewportHeight = window.innerHeight;
-			
+
 			// Consider the word out of view if it's too close to the top or bottom edges
 			// This provides a buffer so the word isn't right at the edge
 			const buffer = viewportHeight * 0.2; // 20% buffer
 			const isAboveView = highlightedRect.top < buffer;
 			const isBelowView = highlightedRect.bottom > (viewportHeight - buffer);
-			
+
 			if (isAboveView || isBelowView) {
 				highlightedElement.scrollIntoView({
 					behavior: 'smooth',
@@ -560,7 +560,7 @@ useEffect(() => {
 			if (transcriptResponse.ok) {
 				const transcriptData = await transcriptResponse.json();
 				console.log("[DEBUG] fetchTranscriptOnly - transcriptData:", transcriptData);
-				
+
 				// The API returns transcript data in a nested structure
 				if (transcriptData.transcript) {
 					console.log("[DEBUG] transcript has word_segments:", !!transcriptData.transcript.word_segments);
@@ -598,14 +598,14 @@ useEffect(() => {
 					...getAuthHeaders(),
 				},
 			});
-			
+
 			if (response.ok) {
 				const data = await response.json();
 				const previousStatus = currentStatus || audioFile?.status;
-				
+
 				// Only update the status state, not the entire audioFile
 				setCurrentStatus(data.status);
-				
+
 				// If status changed to completed, update audioFile status and fetch transcript
 				if (data.status === "completed" && previousStatus === "processing") {
 					setAudioFile(prev => prev ? { ...prev, status: "completed" } : null);
@@ -647,7 +647,7 @@ useEffect(() => {
 						const transcriptData = await transcriptResponse.json();
 						console.log("[DEBUG] *** fetchAudioDetails TRANSCRIPT LOADING ***");
 						console.log("[DEBUG] initial transcriptData:", transcriptData);
-						
+
 						// The API returns transcript data in a nested structure
 						if (transcriptData.transcript) {
 							console.log("[DEBUG] initial transcript has word_segments:", !!transcriptData.transcript.word_segments);
@@ -707,7 +707,7 @@ useEffect(() => {
         if (executionData) return; // Already loaded
         setExecutionDataLoading(true);
         try {
-            const res = await fetch(`/api/v1/transcription/${audioId}/execution`, { 
+            const res = await fetch(`/api/v1/transcription/${audioId}/execution`, {
                 headers: { ...getAuthHeaders() }
             });
             if (res.ok) {
@@ -715,8 +715,8 @@ useEffect(() => {
                 setExecutionData(data);
             } else {
             }
-        } catch (e) { 
-            console.error("Failed to fetch execution data", e); 
+        } catch (e) {
+            console.error("Failed to fetch execution data", e);
         } finally {
             setExecutionDataLoading(false);
         }
@@ -876,7 +876,7 @@ useEffect(() => {
 		console.log("[DEBUG] renderHighlightedTranscript - transcript:", transcript);
 		console.log("[DEBUG] has word_segments:", !!transcript?.word_segments);
 		console.log("[DEBUG] word_segments length:", transcript?.word_segments?.length);
-		
+
 		if (!transcript?.word_segments || transcript.word_segments.length === 0) {
 			console.log("[DEBUG] No word_segments, returning plain text:", transcript?.text?.substring(0, 100) + "...");
 			return transcript?.text || '';
@@ -1096,12 +1096,12 @@ useEffect(() => {
 				const startTime = formatSRTTime(segment.start);
 				const endTime = formatSRTTime(segment.end);
 				let text = segment.text.trim();
-				
+
 				// Add speaker label if available (common practice in SRT files)
 				if (segment.speaker) {
 					text = `${getDisplaySpeakerName(segment.speaker)}: ${text}`;
 				}
-				
+
 				srtContent += `${counter}\n${startTime} --> ${endTime}\n${text}\n\n`;
 				counter++;
 			});
@@ -1274,13 +1274,13 @@ useEffect(() => {
 
 			if (response.ok) {
 				const mappings: { id?: number; original_speaker: string; custom_name: string }[] = await response.json();
-				
+
 				// Convert to lookup object
 				const mappingObj: Record<string, string> = {};
 				mappings.forEach(mapping => {
 					mappingObj[mapping.original_speaker] = mapping.custom_name;
 				});
-				
+
 				setSpeakerMappings(mappingObj);
 			}
 		} catch (err) {
@@ -1344,7 +1344,7 @@ useEffect(() => {
 				</div>
 
 				{/* Audio Player Section */}
-				<div ref={audioSectionRef} className={`bg-white dark:bg-gray-800 rounded-xl ${audioCollapsed ? 'p-3 sm:p-4' : 'p-3 sm:p-6'} mb-3 sm:mb-6`}>
+				<div ref={audioSectionRef} className={`audioplayersection xxxx bg-white dark:bg-gray-800 rounded-xl ${audioCollapsed ? 'p-3 sm:p-4' : 'p-3 sm:p-6'} mb-3 sm:mb-6`} style={{position: 'sticky', top: 0, zIndex: 100}}>
 					<div className="mb-6">
 						<div className="mb-2 flex items-center gap-2 justify-between">
 							{editingTitle ? (
@@ -1371,7 +1371,7 @@ useEffect(() => {
 												<Users className="h-3 w-3" />
 												Multi-Track ({audioFile.multi_track_files?.length || 0} speakers)
 											</span>
-											<MergeStatusBadge 
+											<MergeStatusBadge
 												jobId={audioFile.id}
 												mergeStatus={audioFile.merge_status}
 												mergeError={audioFile.merge_error}
@@ -1699,7 +1699,7 @@ useEffect(() => {
                                 }`}
 								>
 									{transcriptMode === "compact" && (
-                                    <div 
+                                    <div
                                         ref={transcriptRef}
                                         className="prose prose-gray dark:prose-invert max-w-none relative select-text cursor-text"
                                     >
@@ -1720,7 +1720,7 @@ useEffect(() => {
                                 }`}
 								>
 									{transcriptMode === "expanded" && transcript.segments && (
-                                    <div 
+                                    <div
                                         ref={transcriptRef}
                                         className="space-y-4 relative select-text cursor-text"
                                     >
@@ -1752,7 +1752,7 @@ useEffect(() => {
 							</div>
 						) : (
 							<div style={{ height: "600px" }}>
-								<ChatInterface 
+								<ChatInterface
 									transcriptionId={audioId}
 									onClose={() => setViewMode("transcript")}
 								/>
@@ -1794,7 +1794,7 @@ useEffect(() => {
 									</p>
 								</div>
 							)}
-							
+
 							{/* Other Status Messages */}
 							{(currentStatus || audioFile.status) !== "processing" && (
 								<>
@@ -1937,14 +1937,14 @@ useEffect(() => {
 					</div>
 
 					<DialogFooter className="gap-2">
-						<Button 
-							variant="outline" 
+						<Button
+							variant="outline"
 							onClick={() => setDownloadDialogOpen(false)}
 							className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
 						>
 							Cancel
 						</Button>
-						<Button 
+						<Button
 							onClick={handleDownloadConfirm}
 							className="bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 text-white"
 						>
@@ -2111,7 +2111,7 @@ useEffect(() => {
                             Parameters used and processing time for this transcription
                         </UIDialogDescription>
                     </UIDialogHeader>
-                    
+
                     {executionDataLoading ? (
                         <div className="py-8 text-center">
                             <div className="animate-pulse">
@@ -2141,7 +2141,7 @@ useEffect(() => {
                                             <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-indigo-100/50 dark:border-indigo-800/50">
                                                 <span className="text-indigo-700 dark:text-indigo-300 font-medium">Completed:</span>
                                                 <p className="font-mono text-gray-900 dark:text-gray-100 mt-1 text-xs sm:text-sm">
-                                                    {executionData.completed_at 
+                                                    {executionData.completed_at
                                                         ? new Date(executionData.completed_at).toLocaleString()
                                                         : 'N/A'
                                                     }
@@ -2150,7 +2150,7 @@ useEffect(() => {
                                             <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-indigo-100/50 dark:border-indigo-800/50">
                                                 <span className="text-indigo-700 dark:text-indigo-300 font-medium">Total Duration:</span>
                                                 <p className="font-mono text-xl sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
-                                                    {executionData.processing_duration 
+                                                    {executionData.processing_duration
                                                         ? `${(executionData.processing_duration / 1000).toFixed(1)}s`
                                                         : 'N/A'
                                                     }
@@ -2259,7 +2259,7 @@ useEffect(() => {
                                         <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-indigo-100/50 dark:border-indigo-800/50">
                                             <span className="text-indigo-700 dark:text-indigo-300 font-medium">Completed:</span>
                                             <p className="font-mono text-gray-900 dark:text-gray-100 mt-1 text-xs sm:text-sm">
-                                                {executionData.completed_at 
+                                                {executionData.completed_at
                                                     ? new Date(executionData.completed_at).toLocaleString()
                                                     : 'N/A'
                                                 }
@@ -2268,7 +2268,7 @@ useEffect(() => {
                                         <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-indigo-100/50 dark:border-indigo-800/50">
                                             <span className="text-indigo-700 dark:text-indigo-300 font-medium">Duration:</span>
                                             <p className="font-mono text-xl sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
-                                                {executionData.processing_duration 
+                                                {executionData.processing_duration
                                                     ? `${(executionData.processing_duration / 1000).toFixed(1)}s`
                                                     : 'N/A'
                                                 }
