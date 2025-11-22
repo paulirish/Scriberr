@@ -321,19 +321,19 @@ useEffect(() => {
 		if (!processingStartTime && status === "processing") {
 			setProcessingStartTime(new Date());
 		}
-		
+
 		// Clear any existing interval
 		if (pollingInterval) {
 			clearInterval(pollingInterval);
 		}
-		
+
 		// Start polling every 3 seconds
 		const interval = setInterval(async () => {
 			await fetchStatusOnly();
 		}, 3000);
-		
+
 		setPollingInterval(interval);
-		
+
 		// Cleanup interval on unmount or when status changes
 		return () => {
 			if (interval) {
@@ -364,7 +364,7 @@ useEffect(() => {
 			const elapsed = Math.floor((now.getTime() - processingStartTime.getTime()) / 1000);
 			setElapsedTime(elapsed);
 		}, 1000);
-		
+
 		return () => clearInterval(timer);
 	}
 }, [processingStartTime, currentStatus, audioFile?.status]);
@@ -528,7 +528,7 @@ useEffect(() => {
 		);
 
 		// If no exact match, find the closest upcoming word
-		const fallbackWordIdx = currentWordIdx === -1 
+		const fallbackWordIdx = currentWordIdx === -1
 			? transcript.word_segments.findIndex(word => word.start > currentTime) - 1
 			: currentWordIdx;
 
@@ -548,17 +548,17 @@ useEffect(() => {
 	useEffect(() => {
 		if (currentWordIndex !== null && highlightedWordRef.current) {
 			const highlightedElement = highlightedWordRef.current;
-			
+
 			// Check if the highlighted word is outside the visible viewport
 			const highlightedRect = highlightedElement.getBoundingClientRect();
 			const viewportHeight = window.innerHeight;
-			
+
 			// Consider the word out of view if it's too close to the top or bottom edges
 			// This provides a buffer so the word isn't right at the edge
 			const buffer = viewportHeight * 0.2; // 20% buffer
 			const isAboveView = highlightedRect.top < buffer;
 			const isBelowView = highlightedRect.bottom > (viewportHeight - buffer);
-			
+
 			if (isAboveView || isBelowView) {
 				highlightedElement.scrollIntoView({
 					behavior: 'smooth',
@@ -583,7 +583,7 @@ useEffect(() => {
 			if (transcriptResponse.ok) {
 				const transcriptData = await transcriptResponse.json();
 				console.log("[DEBUG] fetchTranscriptOnly - transcriptData:", transcriptData);
-				
+
 				// The API returns transcript data in a nested structure
 				if (transcriptData.transcript) {
 					console.log("[DEBUG] transcript has word_segments:", !!transcriptData.transcript.word_segments);
@@ -621,14 +621,14 @@ useEffect(() => {
 					...getAuthHeaders(),
 				},
 			});
-			
+
 			if (response.ok) {
 				const data = await response.json();
 				const previousStatus = currentStatus || audioFile?.status;
-				
+
 				// Only update the status state, not the entire audioFile
 				setCurrentStatus(data.status);
-				
+
 				// If status changed to completed, update audioFile status and fetch transcript
 				if (data.status === "completed" && previousStatus === "processing") {
 					setAudioFile(prev => prev ? { ...prev, status: "completed" } : null);
@@ -670,7 +670,7 @@ useEffect(() => {
 						const transcriptData = await transcriptResponse.json();
 						console.log("[DEBUG] *** fetchAudioDetails TRANSCRIPT LOADING ***");
 						console.log("[DEBUG] initial transcriptData:", transcriptData);
-						
+
 						// The API returns transcript data in a nested structure
 						if (transcriptData.transcript) {
 							console.log("[DEBUG] initial transcript has word_segments:", !!transcriptData.transcript.word_segments);
@@ -730,7 +730,7 @@ useEffect(() => {
         if (executionData) return; // Already loaded
         setExecutionDataLoading(true);
         try {
-            const res = await fetch(`/api/v1/transcription/${audioId}/execution`, { 
+            const res = await fetch(`/api/v1/transcription/${audioId}/execution`, {
                 headers: { ...getAuthHeaders() }
             });
             if (res.ok) {
@@ -738,8 +738,8 @@ useEffect(() => {
                 setExecutionData(data);
             } else {
             }
-        } catch (e) { 
-            console.error("Failed to fetch execution data", e); 
+        } catch (e) {
+            console.error("Failed to fetch execution data", e);
         } finally {
             setExecutionDataLoading(false);
         }
@@ -899,7 +899,7 @@ useEffect(() => {
 		console.log("[DEBUG] renderHighlightedTranscript - transcript:", transcript);
 		console.log("[DEBUG] has word_segments:", !!transcript?.word_segments);
 		console.log("[DEBUG] word_segments length:", transcript?.word_segments?.length);
-		
+
 		if (!transcript?.word_segments || transcript.word_segments.length === 0) {
 			console.log("[DEBUG] No word_segments, returning plain text:", transcript?.text?.substring(0, 100) + "...");
 			return transcript?.text || '';
@@ -1119,12 +1119,12 @@ useEffect(() => {
 				const startTime = formatSRTTime(segment.start);
 				const endTime = formatSRTTime(segment.end);
 				let text = segment.text.trim();
-				
+
 				// Add speaker label if available (common practice in SRT files)
 				if (segment.speaker) {
 					text = `${getDisplaySpeakerName(segment.speaker)}: ${text}`;
 				}
-				
+
 				srtContent += `${counter}\n${startTime} --> ${endTime}\n${text}\n\n`;
 				counter++;
 			});
@@ -1297,13 +1297,13 @@ useEffect(() => {
 
 			if (response.ok) {
 				const mappings: { id?: number; original_speaker: string; custom_name: string }[] = await response.json();
-				
+
 				// Convert to lookup object
 				const mappingObj: Record<string, string> = {};
 				mappings.forEach(mapping => {
 					mappingObj[mapping.original_speaker] = mapping.custom_name;
 				});
-				
+
 				setSpeakerMappings(mappingObj);
 			}
 		} catch (err) {
@@ -1357,9 +1357,7 @@ useEffect(() => {
 	return (
 		<div className="audio-detail-view min-h-screen bg-gray-50 dark:bg-gray-900">
 			<div className="mx-auto w-full max-w-6xl px-2 sm:px-6 md:px-8 py-3 sm:py-6">
-				{
-/* Header with back button and theme switcher */
-}
+				{/* Header with back button and theme switcher */}
 				<div className="page-header flex items-center justify-between mb-3 sm:mb-6">
 					<Button onClick={handleBack} variant="outline" size="sm" className="back-button cursor-pointer">
 						<ArrowLeft className="mr-2 h-4 w-4" />
@@ -1368,9 +1366,7 @@ useEffect(() => {
 					<ThemeSwitcher />
 				</div>
 
-				{
-/* Audio Player Section */
-}
+				{/* Audio Player Section */}
 				<div ref={audioSectionRef} className={`audio-player-section bg-white dark:bg-gray-800 rounded-xl ${audioCollapsed ? 'p-3 sm:p-4' : 'p-3 sm:p-6'} mb-3 sm:mb-6`} style={{position: 'sticky', top: 0, zIndex: 100}}>
 					<div className="mb-6">
 						<div className="mb-2 flex items-center gap-2 justify-between">
@@ -1437,9 +1433,7 @@ useEffect(() => {
 						</p>
 					</div>
 
-					{
-/* Audio Player Controls (hidden when collapsed, but kept mounted) */
-}
+					{/* Audio Player Controls (hidden when collapsed, but kept mounted) */}
 					<div className={`audio-controls mb-6 ${audioCollapsed ? 'hidden' : ''}`}>
 						<div className="flex items-center gap-4">
 							{
@@ -1800,12 +1794,12 @@ useEffect(() => {
 													key={index}
 													className="flex gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-150"
 												>
-													<div className="flex-shrink-0 flex flex-col gap-2">
-														<span className="inline-block px-2 py-1 text-xs font-mono bg-blue-100 dark:bg-blue-700 text-blue-800 dark:text-blue-200 rounded">
+													<div className="flex-shrink-0 flex flex-row gap-2">
+														<span className="inline-block px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded">
 															{formatTimestamp(segment.start)}
 														</span>
 														{segment.speaker && (
-															<span className="inline-block px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-700 text-green-800 dark:text-green-200 rounded transition-all duration-200">
+															<span className={`inline-block px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${getSpeakerColor(segment.speaker)}`}>
 																{getDisplaySpeakerName(segment.speaker)}
 															</span>
 														)}
@@ -2196,7 +2190,7 @@ useEffect(() => {
                             Parameters used and processing time for this transcription
                         </UIDialogDescription>
                     </UIDialogHeader>
-                    
+
                     {executionDataLoading ? (
                         <div className="py-8 text-center">
                             <div className="animate-pulse">
@@ -2226,7 +2220,7 @@ useEffect(() => {
                                             <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-indigo-100/50 dark:border-indigo-800/50">
                                                 <span className="text-indigo-700 dark:text-indigo-300 font-medium">Completed:</span>
                                                 <p className="font-mono text-gray-900 dark:text-gray-100 mt-1 text-xs sm:text-sm">
-                                                    {executionData.completed_at 
+                                                    {executionData.completed_at
                                                         ? new Date(executionData.completed_at).toLocaleString()
                                                         : 'N/A'
                                                     }
@@ -2235,7 +2229,7 @@ useEffect(() => {
                                             <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-indigo-100/50 dark:border-indigo-800/50">
                                                 <span className="text-indigo-700 dark:text-indigo-300 font-medium">Total Duration:</span>
                                                 <p className="font-mono text-xl sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
-                                                    {executionData.processing_duration 
+                                                    {executionData.processing_duration
                                                         ? `${(executionData.processing_duration / 1000).toFixed(1)}s`
                                                         : 'N/A'
                                                     }
@@ -2344,7 +2338,7 @@ useEffect(() => {
                                         <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-indigo-100/50 dark:border-indigo-800/50">
                                             <span className="text-indigo-700 dark:text-indigo-300 font-medium">Completed:</span>
                                             <p className="font-mono text-gray-900 dark:text-gray-100 mt-1 text-xs sm:text-sm">
-                                                {executionData.completed_at 
+                                                {executionData.completed_at
                                                     ? new Date(executionData.completed_at).toLocaleString()
                                                     : 'N/A'
                                                 }
@@ -2353,7 +2347,7 @@ useEffect(() => {
                                         <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-indigo-100/50 dark:border-indigo-800/50">
                                             <span className="text-indigo-700 dark:text-indigo-300 font-medium">Duration:</span>
                                             <p className="font-mono text-xl sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
-                                                {executionData.processing_duration 
+                                                {executionData.processing_duration
                                                     ? `${(executionData.processing_duration / 1000).toFixed(1)}s`
                                                     : 'N/A'
                                                 }
