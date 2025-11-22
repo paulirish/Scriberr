@@ -114,6 +114,29 @@ interface AudioDetailViewProps {
 	audioId: string;
 }
 
+// Color palette for speakers
+const speakerColorPalette = [
+    // Softer, modern palette
+    'bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200',
+    'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
+    'bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200',
+    'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+    'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200',
+    'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200',
+    'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
+    'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
+];
+let speakerColorIndex = 0;
+const speakerColors: Record<string, string> = {};
+
+const getSpeakerColor = (speaker: string): string => {
+    if (!speakerColors[speaker]) {
+        speakerColors[speaker] = speakerColorPalette[speakerColorIndex % speakerColorPalette.length];
+        speakerColorIndex++;
+    }
+    return speakerColors[speaker];
+};
+
 // Helper function to get display name for diarization model
 const getDiarizationModelDisplayName = (model: string): string => {
     switch (model) {
@@ -188,7 +211,7 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
 	const [loading, setLoading] = useState(true);
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [transcriptMode, setTranscriptMode] = useState<"compact" | "expanded">(
-		"compact",
+		"expanded",
 	);
 	const [viewMode, setViewMode] = useState<"transcript" | "chat">("transcript");
 	const [currentTime, setCurrentTime] = useState(0);
@@ -1290,7 +1313,7 @@ useEffect(() => {
 
 	if (loading) {
 		return (
-			<div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+			<div className="loading-view min-h-screen bg-gray-50 dark:bg-gray-900">
 				<div className="mx-auto w-full max-w-6xl px-2 sm:px-6 md:px-8 py-3 sm:py-6">
 					<div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-6">
 						<div className="animate-pulse">
@@ -1315,7 +1338,7 @@ useEffect(() => {
 
 	if (!audioFile) {
 		return (
-			<div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+			<div className="not-found-view min-h-screen bg-gray-50 dark:bg-gray-900">
 				<div className="mx-auto w-full max-w-6xl px-2 sm:px-6 md:px-8 py-3 sm:py-6">
 					<div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-6 text-center">
 						<h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50 mb-4">
@@ -1332,11 +1355,11 @@ useEffect(() => {
 	}
 
 	return (
-		<div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+		<div className="audio-detail-view min-h-screen bg-gray-50 dark:bg-gray-900">
 			<div className="mx-auto w-full max-w-6xl px-2 sm:px-6 md:px-8 py-3 sm:py-6">
 				{/* Header with back button and theme switcher */}
-				<div className="flex items-center justify-between mb-3 sm:mb-6">
-					<Button onClick={handleBack} variant="outline" size="sm" className="cursor-pointer">
+				<div className="page-header flex items-center justify-between mb-3 sm:mb-6">
+					<Button onClick={handleBack} variant="outline" size="sm" className="back-button cursor-pointer">
 						<ArrowLeft className="mr-2 h-4 w-4" />
 						Back to Audio Files
 					</Button>
@@ -1344,13 +1367,13 @@ useEffect(() => {
 				</div>
 
 				{/* Audio Player Section */}
-				<div ref={audioSectionRef} className={`audioplayersection xxxx bg-white dark:bg-gray-800 rounded-xl ${audioCollapsed ? 'p-3 sm:p-4' : 'p-3 sm:p-6'} mb-3 sm:mb-6`} style={{position: 'sticky', top: 0, zIndex: 100}}>
+				<div ref={audioSectionRef} className={`audio-player-section bg-white dark:bg-gray-800 rounded-xl ${audioCollapsed ? 'p-3 sm:p-4' : 'p-3 sm:p-6'} mb-3 sm:mb-6`} style={{position: 'sticky', top: 0, zIndex: 100}}>
 					<div className="mb-6">
 						<div className="mb-2 flex items-center gap-2 justify-between">
 							{editingTitle ? (
 								<input
 									autoFocus
-									className="w-full max-w-xl text-2xl font-bold bg-transparent border-b border-blue-400 focus:outline-none focus:ring-0 dark:text-gray-50 text-gray-900"
+									className="title-input w-full max-w-xl text-2xl font-bold bg-transparent border-b border-blue-400 focus:outline-none focus:ring-0 dark:text-gray-50 text-gray-900"
 									value={titleInput}
 									disabled={savingTitle}
 									onChange={(e) => setTitleInput(e.target.value)}
@@ -1362,12 +1385,12 @@ useEffect(() => {
 								/>
 							) : (
 								<div className="flex items-center gap-2">
-									<h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50">
+									<h1 className="audio-title text-2xl font-bold text-gray-900 dark:text-gray-50">
 										{audioFile.title || getFileName(audioFile.audio_path)}
 									</h1>
 									{audioFile.is_multi_track && (
 										<>
-											<span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs font-medium rounded-md">
+											<span className="multitrack-badge inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs font-medium rounded-md">
 												<Users className="h-3 w-3" />
 												Multi-Track ({audioFile.multi_track_files?.length || 0} speakers)
 											</span>
@@ -1379,7 +1402,7 @@ useEffect(() => {
 										</>
 									)}
 									<button
-										className="h-7 w-7 inline-flex items-center justify-center rounded-md cursor-pointer text-gray-500 hover:text-gray-700 hover:bg-gray-200/60 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/60 transition-colors"
+										className="edit-title-button h-7 w-7 inline-flex items-center justify-center rounded-md cursor-pointer text-gray-500 hover:text-gray-700 hover:bg-gray-200/60 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/60 transition-colors"
 										aria-label="Edit title"
 										title="Edit title"
 										onClick={() => {
@@ -1393,7 +1416,7 @@ useEffect(() => {
 								</div>
 							)}
 							<button
-								className="h-7 w-7 inline-flex items-center justify-center rounded-md cursor-pointer text-gray-500 hover:text-gray-700 hover:bg-gray-200/60 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/60 transition-colors"
+								className="collapse-audio-button h-7 w-7 inline-flex items-center justify-center rounded-md cursor-pointer text-gray-500 hover:text-gray-700 hover:bg-gray-200/60 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/60 transition-colors"
 								aria-label={audioCollapsed ? 'Expand audio' : 'Collapse audio'}
 								title={audioCollapsed ? 'Expand audio' : 'Collapse audio'}
 								onClick={toggleAudioCollapsed}
@@ -1405,18 +1428,18 @@ useEffect(() => {
 								)}
 							</button>
 						</div>
-						<p className="text-gray-600 dark:text-gray-400 text-sm">
+						<p className="upload-date text-gray-600 dark:text-gray-400 text-sm">
 							Added on {formatDate(audioFile.created_at)}
 						</p>
 					</div>
 
 					{/* Audio Player Controls (hidden when collapsed, but kept mounted) */}
-					<div className={`mb-6 ${audioCollapsed ? 'hidden' : ''}`}>
+					<div className={`audio-controls mb-6 ${audioCollapsed ? 'hidden' : ''}`}>
 						<div className="flex items-center gap-4">
 							{/* Circular Play/Pause Button */}
 							<button
 								onClick={togglePlayPause}
-								className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 flex items-center justify-center group cursor-pointer"
+								className="play-pause-button w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 flex items-center justify-center group cursor-pointer"
 							>
 								{isPlaying ? (
 									<Pause className="h-5 w-5 sm:h-6 sm:w-6 group-hover:scale-110 transition-transform" />
@@ -1429,7 +1452,7 @@ useEffect(() => {
 							<div className="flex-1">
 								<div
 									ref={waveformRef}
-									className="w-full bg-gray-50 dark:bg-gray-700 rounded-lg p-2 sm:p-4"
+									className="waveform-container w-full bg-gray-50 dark:bg-gray-700 rounded-lg p-2 sm:p-4"
 									style={{ minHeight: "80px" }}
 								/>
 							</div>
@@ -1729,12 +1752,12 @@ useEffect(() => {
 													key={index}
 													className="flex gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-150"
 												>
-													<div className="flex-shrink-0 flex flex-col gap-2">
-														<span className="inline-block px-2 py-1 text-xs font-mono bg-blue-100 dark:bg-blue-700 text-blue-800 dark:text-blue-200 rounded">
+													<div className="flex-shrink-0 flex flex-row gap-2">
+														<span className="inline-block px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded">
 															{formatTimestamp(segment.start)}
 														</span>
 														{segment.speaker && (
-															<span className="inline-block px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-700 text-green-800 dark:text-green-200 rounded transition-all duration-200">
+															<span className={`inline-block px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${getSpeakerColor(segment.speaker)}`}>
 																{getDisplaySpeakerName(segment.speaker)}
 															</span>
 														)}
