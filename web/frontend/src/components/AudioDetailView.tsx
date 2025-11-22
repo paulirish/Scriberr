@@ -101,7 +101,7 @@ interface WordSegment {
 
 interface Transcript {
 	text: string;
-	segments?: Array<{ 
+	segments?: Array<{
 		start: number;
 		end: number;
 		text: string;
@@ -210,8 +210,8 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
 	}, [transcript]);
 	const [loading, setLoading] = useState(true);
 	const [isPlaying, setIsPlaying] = useState(false);
-	const [transcriptMode, setTranscriptMode] = useState<"compact" | "expanded">
-		("expanded",
+	const [transcriptMode, setTranscriptMode] = useState<"compact" | "expanded">(
+		"expanded",
 	);
 	const [viewMode, setViewMode] = useState<"transcript" | "chat">("transcript");
 	const [currentTime, setCurrentTime] = useState(0);
@@ -284,14 +284,15 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
             const key = `scriberr.audioCollapsed.${audioId}`;
             const saved = localStorage.getItem(key);
             if (saved !== null) setAudioCollapsed(saved === '1');
-        } catch {} // eslint-disable-next-line react-hooks/exhaustive-deps
+        } catch {}
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [audioId]);
 
     useEffect(() => {
         try {
             const key = `scriberr.audioCollapsed.${audioId}`;
             localStorage.setItem(key, audioCollapsed ? '1' : '0');
-        } catch {} // eslint-disable-next-line react-hooks/exhaustive-deps
+        } catch {}
     }, [audioId, audioCollapsed]);
 
 useEffect(() => {
@@ -300,7 +301,7 @@ useEffect(() => {
         // Check LLM configured status for gating
         (async () => {
             try {
-                const res = await fetch('/api/v1/llm/config', { headers: { ...getAuthHeaders() }}});
+                const res = await fetch('/api/v1/llm/config', { headers: { ...getAuthHeaders() }});
                 if (res.ok) {
                     const cfg = await res.json();
                     setLlmReady(!!cfg && cfg.is_active);
@@ -320,19 +321,19 @@ useEffect(() => {
 		if (!processingStartTime && status === "processing") {
 			setProcessingStartTime(new Date());
 		}
-
+		
 		// Clear any existing interval
 		if (pollingInterval) {
 			clearInterval(pollingInterval);
 		}
-
+		
 		// Start polling every 3 seconds
 		const interval = setInterval(async () => {
 			await fetchStatusOnly();
 		}, 3000);
-
+		
 		setPollingInterval(interval);
-
+		
 		// Cleanup interval on unmount or when status changes
 		return () => {
 			if (interval) {
@@ -363,7 +364,7 @@ useEffect(() => {
 			const elapsed = Math.floor((now.getTime() - processingStartTime.getTime()) / 1000);
 			setElapsedTime(elapsed);
 		}, 1000);
-
+		
 		return () => clearInterval(timer);
 	}
 }, [processingStartTime, currentStatus, audioFile?.status]);
@@ -527,7 +528,7 @@ useEffect(() => {
 		);
 
 		// If no exact match, find the closest upcoming word
-		const fallbackWordIdx = currentWordIdx === -1
+		const fallbackWordIdx = currentWordIdx === -1 
 			? transcript.word_segments.findIndex(word => word.start > currentTime) - 1
 			: currentWordIdx;
 
@@ -547,17 +548,17 @@ useEffect(() => {
 	useEffect(() => {
 		if (currentWordIndex !== null && highlightedWordRef.current) {
 			const highlightedElement = highlightedWordRef.current;
-
+			
 			// Check if the highlighted word is outside the visible viewport
 			const highlightedRect = highlightedElement.getBoundingClientRect();
 			const viewportHeight = window.innerHeight;
-
+			
 			// Consider the word out of view if it's too close to the top or bottom edges
 			// This provides a buffer so the word isn't right at the edge
 			const buffer = viewportHeight * 0.2; // 20% buffer
 			const isAboveView = highlightedRect.top < buffer;
 			const isBelowView = highlightedRect.bottom > (viewportHeight - buffer);
-
+			
 			if (isAboveView || isBelowView) {
 				highlightedElement.scrollIntoView({
 					behavior: 'smooth',
@@ -582,30 +583,31 @@ useEffect(() => {
 			if (transcriptResponse.ok) {
 				const transcriptData = await transcriptResponse.json();
 				console.log("[DEBUG] fetchTranscriptOnly - transcriptData:", transcriptData);
-
+				
 				// The API returns transcript data in a nested structure
-			if (transcriptData.transcript) {
-				console.log("[DEBUG] transcript has word_segments:", !!transcriptData.transcript.word_segments);
-				console.log("[DEBUG] word_segments length:", transcriptData.transcript.word_segments?.length);
-				// Check if transcript has segments or text
-			if (typeof transcriptData.transcript === "string") {
-				console.log("[DEBUG] Setting transcript as STRING");
-				setTranscript({ text: transcriptData.transcript });
-			} else if (transcriptData.transcript.text) {
-				console.log("[DEBUG] Setting transcript with TEXT and word_segments");
-				setTranscript({
-					text: transcriptData.transcript.text,
-					segments: transcriptData.transcript.segments,
-					word_segments: transcriptData.transcript.word_segments,
-				});
-			} else if (transcriptData.transcript.segments) {
-				console.log("[DEBUG] Setting transcript with SEGMENTS and word_segments");
-				setTranscript({
-					text: "",
-					segments: transcriptData.transcript.segments,
-					word_segments: transcriptData.transcript.word_segments,
-				});
-			}
+				if (transcriptData.transcript) {
+					console.log("[DEBUG] transcript has word_segments:", !!transcriptData.transcript.word_segments);
+					console.log("[DEBUG] word_segments length:", transcriptData.transcript.word_segments?.length);
+					// Check if transcript has segments or text
+					if (typeof transcriptData.transcript === "string") {
+						console.log("[DEBUG] Setting transcript as STRING");
+						setTranscript({ text: transcriptData.transcript });
+					} else if (transcriptData.transcript.text) {
+						console.log("[DEBUG] Setting transcript with TEXT and word_segments");
+						setTranscript({
+							text: transcriptData.transcript.text,
+							segments: transcriptData.transcript.segments,
+							word_segments: transcriptData.transcript.word_segments,
+						});
+					} else if (transcriptData.transcript.segments) {
+						console.log("[DEBUG] Setting transcript with SEGMENTS and word_segments");
+						setTranscript({
+							text: "",
+							segments: transcriptData.transcript.segments,
+							word_segments: transcriptData.transcript.word_segments,
+						});
+					}
+				}
 			}
 		} catch (error) {
 			console.error("Error fetching transcript:", error);
@@ -619,19 +621,19 @@ useEffect(() => {
 					...getAuthHeaders(),
 				},
 			});
-
+			
 			if (response.ok) {
 				const data = await response.json();
 				const previousStatus = currentStatus || audioFile?.status;
-
+				
 				// Only update the status state, not the entire audioFile
 				setCurrentStatus(data.status);
-
+				
 				// If status changed to completed, update audioFile status and fetch transcript
-			if (data.status === "completed" && previousStatus === "processing") {
-				setAudioFile(prev => prev ? { ...prev, status: "completed" } : null);
-				await fetchTranscriptOnly();
-			}
+				if (data.status === "completed" && previousStatus === "processing") {
+					setAudioFile(prev => prev ? { ...prev, status: "completed" } : null);
+					await fetchTranscriptOnly();
+				}
 			}
 		} catch (error) {
 			console.error('Error fetching status:', error);
@@ -654,8 +656,8 @@ useEffect(() => {
 				setCurrentStatus(audioData.status);
 
 				// Fetch transcript if completed
-			if (audioData.status === "completed") {
-				const transcriptResponse = await fetch(
+				if (audioData.status === "completed") {
+					const transcriptResponse = await fetch(
 						`/api/v1/transcription/${audioId}/transcript`,
 						{
 							headers: {
@@ -664,27 +666,27 @@ useEffect(() => {
 						},
 					);
 
-				if (transcriptResponse.ok) {
+					if (transcriptResponse.ok) {
 						const transcriptData = await transcriptResponse.json();
 						console.log("[DEBUG] *** fetchAudioDetails TRANSCRIPT LOADING ***");
 						console.log("[DEBUG] initial transcriptData:", transcriptData);
-
+						
 						// The API returns transcript data in a nested structure
-					if (transcriptData.transcript) {
+						if (transcriptData.transcript) {
 							console.log("[DEBUG] initial transcript has word_segments:", !!transcriptData.transcript.word_segments);
 							console.log("[DEBUG] initial word_segments length:", transcriptData.transcript.word_segments?.length);
 							// Check if transcript has segments or text
-						if (typeof transcriptData.transcript === "string") {
+							if (typeof transcriptData.transcript === "string") {
 								console.log("[DEBUG] INITIAL: Setting transcript as STRING");
 								setTranscript({ text: transcriptData.transcript });
-						} else if (transcriptData.transcript.text) {
+							} else if (transcriptData.transcript.text) {
 								console.log("[DEBUG] INITIAL: Setting transcript with TEXT and word_segments");
 								setTranscript({
 									text: transcriptData.transcript.text,
 									segments: transcriptData.transcript.segments,
 									word_segments: transcriptData.transcript.word_segments,
 								});
-						} else if (transcriptData.transcript.segments) {
+							} else if (transcriptData.transcript.segments) {
 								console.log("[DEBUG] INITIAL: Setting transcript with SEGMENTS only");
 								// If only segments, combine them into text
 								const fullText = transcriptData.transcript.segments
@@ -695,16 +697,16 @@ useEffect(() => {
 									segments: transcriptData.transcript.segments,
 									word_segments: transcriptData.transcript.word_segments,
 								});
+							}
 						}
-					}
-				} else {
+					} else {
 						console.error(
 							"Failed to fetch transcript:",
 							transcriptResponse.status,
 						);
 					}
-			}
-			else {
+				}
+			} else {
 				console.error("Failed to fetch audio details:", audioResponse.status);
 			}
 		} catch (error) {
@@ -716,7 +718,7 @@ useEffect(() => {
 
     const fetchNotes = async () => {
         try {
-            const res = await fetch(`/api/v1/transcription/${audioId}/notes`, { headers: { ...getAuthHeaders() }}});
+            const res = await fetch(`/api/v1/transcription/${audioId}/notes`, { headers: { ...getAuthHeaders() }});
             if (res.ok) {
                 const data = await res.json();
                 setNotes(sortNotes(data));
@@ -728,7 +730,7 @@ useEffect(() => {
         if (executionData) return; // Already loaded
         setExecutionDataLoading(true);
         try {
-            const res = await fetch(`/api/v1/transcription/${audioId}/execution`, {
+            const res = await fetch(`/api/v1/transcription/${audioId}/execution`, { 
                 headers: { ...getAuthHeaders() }
             });
             if (res.ok) {
@@ -736,8 +738,8 @@ useEffect(() => {
                 setExecutionData(data);
             } else {
             }
-        } catch (e) {
-            console.error("Failed to fetch execution data", e);
+        } catch (e) { 
+            console.error("Failed to fetch execution data", e); 
         } finally {
             setExecutionDataLoading(false);
         }
@@ -887,7 +889,7 @@ useEffect(() => {
     };
 
     const deleteNote = async (id: string) => {
-        await fetch(`/api/v1/notes/${id}`, { method: 'DELETE', headers: { ...getAuthHeaders() }}});
+        await fetch(`/api/v1/notes/${id}`, { method: 'DELETE', headers: { ...getAuthHeaders() }});
         setNotes(prev => prev.filter(n => n.id !== id));
     };
 
@@ -897,7 +899,7 @@ useEffect(() => {
 		console.log("[DEBUG] renderHighlightedTranscript - transcript:", transcript);
 		console.log("[DEBUG] has word_segments:", !!transcript?.word_segments);
 		console.log("[DEBUG] word_segments length:", transcript?.word_segments?.length);
-
+		
 		if (!transcript?.word_segments || transcript.word_segments.length === 0) {
 			console.log("[DEBUG] No word_segments, returning plain text:", transcript?.text?.substring(0, 100) + "...");
 			return transcript?.text || '';
@@ -914,7 +916,7 @@ useEffect(() => {
                     data-word={word.word}
                     data-start={word.start}
                     data-end={word.end}
-                    className={`cursor-text transition-colors duration-150 hover:bg-blue-100 dark:hover:bg-blue-800 inline ${ 
+                    className={`cursor-text transition-colors duration-150 hover:bg-blue-100 dark:hover:bg-blue-800 inline ${
                         isHighlighted
                             ? 'bg-yellow-300 dark:bg-yellow-500 dark:text-black px-1 rounded'
                             : isAnnotated ? 'bg-amber-100/70 dark:bg-amber-800/40 px-0.5 rounded' : 'px-0.5'
@@ -953,7 +955,7 @@ useEffect(() => {
                     data-word={word.word}
                     data-start={word.start}
                     data-end={word.end}
-                    className={`cursor-text transition-colors duration-150 hover:bg-blue-100 dark:hover:bg-blue-800 inline ${ 
+                    className={`cursor-text transition-colors duration-150 hover:bg-blue-100 dark:hover:bg-blue-800 inline ${
                         isHighlighted
                             ? 'bg-yellow-300 dark:bg-yellow-500 dark:text-black px-1 rounded'
                             : isAnnotated ? 'bg-amber-100/70 dark:bg-amber-800/40 px-0.5 rounded' : 'px-0.5'
@@ -1018,7 +1020,7 @@ useEffect(() => {
         if (llmReady === false) return;
         // If a summary already exists for this transcription, show it directly
         try {
-            const resExisting = await fetch(`/api/v1/transcription/${audioId}/summary`, { headers: { ...getAuthHeaders() }}});
+            const resExisting = await fetch(`/api/v1/transcription/${audioId}/summary`, { headers: { ...getAuthHeaders() }});
             if (resExisting.ok) {
                 const data = await resExisting.json();
                 setSummaryStream(data.content || '');
@@ -1031,7 +1033,7 @@ useEffect(() => {
         if (templates.length === 0) {
             try {
                 setTemplatesLoading(true);
-                const res = await fetch('/api/v1/summaries', { headers: { ...getAuthHeaders() }}});
+                const res = await fetch('/api/v1/summaries', { headers: { ...getAuthHeaders() }});
                 if (res.ok) {
                     const data = await res.json();
                     setTemplates(data || []);
@@ -1117,13 +1119,13 @@ useEffect(() => {
 				const startTime = formatSRTTime(segment.start);
 				const endTime = formatSRTTime(segment.end);
 				let text = segment.text.trim();
-
+				
 				// Add speaker label if available (common practice in SRT files)
-			if (segment.speaker) {
-				text = `${getDisplaySpeakerName(segment.speaker)}: ${text}`;
-			}
-
-			srtContent += `${counter}\n${startTime} --> ${endTime}\n${text}\n\n`;
+				if (segment.speaker) {
+					text = `${getDisplaySpeakerName(segment.speaker)}: ${text}`;
+				}
+				
+				srtContent += `${counter}\n${startTime} --> ${endTime}\n${text}\n\n`;
 				counter++;
 			});
 		} else {
@@ -1148,14 +1150,14 @@ useEffect(() => {
 				if (index > 0) content += '\n\n';
 
 				// Add timestamp if enabled
-			if (includeTimestamps) {
-				content += `[${formatTimestamp(segment.start)}] `;
-			}
+				if (includeTimestamps) {
+					content += `[${formatTimestamp(segment.start)}] `;
+				}
 
 				// Add speaker if enabled and available
-			if (includeSpeakerLabels && segment.speaker) {
-				content += `${getDisplaySpeakerName(segment.speaker)}: `;
-			}
+				if (includeSpeakerLabels && segment.speaker) {
+					content += `${getDisplaySpeakerName(segment.speaker)}: `;
+				}
 
 				content += segment.text.trim();
 			});
@@ -1295,13 +1297,13 @@ useEffect(() => {
 
 			if (response.ok) {
 				const mappings: { id?: number; original_speaker: string; custom_name: string }[] = await response.json();
-
+				
 				// Convert to lookup object
 				const mappingObj: Record<string, string> = {};
 				mappings.forEach(mapping => {
 					mappingObj[mapping.original_speaker] = mapping.custom_name;
 				});
-
+				
 				setSpeakerMappings(mappingObj);
 			}
 		} catch (err) {
@@ -1757,13 +1759,11 @@ useEffect(() => {
 							)}
 						</div>
 
-						{
-/* Content Area - Show transcript or chat based on view mode */
-}
+						{/* Content Area - Show transcript or chat based on view mode */}
 						{viewMode === "transcript" ? (
-							<div className="transcript-content relative overflow-hidden">
+							<div className="relative overflow-hidden">
 								<div
-                                className={`compact-view-container transition-all duration-300 ease-in-out ${ 
+                                className={`transition-all duration-300 ease-in-out ${
                                     transcriptMode === "compact"
                                         ? "opacity-100 translate-y-0"
                                         : "opacity-0 -translate-y-4 absolute inset-0 pointer-events-none"
@@ -1774,24 +1774,22 @@ useEffect(() => {
                                         ref={transcriptRef}
                                         className="prose prose-gray dark:prose-invert max-w-none relative select-text cursor-text"
                                     >
-                                    <div className="transcript-text text-gray-700 dark:text-gray-300 leading-relaxed break-words select-text">
+                                    <div className="text-gray-700 dark:text-gray-300 leading-relaxed break-words select-text">
                                         {renderHighlightedTranscript()}
                                     </div>
 
-                                    {
-/* Selection bubble and editor moved to portal */
-}
+                                    {/* Selection bubble and editor moved to portal */}
 										</div>
 									)}
 								</div>
 
 								<div
-                                className={`timeline-view-container transition-all duration-300 ease-in-out ${ 
+                                className={`transition-all duration-300 ease-in-out ${
                                     transcriptMode === "expanded"
                                         ? "opacity-100 translate-y-0"
                                         : "opacity-0 translate-y-4 absolute inset-0 pointer-events-none"
                                 }`}
-							>
+								>
 									{transcriptMode === "expanded" && transcript.segments && (
                                     <div
                                         ref={transcriptRef}
@@ -1800,31 +1798,31 @@ useEffect(() => {
 											{transcript.segments.map((segment, index) => (
 												<div
 													key={index}
-													className="transcript-segment flex gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-150"
+													className="flex gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-150"
 												>
-													<div className="segment-metadata flex-shrink-0 flex flex-col gap-2">
-														<span className="timestamp-chip inline-block px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded">
+													<div className="flex-shrink-0 flex flex-col gap-2">
+														<span className="inline-block px-2 py-1 text-xs font-mono bg-blue-100 dark:bg-blue-700 text-blue-800 dark:text-blue-200 rounded">
 															{formatTimestamp(segment.start)}
 														</span>
 														{segment.speaker && (
-																	<span className={`speaker-chip inline-block px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${getSpeakerColor(segment.speaker)}`}>
-																		{getDisplaySpeakerName(segment.speaker)}
+															<span className="inline-block px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-700 text-green-800 dark:text-green-200 rounded transition-all duration-200">
+																{getDisplaySpeakerName(segment.speaker)}
 															</span>
 														)}
 													</div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="segment-text text-gray-700 dark:text-gray-200 leading-relaxed break-words select-text">
+                                                <p className="text-gray-700 dark:text-gray-200 leading-relaxed break-words select-text">
                                                     {renderSegmentWithHighlighting(segment)}
                                                 </p>
                                             </div>
 												</div>
-											)}
+											))}
 										</div>
 									)}
 								</div>
 							</div>
-					) : (
-							<div className="chat-view-container" style={{ height: "600px" }}>
+						) : (
+							<div style={{ height: "600px" }}>
 								<ChatInterface
 									transcriptionId={audioId}
 									onClose={() => setViewMode("transcript")}
@@ -2094,126 +2092,608 @@ useEffect(() => {
                                     </Command>
                                 </PopoverContent>
                             </Popover>
+                            {!templatesLoading && templates.length === 0 && (
+                                <p className="text-xs text-gray-500">No templates. Create one in Settings → Summary.</p>
+                            )}
+                            {selectedTemplate && !selectedTemplate.model && (
+                                <p className="text-xs text-red-600">Selected template has no model configured. Edit it in Settings.</p>
+                            )}
                         </div>
-                        {selectedTemplate && (
-                            <div className="template-prompt-preview rounded-md bg-gray-50 dark:bg-gray-900/60 p-3 text-xs text-gray-600 dark:text-gray-400 max-h-32 overflow-auto">
-                                <p className="font-semibold mb-1">Prompt:</p>
-                                <pre className="whitespace-pre-wrap font-sans">{selectedTemplate.prompt}</pre>
-                            </div>
-                        )}
+                        <div className="mt-1 flex items-center justify-end gap-2">
+                            <button className="px-3 py-1.5 rounded-md bg-gray-200 dark:bg-gray-700" onClick={() => setSummarizeOpen(false)}>Cancel</button>
+                            <button className="px-3 py-1.5 rounded-md bg-blue-600 text-white disabled:opacity-50" disabled={!selectedTemplateId || !selectedTemplate?.model} onClick={() => { setSummarizeOpen(false); startSummarization(); }}>Summarize</button>
+                        </div>
                     </div>
-                    <DialogFooter>
-                        <Button
-                            onClick={startSummarization}
-                            disabled={!selectedTemplateId}
-                            className="start-summary-button w-full bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-800 disabled:opacity-50"
-                        >
-                            <Sparkles className="mr-2 h-4 w-4" />
-                            Generate Summary
-                        </Button>
-                    </DialogFooter>
                 </UIDialogContent>
             </UIDialog>
 
-            {
-/* Summary result viewer dialog */
-}
+            {/* Summary output dialog */}
             <UIDialog open={summaryOpen} onOpenChange={setSummaryOpen}>
-                <UIDialogContent className="summary-result-dialog sm:max-w-2xl bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                <UIDialogContent className="sm:max-w-3xl bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 max-h-[85vh] overflow-y-auto">
                     <UIDialogHeader>
                         <UIDialogTitle className="text-gray-900 dark:text-gray-100">Summary</UIDialogTitle>
-                        <UIDialogDescription className="text-gray-600 dark:text-gray-400">Generated by {selectedTemplate?.model || 'LLM'}</UIDialogDescription>
+                        <UIDialogDescription className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                            {isSummarizing ? (
+                                <>
+                                    <span>Generating summary...</span>
+                                    <span className="inline-block h-3.5 w-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" aria-label="Loading" />
+                                </>
+                            ) : (
+                                <span>Summary {summaryError ? 'failed' : 'ready'}</span>
+                            )}
+                        </UIDialogDescription>
                     </UIDialogHeader>
-                    <div className="summary-content prose prose-gray dark:prose-invert max-w-none max-h-[60vh] overflow-auto py-2">
-                        {isSummarizing && !summaryStream ? (
-                            <div className="flex items-center gap-2">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <p>Generating summary...</p>
-                            </div>
-                        ) : summaryError ? (
-                            <p className="text-red-500">{summaryError}</p>
-                        ) : (
-                            <ReactMarkdown
-                                rehypePlugins={[rehypeRaw, rehypeHighlight, rehypeKatex]}
-                                remarkPlugins={[remarkMath]}
-                                className="markdown-content"
-                            >
+                    <div className="flex items-center justify-end gap-2 mb-2">
+                        <button
+                            className="px-2.5 py-1.5 rounded-md bg-blue-600 text-white text-sm"
+                            onClick={async () => {
+                                // Keep summary dialog open; open template picker on top
+                                setSummarizeOpen(true);
+                                // Reset selection so user explicitly chooses a template
+                                setSelectedTemplateId('');
+                                if (templates.length === 0) {
+                                    try {
+                                        setTemplatesLoading(true);
+                                        const res = await fetch('/api/v1/summaries', { headers: { ...getAuthHeaders() }});
+                                        if (res.ok) {
+                                            const data = await res.json();
+                                            setTemplates(data || []);
+                                        }
+                                    } finally { setTemplatesLoading(false); }
+                                }
+                            }}
+                            disabled={isSummarizing}
+                        >
+                            Regenerate
+                        </button>
+                        <button
+                            className="px-2.5 py-1.5 rounded-md bg-gray-200 dark:bg-gray-700 text-sm"
+                            onClick={async () => {
+                                try {
+                                    await navigator.clipboard.writeText(summaryStream || '');
+                                    toast({ title: 'Copied to clipboard' });
+                                } catch {}
+                            }}
+                            disabled={!summaryStream}
+                        >
+                            Copy Text
+                        </button>
+                        <button
+                            className="px-2.5 py-1.5 rounded-md bg-gray-200 dark:bg-gray-700 text-sm"
+                            onClick={() => {
+                                if (!summaryStream) return;
+                                const base = getFileNameWithoutExt();
+                                downloadFile(summaryStream, `${base}-summary.md`, 'text/markdown');
+                            }}
+                            disabled={!summaryStream}
+                        >
+                            Download .md
+                        </button>
+                    </div>
+                    <div className="prose prose-gray dark:prose-invert max-w-none min-h-[200px]">
+                        {summaryError ? (
+                            <p className="text-sm text-red-600 dark:text-red-400">{summaryError}</p>
+                        ) : summaryStream ? (
+                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeRaw as any, rehypeKatex as any, rehypeHighlight as any]}>
                                 {summaryStream}
                             </ReactMarkdown>
+                        ) : (
+                            <p className="text-sm text-gray-500">{isSummarizing ? 'Generating summary...' : 'No content'}</p>
                         )}
                     </div>
                 </UIDialogContent>
             </UIDialog>
 
-            {
-/* Execution Info Dialog */
-}
+            {/* Execution info dialog */}
             <UIDialog open={executionInfoOpen} onOpenChange={setExecutionInfoOpen}>
-                <UIDialogContent className="execution-info-dialog sm:max-w-2xl bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                <UIDialogContent className="sm:max-w-4xl w-[95vw] bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 max-h-[90vh] overflow-y-auto">
                     <UIDialogHeader>
-                        <UIDialogTitle className="text-gray-900 dark:text-gray-100">Execution Details</UIDialogTitle>
+                        <UIDialogTitle className="text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            Transcription Execution Details
+                        </UIDialogTitle>
                         <UIDialogDescription className="text-gray-600 dark:text-gray-400">
-                            Technical details about the transcription job.
+                            Parameters used and processing time for this transcription
                         </UIDialogDescription>
                     </UIDialogHeader>
-                    <div className="execution-info-content max-h-[70vh] overflow-auto text-sm">
-                        {executionDataLoading ? (
-                            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span>Loading details...</span>
+                    
+                    {executionDataLoading ? (
+                        <div className="py-8 text-center">
+                            <div className="animate-pulse">
+                                <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-3/4 mx-auto mb-4"></div>
+                                <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/2 mx-auto"></div>
                             </div>
-                        ) : executionData ? (
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="info-card bg-gray-50 dark:bg-gray-700/50 p-3 rounded-md">
-                                        <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Processing Time</h3>
-                                        <p><Clock className="inline h-4 w-4 mr-1.5" />{formatDuration((executionData.processing_duration || 0) / 1000)}</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Started: {formatDate(executionData.started_at)}</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Completed: {executionData.completed_at ? formatDate(executionData.completed_at) : 'N/A'}</p>
+                        </div>
+                    ) : executionData ? (
+                        <div className="space-y-4 sm:space-y-6 py-2 sm:py-4">
+                            {/* Processing Time - Conditional for Multi-track */}
+                            {executionData.is_multi_track ? (
+                                // Multi-track timing display
+                                <div className="space-y-4">
+                                    {/* Overall Processing Time */}
+                                    <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 dark:from-indigo-950/30 dark:via-blue-950/30 dark:to-cyan-950/30 border border-blue-100 dark:border-blue-800/30 rounded-lg p-4 sm:p-6">
+                                        <h3 className="text-lg font-semibold text-indigo-900 dark:text-indigo-100 mb-3 sm:mb-4 flex items-center gap-2">
+                                            <Clock className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                                            Overall Processing Time
+                                        </h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-sm">
+                                            <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-indigo-100/50 dark:border-indigo-800/50">
+                                                <span className="text-indigo-700 dark:text-indigo-300 font-medium">Started:</span>
+                                                <p className="font-mono text-gray-900 dark:text-gray-100 mt-1 text-xs sm:text-sm">
+                                                    {new Date(executionData.started_at).toLocaleString()}
+                                                </p>
+                                            </div>
+                                            <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-indigo-100/50 dark:border-indigo-800/50">
+                                                <span className="text-indigo-700 dark:text-indigo-300 font-medium">Completed:</span>
+                                                <p className="font-mono text-gray-900 dark:text-gray-100 mt-1 text-xs sm:text-sm">
+                                                    {executionData.completed_at 
+                                                        ? new Date(executionData.completed_at).toLocaleString()
+                                                        : 'N/A'
+                                                    }
+                                                </p>
+                                            </div>
+                                            <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-indigo-100/50 dark:border-indigo-800/50">
+                                                <span className="text-indigo-700 dark:text-indigo-300 font-medium">Total Duration:</span>
+                                                <p className="font-mono text-xl sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
+                                                    {executionData.processing_duration 
+                                                        ? `${(executionData.processing_duration / 1000).toFixed(1)}s`
+                                                        : 'N/A'
+                                                    }
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="info-card bg-gray-50 dark:bg-gray-700/50 p-3 rounded-md">
-                                        <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Job Status</h3>
-                                        <p><span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${executionData.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800'}`}>
-                                            {executionData.status}
-                                        </span></p>
-                                        {executionData.error_message && <p className="text-red-500 text-xs mt-1">Error: {executionData.error_message}</p>}
+
+                                    {/* Individual Track Processing */}
+                                    {executionData.multi_track_timings && executionData.multi_track_timings.length > 0 && (
+                                        <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-green-950/30 dark:via-emerald-950/30 dark:to-teal-950/30 border border-green-100 dark:border-green-800/30 rounded-lg p-4 sm:p-6">
+                                            <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-3 sm:mb-4 flex items-center gap-2">
+                                                <svg className="h-5 w-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                                </svg>
+                                                Individual Track Processing
+                                            </h3>
+                                            <div className="space-y-3">
+                                                {executionData.multi_track_timings.map((timing, index) => (
+                                                    <div key={index} className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-green-100/50 dark:border-green-800/50">
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <span className="font-medium text-green-800 dark:text-green-200">
+                                                                {timing.track_name}
+                                                            </span>
+                                                            <span className="font-mono text-lg font-bold text-green-600 dark:text-green-400">
+                                                                {(timing.duration / 1000).toFixed(1)}s
+                                                            </span>
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400">
+                                                            <div>
+                                                                <span className="font-medium">Started:</span>
+                                                                <p className="font-mono">{new Date(timing.start_time).toLocaleTimeString()}</p>
+                                                            </div>
+                                                            <div>
+                                                                <span className="font-medium">Completed:</span>
+                                                                <p className="font-mono">{new Date(timing.end_time).toLocaleTimeString()}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Audio Merge Phase */}
+                                    {executionData.merge_duration && (
+                                        <div className="bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 dark:from-orange-950/30 dark:via-amber-950/30 dark:to-yellow-950/30 border border-orange-100 dark:border-orange-800/30 rounded-lg p-4 sm:p-6">
+                                            <h3 className="text-lg font-semibold text-orange-900 dark:text-orange-100 mb-3 sm:mb-4 flex items-center gap-2">
+                                                <svg className="h-5 w-5 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                </svg>
+                                                Transcript Merge Phase
+                                            </h3>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                                                <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-orange-100/50 dark:border-orange-800/50">
+                                                    <span className="text-orange-700 dark:text-orange-300 font-medium">Started:</span>
+                                                    <p className="font-mono text-gray-900 dark:text-gray-100 mt-1 text-xs">
+                                                        {executionData.merge_start_time
+                                                            ? new Date(executionData.merge_start_time).toLocaleTimeString()
+                                                            : 'N/A'
+                                                        }
+                                                    </p>
+                                                </div>
+                                                <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-orange-100/50 dark:border-orange-800/50">
+                                                    <span className="text-orange-700 dark:text-orange-300 font-medium">Completed:</span>
+                                                    <p className="font-mono text-gray-900 dark:text-gray-100 mt-1 text-xs">
+                                                        {executionData.merge_end_time
+                                                            ? new Date(executionData.merge_end_time).toLocaleTimeString()
+                                                            : 'N/A'
+                                                        }
+                                                    </p>
+                                                </div>
+                                                <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-orange-100/50 dark:border-orange-800/50">
+                                                    <span className="text-orange-700 dark:text-orange-300 font-medium">Duration:</span>
+                                                    <p className="font-mono text-lg font-bold text-orange-600 dark:text-orange-400 mt-1">
+                                                        {(executionData.merge_duration / 1000).toFixed(1)}s
+                                                    </p>
+                                                </div>
+                                                <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-orange-100/50 dark:border-orange-800/50">
+                                                    <span className="text-orange-700 dark:text-orange-300 font-medium">Audio Length:</span>
+                                                    <p className="font-mono text-lg font-bold text-orange-600 dark:text-orange-400 mt-1">
+                                                        {(() => {
+                                                            const duration = getAudioDurationFromTranscript(transcript);
+                                                            return duration ? formatDuration(duration) : 'N/A';
+                                                        })()}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                // Single-track timing display (original)
+                                <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 dark:from-indigo-950/30 dark:via-blue-950/30 dark:to-cyan-950/30 border border-blue-100 dark:border-blue-800/30 rounded-lg p-4 sm:p-6">
+                                    <h3 className="text-lg font-semibold text-indigo-900 dark:text-indigo-100 mb-3 sm:mb-4 flex items-center gap-2">
+                                        <Clock className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                                        Processing Time
+                                    </h3>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-sm">
+                                        <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-indigo-100/50 dark:border-indigo-800/50">
+                                            <span className="text-indigo-700 dark:text-indigo-300 font-medium">Started:</span>
+                                            <p className="font-mono text-gray-900 dark:text-gray-100 mt-1 text-xs sm:text-sm">
+                                                {new Date(executionData.started_at).toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-indigo-100/50 dark:border-indigo-800/50">
+                                            <span className="text-indigo-700 dark:text-indigo-300 font-medium">Completed:</span>
+                                            <p className="font-mono text-gray-900 dark:text-gray-100 mt-1 text-xs sm:text-sm">
+                                                {executionData.completed_at 
+                                                    ? new Date(executionData.completed_at).toLocaleString()
+                                                    : 'N/A'
+                                                }
+                                            </p>
+                                        </div>
+                                        <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-indigo-100/50 dark:border-indigo-800/50">
+                                            <span className="text-indigo-700 dark:text-indigo-300 font-medium">Duration:</span>
+                                            <p className="font-mono text-xl sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
+                                                {executionData.processing_duration 
+                                                    ? `${(executionData.processing_duration / 1000).toFixed(1)}s`
+                                                    : 'N/A'
+                                                }
+                                            </p>
+                                        </div>
+                                        <div className="bg-white/60 dark:bg-gray-800/30 rounded-md p-3 border border-indigo-100/50 dark:border-indigo-800/50">
+                                            <span className="text-indigo-700 dark:text-indigo-300 font-medium">Audio Length:</span>
+                                            <p className="font-mono text-xl sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
+                                                {(() => {
+                                                    const duration = getAudioDurationFromTranscript(transcript);
+                                                    return duration ? formatDuration(duration) : 'N/A';
+                                                })()}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="info-card bg-gray-50 dark:bg-gray-700/50 p-3 rounded-md">
-                                    <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Parameters Used</h3>
-                                    <pre className="text-xs bg-white dark:bg-gray-800 p-2 rounded overflow-auto">
-                                        {JSON.stringify(executionData.actual_parameters || {}, null, 2)}
-                                    </pre>
-                                </div>
-                                {executionData.is_multi_track && executionData.multi_track_timings && (
-                                    <div className="info-card bg-gray-50 dark:bg-gray-700/50 p-3 rounded-md">
-                                        <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Multi-Track Speaker Timings</h3>
-                                        <ul className="space-y-1 text-xs">
-                                            {executionData.multi_track_timings.map((timing, i) => (
-                                                <li key={i}>
-                                                    <span className="font-mono bg-white dark:bg-gray-800 px-1.5 py-0.5 rounded">{timing.track_name}</span>
-                                                    <span className="ml-2">{formatDuration(timing.duration / 1000)}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
+                            )}
+
+                            {/* Model Parameters */}
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4 flex items-center gap-2">
+                                    <Settings className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                                    {(() => {
+                                        const modelFamily = executionData.actual_parameters?.model_family;
+                                        if (modelFamily === 'nvidia_parakeet') return 'NVIDIA Parakeet Parameters';
+                                        if (modelFamily === 'nvidia_canary') return 'NVIDIA Canary Parameters';
+                                        if (modelFamily === 'whisper') return 'WhisperX Parameters';
+                                        return 'Model Parameters';
+                                    })()}
+                                </h3>
+                                <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/50 rounded-lg p-3 sm:p-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 text-sm">
+                                        {/* Model Settings */}
+                                        <div className="bg-white/40 dark:bg-slate-700/20 rounded-md p-3 border border-slate-200/30 dark:border-slate-600/30">
+                                            <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-2 text-sm sm:text-base">Model & Configuration</h4>
+                                            <div className="space-y-2">
+                                                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                                                    <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Model Family:</span>
+                                                    <span className="font-mono text-slate-900 dark:text-slate-100 text-xs sm:text-sm">
+                                                        {(() => {
+                                                            const family = executionData.actual_parameters?.model_family;
+                                                            if (family === 'nvidia_parakeet') return 'NVIDIA Parakeet';
+                                                            if (family === 'nvidia_canary') return 'NVIDIA Canary';
+                                                            if (family === 'whisper') return 'WhisperX';
+                                                            return family || 'N/A';
+                                                        })()}
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                                                    <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Model:</span>
+                                                    <span className="font-mono text-slate-900 dark:text-slate-100 text-xs sm:text-sm break-all">{executionData.actual_parameters?.model || 'N/A'}</span>
+                                                </div>
+                                                {executionData.actual_parameters?.model_family === 'whisper' && (
+                                                    <>
+                                                        <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                                                            <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Device:</span>
+                                                            <span className="font-mono text-slate-900 dark:text-slate-100 text-xs sm:text-sm">{executionData.actual_parameters?.device || 'N/A'}</span>
+                                                        </div>
+                                                        <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                                                            <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Compute Type:</span>
+                                                            <span className="font-mono text-slate-900 dark:text-slate-100 text-xs sm:text-sm">{executionData.actual_parameters?.compute_type || 'N/A'}</span>
+                                                        </div>
+                                                        <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                                                            <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Batch Size:</span>
+                                                            <span className="font-mono text-slate-900 dark:text-slate-100 text-xs sm:text-sm">{executionData.actual_parameters?.batch_size || 'N/A'}</span>
+                                                        </div>
+                                                        <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                                                            <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Threads:</span>
+                                                            <span className="font-mono text-slate-900 dark:text-slate-100 text-xs sm:text-sm">{executionData.actual_parameters?.threads || 0}</span>
+                                                        </div>
+                                                    </>
+                                                )}
+                                                {executionData.actual_parameters?.model_family === 'nvidia_parakeet' && (
+                                                    <>
+                                                        <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                                                            <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Context Left:</span>
+                                                            <span className="font-mono text-slate-900 dark:text-slate-100 text-xs sm:text-sm">{executionData.actual_parameters?.attention_context_left || 256}</span>
+                                                        </div>
+                                                        <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                                                            <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Context Right:</span>
+                                                            <span className="font-mono text-slate-900 dark:text-slate-100 text-xs sm:text-sm">{executionData.actual_parameters?.attention_context_right || 256}</span>
+                                                        </div>
+                                                    </>
+                                                )}
+                                                {executionData.actual_parameters?.model_family === 'nvidia_canary' && (
+                                                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                                                        <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Source Language:</span>
+                                                        <span className="font-mono text-slate-900 dark:text-slate-100 text-xs sm:text-sm">{executionData.actual_parameters?.language || 'auto'}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Processing Settings - Only for WhisperX */}
+                                        {executionData.actual_parameters?.model_family === 'whisper' && (
+                                            <div className="bg-white/40 dark:bg-slate-700/20 rounded-md p-3 border border-slate-200/30 dark:border-slate-600/30">
+                                                <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-2 text-sm sm:text-base">Processing</h4>
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Task:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.task || 'transcribe'}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Language:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.language || 'auto'}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Diarization:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.diarize ? 'Yes' : 'No'}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">VAD Method:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.vad_method || 'pyannote'}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">VAD Onset:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.vad_onset ?? 0.5}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">VAD Offset:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.vad_offset ?? 0.363}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Chunk Size:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.chunk_size || 30}</span>
+                                                </div>
+                                            </div>
+                                            </div>
+                                        )}
+
+                                        {/* Speaker Diarization Settings - For all model families and multi-track jobs */}
+                                        {(executionData.actual_parameters?.diarize || executionData.is_multi_track) && (
+                                        <div className="bg-white/40 dark:bg-slate-700/20 rounded-md p-3 border border-slate-200/30 dark:border-slate-600/30">
+                                            <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-2 text-sm sm:text-base flex items-center gap-2">
+                                                <Users className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                                                Speaker Diarization
+                                            </h4>
+                                            <div className="space-y-1">
+                                                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                                                    <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Enabled:</span>
+                                                    <span className="font-mono text-slate-900 dark:text-slate-100 text-xs sm:text-sm">
+                                                        {executionData.is_multi_track ? 'Yes (Multi-Track)' : (executionData.actual_parameters?.diarize ? 'Yes' : 'No')}
+                                                    </span>
+                                                </div>
+                                                {executionData.is_multi_track && (
+                                                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                                                        <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Number of Tracks:</span>
+                                                        <span className="font-mono text-slate-900 dark:text-slate-100 text-xs sm:text-sm">{executionData.multi_track_files?.length || 0}</span>
+                                                    </div>
+                                                )}
+                                                {!executionData.is_multi_track && executionData.actual_parameters?.min_speakers && (
+                                                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                                                        <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Min Speakers:</span>
+                                                        <span className="font-mono text-slate-900 dark:text-slate-100 text-xs sm:text-sm">{executionData.actual_parameters.min_speakers}</span>
+                                                    </div>
+                                                )}
+                                                {!executionData.is_multi_track && executionData.actual_parameters?.max_speakers && (
+                                                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                                                        <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Max Speakers:</span>
+                                                        <span className="font-mono text-slate-900 dark:text-slate-100 text-xs sm:text-sm">{executionData.actual_parameters.max_speakers}</span>
+                                                    </div>
+                                                )}
+                                                {executionData.actual_parameters?.diarize_model && (
+                                                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                                                        <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Diarization Model:</span>
+                                                        <span className="font-mono text-slate-900 dark:text-slate-100 text-xs sm:text-sm">{getDiarizationModelDisplayName(executionData.actual_parameters.diarize_model)}</span>
+                                                    </div>
+                                                )}
+                                                {executionData.actual_parameters?.speaker_embeddings !== undefined && (
+                                                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                                                        <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Speaker Embeddings:</span>
+                                                        <span className="font-mono text-slate-900 dark:text-slate-100 text-xs sm:text-sm">{executionData.actual_parameters.speaker_embeddings ? 'Yes' : 'No'}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        )}
+
+                                        {/* Quality Settings - Only for WhisperX */}
+                                        {executionData.actual_parameters?.model_family === 'whisper' && (
+                                        <div>
+                                            <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Quality Settings</h4>
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Temperature:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.temperature ?? 0}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Beam Size:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.beam_size || 5}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Best Of:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.best_of || 5}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Patience:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.patience ?? 1.0}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Length Penalty:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.length_penalty ?? 1.0}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">FP16:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.fp16 ? 'Yes' : 'No'}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Suppress Numerals:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.suppress_numerals ? 'Yes' : 'No'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        )}
+
+                                        {/* Advanced Quality Settings - Only for WhisperX */}
+                                        {executionData.actual_parameters?.model_family === 'whisper' && (
+                                        <div>
+                                            <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Advanced Quality</h4>
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Temp Increment Fallback:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.temperature_increment_on_fallback ?? 0.2}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Compression Ratio Threshold:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.compression_ratio_threshold ?? 2.4}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Logprob Threshold:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.logprob_threshold ?? -1.0}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">No Speech Threshold:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.no_speech_threshold ?? 0.6}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Condition on Previous Text:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.condition_on_previous_text ? 'Yes' : 'No'}</span>
+                                                </div>
+                                                {executionData.actual_parameters?.suppress_tokens && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-600 dark:text-gray-400">Suppress Tokens:</span>
+                                                        <span className="font-mono text-gray-900 dark:text-gray-100 text-xs">{executionData.actual_parameters.suppress_tokens}</span>
+                                                    </div>
+                                                )}
+                                                {executionData.actual_parameters?.initial_prompt && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-600 dark:text-gray-400">Initial Prompt:</span>
+                                                        <span className="font-mono text-gray-900 dark:text-gray-100 text-xs truncate">{executionData.actual_parameters.initial_prompt}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        )}
+
+                                        {/* Alignment & Output Settings - Only for WhisperX */}
+                                        {executionData.actual_parameters?.model_family === 'whisper' && (
+                                        <div>
+                                            <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Alignment & Output</h4>
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Output Format:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.output_format || 'all'}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Segment Resolution:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.segment_resolution || 'sentence'}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Highlight Words:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.highlight_words ? 'Yes' : 'No'}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Verbose:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.verbose ? 'Yes' : 'No'}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">No Align:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.no_align ? 'Yes' : 'No'}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Return Char Alignments:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.return_char_alignments ? 'Yes' : 'No'}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Interpolate Method:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.interpolate_method || 'nearest'}</span>
+                                                </div>
+                                                {executionData.actual_parameters?.align_model && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-600 dark:text-gray-400">Align Model:</span>
+                                                        <span className="font-mono text-gray-900 dark:text-gray-100 text-xs">{executionData.actual_parameters.align_model}</span>
+                                                    </div>
+                                                )}
+                                                {executionData.actual_parameters?.max_line_width && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-600 dark:text-gray-400">Max Line Width:</span>
+                                                        <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters.max_line_width}</span>
+                                                    </div>
+                                                )}
+                                                {executionData.actual_parameters?.max_line_count && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-600 dark:text-gray-400">Max Line Count:</span>
+                                                        <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters.max_line_count}</span>
+                                                    </div>
+                                                )}
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">Print Progress:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-gray-100">{executionData.actual_parameters?.print_progress ? 'Yes' : 'No'}</span>
+                                                </div>
+                                                {executionData.actual_parameters?.hf_token && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-600 dark:text-gray-400">HF Token:</span>
+                                                        <span className="font-mono text-gray-900 dark:text-gray-100">***</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        )}
                                     </div>
-                                )}
+                                </div>
                             </div>
-                        ) : (
-                            <p className="text-gray-600 dark:text-gray-400">No execution data available.</p>
-                        )}
-                    </div>
+
+                        </div>
+                    ) : (
+                        <div className="py-8 text-center">
+                            <p className="text-gray-500 dark:text-gray-400">
+                                No execution data available for this transcription.
+                            </p>
+                        </div>
+                    )}
                 </UIDialogContent>
             </UIDialog>
-		{
-/* Portal: add-note bubble + editor */
-}
+
+			{/* Portal: add-note bubble + editor */}
 				{((showSelectionMenu || showEditor) && pendingSelection) ? (
 					createPortal(
 						<div>
-							{
-/* Backdrop to intercept clicks below the portal UI */
-}
+							{/* Backdrop to intercept clicks below the portal UI */}
                     <div
                       style={{ position: 'fixed', inset: 0, zIndex: 9995, background: 'transparent' }}
                       onMouseDown={() => {
@@ -2245,7 +2725,7 @@ useEffect(() => {
 										</div>
 										<textarea className="w-full text-sm bg-transparent border rounded-md p-2 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" placeholder="Add a note..." value={newNoteContent} onChange={e => setNewNoteContent(e.target.value)} rows={4} />
 										<div className="mt-2 flex items-center justify-end gap-2">
-											<button type="button" className="px-2 py-1 text-sm rounded-md bg-gray-200 dark:bg-gray-700" onClick={() => { setShowEditor(false); setPendingSelection(null); }}>{"Cancel"}}}</button>
+											<button type="button" className="px-2 py-1 text-sm rounded-md bg-gray-200 dark:bg-gray-700" onClick={() => { setShowEditor(false); setPendingSelection(null); }}>{"Cancel"}</button>
 											<button type="button" className="px-2 py-1 text-sm rounded-md bg-blue-600 text-white" onClick={saveNewNote}>{"Save"}</button>
 										</div>
 									</div>
@@ -2256,9 +2736,7 @@ useEffect(() => {
 					)
 				) : null}
 
-				{
-/* Notes sidebar (right, full height) */
-}
+				{/* Notes sidebar (right, full height) */}
 				{notesOpen ? (
 					createPortal(
 						<div className="fixed inset-y-0 right-0 w-[88vw] max-w-[380px] md:max-w-[420px] bg-white dark:bg-gray-900 shadow-2xl z-[9990]">
@@ -2271,9 +2749,9 @@ useEffect(() => {
 										</h3>
 										<button
 											type="button"
-												onClick={() => setNotesOpen(false)}
-												className="h-8 w-8 inline-flex items-center justify-center rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
-												aria-label="Close notes"
+											onClick={() => setNotesOpen(false)}
+											className="h-8 w-8 inline-flex items-center justify-center rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+											aria-label="Close notes"
 										>
 											<X className="h-4 w-4" />
 										</button>
@@ -2284,7 +2762,7 @@ useEffect(() => {
 										notes={notes}
 										onEdit={updateNote}
 										onDelete={deleteNote}
-										onJumpTo={(t) => { if (wavesurferRef.current) { const dur = wavesurferRef.current.getDuration(); wavesurferRef.current.seekTo(Math.min(0.999, Math.max(0, t / dur))); setCurrentTime(t); }}}}}
+										onJumpTo={(t) => { if (wavesurferRef.current) { const dur = wavesurferRef.current.getDuration(); wavesurferRef.current.seekTo(Math.min(0.999, Math.max(0, t / dur))); setCurrentTime(t); }}}
 									/>
 								</div>
 							</div>
@@ -2293,7 +2771,7 @@ useEffect(() => {
 					)
 				) : null}
 
-			</div>
-        </div>
+				</div>
+		</div>
 	);
 });
