@@ -149,6 +149,7 @@ interface PaginationResponse {
 
 
 import { AudioFilesCalendar } from "./AudioFilesCalendar";
+import { AudioFilesWeekCalendar } from "./AudioFilesWeekCalendar";
 
 export const AudioFilesTable = memo(function AudioFilesTable({
 	refreshTrigger,
@@ -176,7 +177,7 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 	const [killingJobs, setKillingJobs] = useState<Set<string>>(new Set());
 	const [transcribeDDialogOpen, setTranscribeDDialogOpen] = useState(false);
 	const [trackProgress, setTrackProgress] = useState<Record<string, any>>({});
-	const [view, setView] = useState<"calendar" | "table">("calendar");
+	const [view, setView] = useState<"calendar" | "table" | "week">("calendar");
 	
 	// Dialog state management (moved outside table to prevent re-renders)
 	const [stopDialogOpen, setStopDialogOpen] = useState(false);
@@ -971,10 +972,16 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 
 					<div className="flex items-center gap-2">
 						<Button
+							variant={view === 'week' ? 'secondary' : 'ghost'}
+							onClick={() => setView('week')}
+						>
+							Week
+						</Button>
+						<Button
 							variant={view === 'calendar' ? 'secondary' : 'ghost'}
 							onClick={() => setView('calendar')}
 						>
-							Calendar
+							Month
 						</Button>
 						<Button
 							variant={view === 'table' ? 'secondary' : 'ghost'}
@@ -1013,6 +1020,8 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 					<>
 						{view === 'calendar' ? (
 							<AudioFilesCalendar data={data} onFileClick={handleAudioClick} />
+						) : view === 'week' ? (
+							<AudioFilesWeekCalendar data={data} onFileClick={handleAudioClick} />
 						) : (
 						<>
 						{/* Table */}
