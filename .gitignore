@@ -52,3 +52,4 @@ tests/database_test.db-shm
 
 # Project documentation (local only)
 project-docs
+tests/database_test.db-wal

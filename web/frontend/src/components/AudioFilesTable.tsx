@@ -148,6 +148,8 @@ interface PaginationResponse {
 }
 
 
+import { AudioFilesCalendar } from "./AudioFilesCalendar";
+
 export const AudioFilesTable = memo(function AudioFilesTable({
 	refreshTrigger,
 	onTranscribe,
@@ -174,6 +176,7 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 	const [killingJobs, setKillingJobs] = useState<Set<string>>(new Set());
 	const [transcribeDDialogOpen, setTranscribeDDialogOpen] = useState(false);
 	const [trackProgress, setTrackProgress] = useState<Record<string, any>>({});
+	const [view, setView] = useState<"calendar" | "table">("calendar");
 	
 	// Dialog state management (moved outside table to prevent re-renders)
 	const [stopDialogOpen, setStopDialogOpen] = useState(false);
@@ -965,6 +968,21 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 							}
 						</p>
 					</div>
+
+					<div className="flex items-center gap-2">
+						<Button
+							variant={view === 'calendar' ? 'secondary' : 'ghost'}
+							onClick={() => setView('calendar')}
+						>
+							Calendar
+						</Button>
+						<Button
+							variant={view === 'table' ? 'secondary' : 'ghost'}
+							onClick={() => setView('table')}
+						>
+							Table
+						</Button>
+					</div>
 					
 					{/* Global Search */}
 					<div className="relative w-full sm:w-72">
@@ -993,6 +1011,10 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 					</div>
 				) : (
 					<>
+						{view === 'calendar' ? (
+							<AudioFilesCalendar data={data} onFileClick={handleAudioClick} />
+						) : (
+						<>
 						{/* Table */}
 					<div className={`border border-gray-100 dark:border-gray-900 rounded-lg overflow-hidden relative transition-opacity duration-200 ${isPageChanging ? 'opacity-75' : ''}`}>
 							{isPageChanging && (
@@ -1125,6 +1147,8 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 								</Button>
 							</div>
 						</div>
+						</>
+						)}
 					</>
 				)}
 			</div>
