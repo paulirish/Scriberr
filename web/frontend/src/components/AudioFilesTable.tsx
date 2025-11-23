@@ -540,7 +540,7 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 		if (activeJobs.length > 0) {
 			// Use shorter interval for processing jobs, longer for pending jobs
 			const hasProcessingJobs = activeJobs.some(job => job.status === "processing");
-			const pollingInterval = hasProcessingJobs ? 2000 : 5000; // 2s for processing, 5s for pending
+			const pollingInterval = hasProcessingJobs ? 20000000 : 50000000; // 2s for processing, 5s for pending
 			
 			pollingIntervalRef.current = setInterval(() => {
 				// Keep current pagination when polling, but don't show loading indicators
