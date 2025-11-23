@@ -159,7 +159,7 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 	const [isPageChanging, setIsPageChanging] = useState(false);
 	const [pagination, setPagination] = useState({
 		pageIndex: 0,
-		pageSize: 10,
+		pageSize: 50,
 	});
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
