@@ -386,72 +386,105 @@ func (r *ModelRegistry) scoreModel(capabilities interfaces.ModelCapabilities, re
 	return score, reasons
 }
 
-// InitializeModels ensures all registered models are ready to use (parallel)
+// InitializeModels ensures all registered models are ready to use (in the background)
 func (r *ModelRegistry) InitializeModels(ctx context.Context) error {
 	r.mu.Lock()
-	defer r.mu.Unlock()
-
 	if r.initialized {
+		r.mu.Unlock()
 		return nil
 	}
-
-	logger.Info("Initializing registered models sequentially...")
-
-	initErrors := make(chan error, 10) // Buffer for potential errors
-
-	// Initialize transcription adapters sequentially
-	for modelID, adapter := range r.transcriptionAdapters {
-		logger.Debug("Initializing transcription model", "model_id", modelID)
-		if err := adapter.PrepareEnvironment(ctx); err != nil {
-			logger.Error("Failed to initialize transcription model",
-				"model_id", modelID, "error", err)
-			initErrors <- fmt.Errorf("transcription model %s: %w", modelID, err)
-		} else {
-			logger.Info("Transcription model initialized", "model_id", modelID)
-		}
-	}
-
-	// Initialize diarization adapters sequentially
-	for modelID, adapter := range r.diarizationAdapters {
-		logger.Debug("Initializing diarization model", "model_id", modelID)
-		if err := adapter.PrepareEnvironment(ctx); err != nil {
-			logger.Error("Failed to initialize diarization model",
-				"model_id", modelID, "error", err)
-			initErrors <- fmt.Errorf("diarization model %s: %w", modelID, err)
-		} else {
-			logger.Info("Diarization model initialized", "model_id", modelID)
-		}
-	}
-
-	// Initialize composite adapters sequentially
-	for modelID, adapter := range r.compositeAdapters {
-		logger.Debug("Initializing composite model", "model_id", modelID)
-		if err := adapter.PrepareEnvironment(ctx); err != nil {
-			logger.Error("Failed to initialize composite model",
-				"model_id", modelID, "error", err)
-			initErrors <- fmt.Errorf("composite model %s: %w", modelID, err)
-		} else {
-			logger.Info("Composite model initialized", "model_id", modelID)
-		}
-	}
-
-	close(initErrors)
-
-	// Collect any errors (but don't fail completely)
-	var errorList []error
-	for err := range initErrors {
-		errorList = append(errorList, err)
-	}
-
-	if len(errorList) > 0 {
-		logger.Warn("Some models failed to initialize", "error_count", len(errorList))
-		for _, err := range errorList {
-			logger.Warn("Model initialization error", "error", err)
-		}
-	}
-
+	// Mark as initialized to prevent re-entry.
+	// This changes the meaning of 'initialized' to 'initialization started'.
 	r.initialized = true
-	logger.Info("Model initialization completed")
+	r.mu.Unlock()
+
+	logger.Info("Initializing registered models in the background...")
+
+	go func() {
+		var wg sync.WaitGroup
+		initErrors := make(chan error, 10) // Buffer for potential errors
+
+		r.mu.RLock()
+
+		// Initialize transcription adapters in parallel
+		for modelID, adapter := range r.transcriptionAdapters {
+			wg.Add(1)
+			go func(modelID string, adapter interfaces.TranscriptionAdapter) {
+				defer wg.Done()
+				logger.Debug("Initializing transcription model", "model_id", modelID)
+				if err := adapter.PrepareEnvironment(ctx); err != nil {
+					logger.Error("Failed to initialize transcription model",
+						"model_id", modelID, "error", err)
+					select {
+					case initErrors <- fmt.Errorf("transcription model %s: %w", modelID, err):
+					default:
+					}
+				} else {
+					logger.Info("Transcription model initialized", "model_id", modelID)
+				}
+			}(modelID, adapter)
+		}
+
+		// Initialize diarization adapters in parallel
+		for modelID, adapter := range r.diarizationAdapters {
+			wg.Add(1)
+			go func(modelID string, adapter interfaces.DiarizationAdapter) {
+				defer wg.Done()
+				logger.Debug("Initializing diarization model", "model_id", modelID)
+				if err := adapter.PrepareEnvironment(ctx); err != nil {
+					logger.Error("Failed to initialize diarization model",
+						"model_id", modelID, "error", err)
+					select {
+					case initErrors <- fmt.Errorf("diarization model %s: %w", modelID, err):
+					default:
+					}
+				} else {
+					logger.Info("Diarization model initialized", "model_id", modelID)
+				}
+			}(modelID, adapter)
+		}
+
+		// Initialize composite adapters in parallel
+		for modelID, adapter := range r.compositeAdapters {
+			wg.Add(1)
+			go func(modelID string, adapter interfaces.CompositeAdapter) {
+				defer wg.Done()
+				logger.Debug("Initializing composite model", "model_id", modelID)
+				if err := adapter.PrepareEnvironment(ctx); err != nil {
+					logger.Error("Failed to initialize composite model",
+						"model_id", modelID, "error", err)
+					select {
+					case initErrors <- fmt.Errorf("composite model %s: %w", modelID, err):
+					default:
+					}
+				} else {
+					logger.Info("Composite model initialized", "model_id", modelID)
+				}
+			}(modelID, adapter)
+		}
+
+		r.mu.RUnlock()
+
+		// Wait for all initializations to complete
+		wg.Wait()
+		close(initErrors)
+
+		// Collect any errors (but don't fail completely)
+		var errorList []error
+		for err := range initErrors {
+			errorList = append(errorList, err)
+		}
+
+		if len(errorList) > 0 {
+			logger.Warn("Some models failed to initialize", "error_count", len(errorList))
+			for _, err := range errorList {
+				logger.Warn("Model initialization error", "error", err)
+			}
+		}
+
+		logger.Info("Model initialization completed")
+	}()
+
 	return nil
 }
 
