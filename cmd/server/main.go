@@ -164,22 +164,22 @@ func main() {
 
 // registerAdapters registers all transcription and diarization adapters with config-based paths
 func registerAdapters(cfg *config.Config) {
-	logger.Info("Registering adapters with environment path", "whisperx_env", cfg.WhisperXEnv)
-
 	// Shared environment path for NVIDIA models (NeMo-based)
 	nvidiaEnvPath := filepath.Join(cfg.WhisperXEnv, "parakeet")
+	logger.Info("Registering adapters with environment path", nvidiaEnvPath)
+
 
 	// Register transcription adapters
-	registry.RegisterTranscriptionAdapter("whisperx",
-		adapters.NewWhisperXAdapter(cfg.WhisperXEnv))
+	// registry.RegisterTranscriptionAdapter("whisperx",
+	// 	adapters.NewWhisperXAdapter(cfg.WhisperXEnv))
 	registry.RegisterTranscriptionAdapter("parakeet",
 		adapters.NewParakeetAdapter(nvidiaEnvPath))
 	registry.RegisterTranscriptionAdapter("canary",
 		adapters.NewCanaryAdapter(nvidiaEnvPath)) // Shares with Parakeet
 
 	// Register diarization adapters
-	registry.RegisterDiarizationAdapter("pyannote",
-		adapters.NewPyAnnoteAdapter(nvidiaEnvPath)) // Shares with Parakeet
+	// registry.RegisterDiarizationAdapter("pyannote",
+	// 	adapters.NewPyAnnoteAdapter(nvidiaEnvPath)) // Shares with Parakeet
 	registry.RegisterDiarizationAdapter("sortformer",
 		adapters.NewSortformerAdapter(nvidiaEnvPath)) // Shares with Parakeet
 
