@@ -180,7 +180,7 @@ export default function ApiReference() {
                   });
                   if (!eps.length) return null;
                   return (
-                    <div key={tag} id={`tag-${tag}`}>
+                    <div key={tag} id={`tag-${tag}`} style={{ scrollMarginBlock: "120px" }}>
                       <h2 className="text-base font-semibold mb-3 text-gray-900">{tag}</h2>
                       <div className="space-y-4">
                         {eps.map((e) => (
