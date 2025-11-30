@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatAudioFileTitle, parseTitleForDate } from "@/lib/utils";
 
 interface AudioFile {
   id: string;
@@ -14,27 +15,7 @@ interface AudioFilesWeekCalendarProps {
   onFileClick: (fileId: string) => void;
 }
 
-const parseTitleForDate = (title: string): { date: Date; duration: number } | null => {
-  const regex = /^(\d{4})_(\d{2})_(\d{2})_[a-zA-Z]{3}_(AM|PM)_(\d{2})_(\d{2})_(\d{2})__(\d+)min$/;
-  const match = title.match(regex);
 
-  if (!match) return null;
-
-  const [, year, month, day, meridiem, hour, minute, second, duration] = match;
-
-  let hour24 = parseInt(hour, 10);
-  if (meridiem === "PM" && hour24 < 12) {
-    hour24 += 12;
-  }
-  if (meridiem === "AM" && hour24 === 12) {
-    hour24 = 0;
-  }
-
-  return {
-    date: new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10), hour24, parseInt(minute, 10), parseInt(second, 10)),
-    duration: parseInt(duration, 10),
-  };
-};
 
 
 export const AudioFilesWeekCalendar = ({ data, onFileClick }: AudioFilesWeekCalendarProps) => {
@@ -89,7 +70,7 @@ export const AudioFilesWeekCalendar = ({ data, onFileClick }: AudioFilesWeekCale
           style={{ top: `${top}px`, height: `${height}px` }}
           onClick={() => onFileClick(event.id)}
         >
-          <p className="text-xs text-blue-800 dark:text-blue-200 truncate">{event.title || `File ${event.id}`}</p>
+          <p className="text-xs text-blue-800 dark:text-blue-200 truncate">{event.title ? formatAudioFileTitle(event.title) : `File ${event.id}`}</p>
         </div>
       );
     });

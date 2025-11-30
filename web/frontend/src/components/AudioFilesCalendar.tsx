@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatAudioFileTitle, parseTitleForDate } from "@/lib/utils";
 
 interface AudioFile {
   id: string;
@@ -13,6 +14,8 @@ interface AudioFilesCalendarProps {
   data: AudioFile[];
   onFileClick: (fileId: string) => void;
 }
+
+
 
 const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -35,11 +38,18 @@ export const AudioFilesCalendar = ({ data, onFileClick }: AudioFilesCalendarProp
 
   const filesByDate = useMemo(() => {
     return data.reduce((acc, file) => {
-      const date = new Date(file.created_at).toDateString();
-      if (!acc[date]) {
-        acc[date] = [];
+      let date: Date;
+      if (file.title) {
+        const parsed = parseTitleForDate(file.title);
+        date = parsed ? parsed.date : new Date(file.created_at);
+      } else {
+        date = new Date(file.created_at);
       }
-      acc[date].push(file);
+      const dateString = date.toDateString();
+      if (!acc[dateString]) {
+        acc[dateString] = [];
+      }
+      acc[dateString].push(file);
       return acc;
     }, {} as Record<string, AudioFile[]>);
   }, [data]);
@@ -67,7 +77,7 @@ export const AudioFilesCalendar = ({ data, onFileClick }: AudioFilesCalendarProp
                 onClick={() => onFileClick(file.id)}
                 className="bg-blue-100 dark:bg-blue-900/50 p-1 rounded-md cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800/50"
               >
-                <p className="text-xs text-blue-800 dark:text-blue-200 truncate">{file.title || `File ${file.id}`}</p>
+                <p className="text-xs text-blue-800 dark:text-blue-200 truncate">{file.title ? formatAudioFileTitle(file.title) : `File ${file.id}`}</p>
               </div>
             ))}
           </div>
@@ -94,7 +104,7 @@ export const AudioFilesCalendar = ({ data, onFileClick }: AudioFilesCalendarProp
           </Button>
         </div>
       </div>
-      <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700">
+      <div className="grid grid-cols-7 gap-px dark:bg-gray-700">
         {daysOfWeek.map((day) => (
           <div key={day} className="text-center font-medium text-gray-600 dark:text-gray-300 py-2 bg-gray-50 dark:bg-gray-700/50">
             {day}
