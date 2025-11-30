@@ -188,7 +188,7 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
     const [loading, setLoading] = useState(true);
     const [isPlaying, setIsPlaying] = useState(false);
     const [transcriptMode, setTranscriptMode] = useState<"compact" | "expanded">(
-        "compact",
+        "expanded",
     );
     const [viewMode, setViewMode] = useState<"transcript" | "chat">("transcript");
     const [currentTime, setCurrentTime] = useState(0);
