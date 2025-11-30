@@ -224,6 +224,15 @@ func SetupRoutes(handler *Handler, authService *auth.AuthService) *gin.Engine {
 		{
 			summarize.POST("/", handler.Summarize)
 		}
+
+		// Speaker management routes (require authentication)
+		speakers := v1.Group("/speakers")
+		speakers.Use(middleware.AuthMiddleware(authService))
+		{
+			speakers.GET("/", handler.ListSpeakers)
+			speakers.PUT("/:id", handler.RenameSpeaker)
+			speakers.DELETE("/:id", handler.DeleteSpeaker)
+		}
 	}
 
 	// Set up static file serving for React app
