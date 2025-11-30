@@ -238,10 +238,13 @@ def identify_speakers(
 
     global_mapping = {} # "speaker_0" -> "Global_ID_XYZ"
 
-    import torchaudio
-    full_waveform, sample_rate = torchaudio.load(audio_path)
+    import soundfile as sf
+    full_waveform, sample_rate = sf.read(audio_path)
+    full_waveform = torch.from_numpy(full_waveform).float()
+    if full_waveform.ndim > 1:
+        full_waveform = full_waveform.squeeze()
+    full_waveform = full_waveform.unsqueeze(0)
     full_waveform = full_waveform.to(device)
-
     for local_spk, indices in local_speakers.items():
         logger.info(f"Processing local speaker {local_spk} ({len(indices)} segments)")
 
@@ -265,11 +268,10 @@ def identify_speakers(
 
             sub_audio = full_waveform[:, start_frame:end_frame]
             if sub_audio.shape[1] < 1600: continue # Skip very short < 0.1s
-
             len_tensor = torch.tensor([sub_audio.shape[1]], device=device)
 
             with torch.no_grad():
-                _, embs = model(input_signal=sub_audio.unsqueeze(0), input_signal_length=len_tensor)
+                _, embs = model(input_signal=sub_audio, input_signal_length=len_tensor)
                 emb = embs[0].cpu().numpy()
                 embeddings.append(emb)
 

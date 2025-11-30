@@ -195,7 +195,6 @@ dependencies = [
     "ml-dtypes>=0.3.1,<0.5.0",
     "onnx>=1.15.0,<1.18.0",
     "qdrant-client",
-    "torchcodec",
 ]
 
 [tool.uv.sources]

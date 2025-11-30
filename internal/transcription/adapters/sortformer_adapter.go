@@ -211,7 +211,6 @@ dependencies = [
     "onnx>=1.15.0,<1.18.0",
     "pyannote.audio",
     "qdrant-client"
-     "torchcodec",
 ]
 
 [tool.uv.sources]
