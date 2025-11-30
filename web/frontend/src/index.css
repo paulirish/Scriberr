@@ -1,211 +1,272 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-blue-50: oklch(97% 4% 259deg);
-  --color-blue-100: oklch(91% 11% 258deg);
-  --color-blue-200: oklch(82% 22% 257deg);
-  --color-blue-300: oklch(75% 32% 258deg);
-  --color-blue-400: oklch(68% 43% 257deg);
-  --color-blue-500: oklch(58% 58% 260deg);
-  --color-blue-600: oklch(50% 56% 262deg);
-  --color-blue-700: oklch(41% 51% 263deg);
-  --color-blue-800: oklch(30% 42% 265deg);
-  --color-blue-900: oklch(22% 28% 266deg);
-  --color-gray-50: oklch(96.72% 0 0);
-  --color-gray-100: oklch(90.67% 0 0);
-  --color-gray-200: oklch(82.66% 0 0);
-  --color-gray-300: oklch(73.16% 0 0);
-  --color-gray-400: oklch(64.34% 0 0);
-  --color-gray-500: oklch(54.17% 0 0);
-  --color-gray-600: oklch(43.86% 0 0);
-  --color-gray-700: oklch(26.86% 0 0);
-  --color-gray-800: oklch(20.02% 0 0);
-  --color-gray-850: oklch(12% 0 0);
-  --color-gray-900: oklch(0% 0 0);
-  --color-gray-950: oklch(21% 2% 286deg);
-  --color-magenta-50: oklch(97% 4% 348deg);
-  --color-magenta-100: oklch(91% 12% 354deg);
-  --color-magenta-200: oklch(83% 27% 355deg);
-  --color-magenta-300: oklch(75% 39% 358deg);
-  --color-magenta-400: oklch(68% 47% 359deg);
-  --color-magenta-500: oklch(58% 52% 3deg);
-  --color-magenta-600: oklch(49% 46% 2deg);
-  --color-magenta-700: oklch(39% 38% 0deg);
-  --color-magenta-800: oklch(32% 33% 360deg);
-  --color-magenta-900: oklch(21% 16% 358deg);
-  --color-magnum-50: oklch(98% 4% 85deg);
-  --color-magnum-100: oklch(96% 10% 88deg);
-  --color-magnum-200: oklch(92% 18% 83deg);
-  --color-magnum-300: oklch(86% 28% 79deg);
-  --color-magnum-400: oklch(81% 34% 71deg);
-  --color-magnum-500: oklch(74% 41% 60deg);
-  --color-magnum-600: oklch(67% 42% 52deg);
-  --color-magnum-700: oklch(58% 38% 48deg);
-  --color-magnum-800: oklch(49% 31% 46deg);
-  --color-magnum-900: oklch(42% 25% 48deg);
-  --color-purple-50: oklch(97% 4% 309deg);
-  --color-purple-100: oklch(91% 13% 303deg);
-  --color-purple-200: oklch(83% 25% 303deg);
-  --color-purple-300: oklch(76% 37% 303deg);
-  --color-purple-400: oklch(70% 47% 302deg);
-  --color-purple-500: oklch(60% 63% 298deg);
-  --color-purple-600: oklch(51% 55% 298deg);
-  --color-purple-700: oklch(41% 46% 297deg);
-  --color-purple-800: oklch(33% 38% 298deg);
-  --color-purple-900: oklch(23% 20% 300deg);
-  --color-neon-100: oklch(95% 41% 123deg);
-  --color-neon-200: oklch(88% 42% 123deg);
+  /* User's Custom Black-to-Gray Palette */
+  --gray-50: #f3f5ef;
+  --gray-100: #dfe1db;
+  --gray-200: #c5c7c1;
+  --gray-300: #a7a9a4;
+  --gray-400: #8c8d8a;
+  --gray-500: #6f6f6c;
+  --gray-600: #525250;
+  --gray-700: #393937;
+  --gray-800: #262626;
+  --gray-900: #161616;
+  --gray-950: #000000;
+
+  --color-carbon-950: #000000;
+  --color-carbon-900: #161616;
+  --color-carbon-800: #262626;
+  --color-carbon-700: #393939;
+  --color-carbon-600: #525252;
+  --color-carbon-500: #6f6f6f;
+  --color-carbon-400: #8d8d8d;
+  --color-carbon-300: #a8a8a8;
+  --color-carbon-200: #c6c6c6;
+  --color-carbon-100: #e0e0e0;
+  --color-carbon-50: #f4f4f4;
+  --color-carbon-white: #ffffff;
+
+  /* Black Palette (matching gray for consistency) */
+  --black-rich: #000000;
+  --black-soft: #161616;
+  --black-card: #262626;
+  --black-border: #393937;
+  --color-black-50: #f3f5ef;
+  --color-black-100: #dfe1db;
+  --color-black-200: #c5c7c1;
+  --color-black-300: #a7a9a4;
+  --color-black-400: #8c8d8a;
+  --color-black-500: #6f6f6c;
+  --color-black-600: #525250;
+  --color-black-700: #393939;
+  --color-black-800: #262626;
+  --color-black-900: #161616;
+  --color-black-950: #000000;
+
+  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --font-display: 'Outfit', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-inter: 'Inter', sans-serif;
+  /* For Transcripts */
+
+  /* UI Token Mappings for Tailwind v4 */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0.5rem;
 
-  /* Brand accents (light) - Blue → Purple */
-  --brand-accent-start: var(--color-blue-500);
-  --brand-accent-end: var(--color-purple-500);
+  /* Light Mode - Aesthetic Gray */
+  --background: #FFFFFF;
+  --foreground: #111827;
+  /* Gray 900 */
+
+  --card: #FFFFFF;
+  --card-foreground: #111827;
+
+  --popover: #FFFFFF;
+  --popover-foreground: #111827;
+
+  --primary: #111827;
+  /* Gray 900 */
+  --primary-foreground: #F9FAFB;
+  /* Gray 50 */
+
+  --secondary: #F3F4F6;
+  /* Gray 100 */
+  --secondary-foreground: #111827;
+
+  --muted: #F3F4F6;
+  /* Gray 100 */
+  --muted-foreground: #6B7280;
+  /* Gray 500 */
+
+  --accent: #F3F4F6;
+  /* Gray 100 */
+  --accent-foreground: #111827;
+
+  --destructive: #EF4444;
+  --destructive-foreground: #F9FAFB;
+
+  --border: #E5E7EB;
+  /* Gray 200 */
+  --input: #E5E7EB;
+  --ring: #9CA3AF;
+  /* Gray 400 */
+
+  --chart-1: #111827;
+  --chart-2: #4B5563;
+  --chart-3: #9CA3AF;
+  --chart-4: #D1D5DB;
+  --chart-5: #E5E7EB;
+
+  --sidebar: #F9FAFB;
+  /* Gray 50 */
+  --sidebar-foreground: #111827;
+  --sidebar-primary: #111827;
+  --sidebar-primary-foreground: #F9FAFB;
+  --sidebar-accent: #F3F4F6;
+  --sidebar-accent-foreground: #111827;
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: #9CA3AF;
 
   /* Scrollbar (light) */
-  --scroll-track: var(--color-gray-100);
-  --scroll-thumb: var(--color-gray-400);
-  --scroll-thumb-hover: var(--color-gray-500);
+  --scroll-track: transparent;
+  --scroll-thumb: #D1D5DB;
+  --scroll-thumb-hover: #9CA3AF;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Dark Mode - Carbon Palette */
+  --background: var(--color-carbon-950);
+  --foreground: var(--color-carbon-50);
 
-  /* Brand accents (dark) - Blue → Purple */
-  --brand-accent-start: var(--color-blue-600);
-  --brand-accent-end: var(--color-purple-400);
+  --card: var(--color-carbon-900);
+  --card-foreground: var(--color-carbon-50);
+
+  --popover: var(--color-carbon-800);
+  --popover-foreground: var(--color-carbon-50);
+
+  --primary: var(--color-carbon-50);
+  --primary-foreground: var(--color-carbon-900);
+
+  --secondary: var(--color-carbon-800);
+  --secondary-foreground: var(--color-carbon-50);
+
+  --muted: var(--color-carbon-900);
+  --muted-foreground: var(--color-carbon-400);
+
+  --accent: var(--color-carbon-800);
+  --accent-foreground: var(--color-carbon-50);
+
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: var(--color-carbon-50);
+
+  --border: var(--color-carbon-800);
+  --input: var(--color-carbon-800);
+  --ring: var(--color-carbon-400);
+
+  --chart-1: var(--color-carbon-50);
+  --chart-2: var(--color-carbon-400);
+  --chart-3: var(--color-carbon-600);
+  --chart-4: var(--color-carbon-800);
+  --chart-5: var(--color-carbon-900);
+
+  --sidebar: var(--color-carbon-900);
+  --sidebar-foreground: var(--color-carbon-50);
+  --sidebar-primary: var(--color-carbon-100);
+  --sidebar-primary-foreground: var(--color-carbon-900);
+  --sidebar-accent: var(--color-carbon-800);
+  --sidebar-accent-foreground: var(--color-carbon-50);
+  --sidebar-border: var(--color-carbon-800);
+  --sidebar-ring: var(--color-carbon-400);
 
   /* Scrollbar (dark) */
-  --scroll-track: var(--color-gray-900);
-  --scroll-thumb: var(--color-gray-700);
-  --scroll-thumb-hover: var(--color-gray-600);
+  --scroll-track: transparent;
+  --scroll-thumb: var(--color-carbon-700);
+  --scroll-thumb-hover: var(--color-carbon-600);
 }
 
 @layer base {
   * {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  }
-  body {
-    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50;
+    border-color: var(--border);
   }
 
-  .logo-font-poiret {
-    font-family: 'Poiret One', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    letter-spacing: 0.04em;
+  body {
+    @apply bg-background text-foreground font-sans antialiased selection:bg-gray-200 dark:selection:bg-carbon-800;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display tracking-tight;
+  }
+
+  /* Glassmorphism Utilities - Refined */
+  .glass {
+    @apply bg-white/80 dark:bg-carbon-950/80 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-sm;
+  }
+
+  .glass-card {
+    @apply bg-white/60 dark:bg-carbon-900/60 backdrop-blur-lg border border-gray-200/50 dark:border-carbon-800/50 shadow-sm;
+  }
+
+  /* Transcript Font Utility */
+  .font-transcript {
+    font-family: var(--font-inter);
   }
 }
 
-/* Chat-specific typography */
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+}
+
+/* Chat Specifics */
 .chat-shell {
-  font-family: 'Noto Sans', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-  font-size: 16px;
-  line-height: 1.6;
+  @apply font-sans text-base leading-relaxed;
 }
 
 .chat-shell code,
 .chat-shell pre,
 .chat-shell kbd,
 .chat-shell samp {
-  font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  @apply font-mono;
 }
 
 .chat-sidebar {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  font-size: 14px;
-}
-
-/* Themed scrollbar styling for chat areas */
-.chat-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
-}
-
-.chat-scroll::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.chat-scroll::-webkit-scrollbar-track {
-  background: var(--scroll-track);
-  border-radius: 9999px;
-}
-
-.chat-scroll::-webkit-scrollbar-thumb {
-  background-color: var(--scroll-thumb);
-  border-radius: 9999px;
-  border: 2px solid var(--scroll-track);
-}
-
-.chat-scroll:hover::-webkit-scrollbar-thumb {
-  background-color: var(--scroll-thumb-hover);
-}
-
-.chat-scroll::-webkit-scrollbar-corner {
-  background: var(--scroll-track);
+  @apply font-sans text-sm;
 }
