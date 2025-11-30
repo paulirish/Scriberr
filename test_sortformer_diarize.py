@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 # Mock nemo.collections.asr.models before importing sortformer_diarize
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'data', 'whisperx-env', 'parakeet'))
 sys.modules["nemo.collections.asr.models"] = MagicMock()
 
 import sortformer_diarize

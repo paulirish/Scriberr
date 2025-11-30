@@ -4,6 +4,10 @@ import os
 import shutil
 import json
 from pathlib import Path
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'data', 'whisperx-env', 'parakeet'))
+
+
 import sortformer_diarize
 
 class TestSortformerIntegration(unittest.TestCase):

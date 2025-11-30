@@ -15,7 +15,8 @@ try:
     from nemo.collections.asr.models import SortformerEncLabelModel
 except ImportError:
     print("Error: NeMo not found. Please install nemo_toolkit[asr]")
-    # sys.exit(1) # Commented out to allow testing without nemo installed
+    # sys.exit(1)
+
 
 def diarize_audio(
     audio_path: str,
@@ -31,11 +32,7 @@ def diarize_audio(
     Perform speaker diarization using NVIDIA's Sortformer model.
     """
     if device is None or device == "auto":
-        if torch.cuda.is_available():
-            device = "cuda"
-
-        else:
-            device = "cpu"
+        device = "cuda" if torch.cuda.is_available() else "cpu"
 
     print(f"Using device: {device}")
     print(f"Loading NVIDIA Sortformer diarization model...")
