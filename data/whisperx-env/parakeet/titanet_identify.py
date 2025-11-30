@@ -160,11 +160,10 @@ def identify_speakers(
 
             sub_audio = full_waveform[:, start_frame:end_frame]
             if sub_audio.shape[1] < 1600: continue # Skip very short < 0.1s
-
             len_tensor = torch.tensor([sub_audio.shape[1]], device=device)
 
             with torch.no_grad():
-                _, embs = model(input_signal=sub_audio.unsqueeze(0), input_signal_length=len_tensor)
+                _, embs = model(input_signal=sub_audio, input_signal_length=len_tensor)
                 emb = embs[0].cpu().numpy()
                 embeddings.append(emb)
 
