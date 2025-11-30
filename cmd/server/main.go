@@ -206,7 +206,7 @@ func registerAdapters(cfg *config.Config) {
 
 
 	// Dedicated environment path for PyAnnote (to avoid dependency conflicts)
-	pyannoteEnvPath := filepath.Join(cfg.WhisperXEnv, "pyannote")
+	// pyannoteEnvPath := filepath.Join(cfg.WhisperXEnv, "pyannote")
 
 	// Register transcription adapters
 	// registry.RegisterTranscriptionAdapter("whisperx",
