@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, Play, Pause, List, AlignLeft, MessageCircle, Download, FileText, FileJson, FileImage, Check, StickyNote, Plus, X, Sparkles, Pencil, ChevronUp, ChevronDown, Info, Clock, Settings, Users, Loader2, Home } from "lucide-react";
+import { ArrowLeft, Play, Pause, List, AlignLeft, MessageCircle, Download, FileText, FileJson, FileImage, Check, StickyNote, Plus, X, Sparkles, Pencil, ChevronUp, ChevronDown, Info, Clock, Settings, Users, Loader2, Home, Trash2 } from "lucide-react";
 import { AudioPlayer, type AudioPlayerRef } from "./audio/AudioPlayer";
 import { TranscriptView } from "./transcript/TranscriptView";
 import { Button } from "./ui/button";
@@ -18,10 +18,41 @@ import {
     DialogHeader,
     DialogTitle,
 } from "./ui/dialog";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "./ui/alert-dialog";
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
 import { useRouter } from "../contexts/RouterContext";
 import { ThemeSwitcher } from "./ThemeSwitcher";
+import { TranscriptionConfigDialog, type WhisperXParams } from "./TranscriptionConfigDialog";
+import { TranscribeDDialog } from "./TranscribeDDialog";
+
+// Custom SVG icons for transcription actions
+const QuickTranscribeIcon = ({ className }: { className?: string }) => (
+	<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+		<path d="M12 2L15.09 8.26L22 9L17 14L18.18 21L12 17.77L5.82 21L7 14L2 9L8.91 8.26L12 2Z" />
+		<path d="M8 12h8" strokeWidth="1.5" />
+		<path d="M8 16h6" strokeWidth="1.5" />
+	</svg>
+);
+
+const AdvancedTranscribeIcon = ({ className }: { className?: string }) => (
+	<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+		<circle cx="12" cy="12" r="3" />
+		<path d="M12 1v6m0 6v6" />
+		<path d="m21 12-6 0m-6 0-6 0" />
+		<path d="m16.24 7.76-4.24 4.24m-4.24 4.24-1.41-1.41" />
+		<path d="M16.24 16.24 12 12m-4.24-4.24L6.34 6.34" />
+	</svg>
+);
 
 import { useAuth } from "../contexts/AuthContext";
 import { ChatInterface } from "./ChatInterface";
@@ -176,6 +207,10 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
     const { getAuthHeaders } = useAuth();
     const [audioFile, setAudioFile] = useState<AudioFile | null>(null);
     const [transcript, setTranscript] = useState<Transcript | null>(null);
+    const [configDialogOpen, setConfigDialogOpen] = useState(false);
+    const [transcribeDDialogOpen, setTranscribeDDialogOpen] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [transcriptionLoading, setTranscriptionLoading] = useState(false);
 
     // Debug transcript changes
     useEffect(() => {
@@ -583,6 +618,105 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
             console.error("Failed to fetch audio details:", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleTranscribe = () => {
+        if (!audioFile) return;
+        setConfigDialogOpen(true);
+    };
+
+    const handleTranscribeD = () => {
+        if (!audioFile) return;
+        setTranscribeDDialogOpen(true);
+    };
+
+    const handleStartTranscription = async (params: WhisperXParams) => {
+        if (!audioFile) return;
+
+        if (audioFile?.is_multi_track && !params.is_multi_track_enabled) {
+			alert("Multi-track audio requires a profile with multi-track transcription enabled. Please select or create a profile with multi-track support.");
+			return;
+		}
+
+		if (!audioFile?.is_multi_track && params.is_multi_track_enabled) {
+			alert("Multi-track transcription cannot be used with single-track audio files.");
+			return;
+		}
+
+        try {
+            setTranscriptionLoading(true);
+            const response = await fetch(`/api/v1/transcription/${audioId}/start`, {
+                method: "POST",
+                headers: {
+                    ...getAuthHeaders(),
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(params),
+            });
+            if (response.ok) {
+                setConfigDialogOpen(false);
+                fetchAudioDetails();
+            } else {
+                alert("Failed to start transcription");
+            }
+        } catch {
+            alert("Error starting transcription");
+        } finally {
+            setTranscriptionLoading(false);
+        }
+    };
+
+    const handleStartTranscriptionWithProfile = async (params: WhisperXParams, _profileId?: string) => {
+        if (!audioFile) return;
+        
+        if (audioFile?.is_multi_track && !params.is_multi_track_enabled) {
+			alert("Multi-track audio requires a profile with multi-track transcription enabled. Please select a different profile with multi-track support.");
+			return;
+		}
+
+		if (!audioFile?.is_multi_track && params.is_multi_track_enabled) {
+			alert("Multi-track transcription cannot be used with single-track audio files. Please select a different profile.");
+			return;
+		}
+
+        try {
+            setTranscriptionLoading(true);
+            const response = await fetch(`/api/v1/transcription/${audioId}/start`, {
+                method: "POST",
+                headers: {
+                    ...getAuthHeaders(),
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(params),
+            });
+            if (response.ok) {
+                setTranscribeDDialogOpen(false);
+                fetchAudioDetails();
+            } else {
+                alert("Failed to start transcription");
+            }
+        } catch {
+            alert("Error starting transcription");
+        } finally {
+            setTranscriptionLoading(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!audioFile) return;
+        try {
+            const response = await fetch(`/api/v1/transcription/${audioId}`, {
+                method: "DELETE",
+                headers: { ...getAuthHeaders() }
+            });
+            if (response.ok) {
+                navigate({ path: 'home' });
+            } else {
+                alert("Failed to delete audio file");
+            }
+        } catch {
+            alert("Error deleting audio file");
         }
     };
 
@@ -1611,7 +1745,31 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
                                         {(currentStatus || audioFile.status) === "pending" &&
                                             "Your audio file is in the transcription queue."}
                                         {(currentStatus || audioFile.status) === "uploaded" &&
-                                            "Start transcription from the audio files list."}
+                                            <>
+                                            You can start transcription now.
+                                                <div className="flex justify-center gap-2 mt-4">
+                                                    <Button
+                                                        onClick={handleTranscribeD}
+                                                    >
+                                                        <QuickTranscribeIcon className="mr-2 h-4 w-4" />
+                                                        Transcribe
+                                                    </Button>
+                                                    <Button
+                                                        onClick={handleTranscribe}
+                                                    >
+                                                        <AdvancedTranscribeIcon className="mr-2 h-4 w-4" />
+                                                        Transcribe+
+                                                    </Button>
+                                                    <Button
+                                                        variant="destructive"
+                                                        onClick={() => setDeleteDialogOpen(true)}
+                                                    >
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Delete
+                                                    </Button>
+                                                </div>
+                                            </>
+                                        }
                                         {(currentStatus || audioFile.status) === "failed" &&
                                             "There was an error processing your audio file."}
                                     </p>
@@ -2723,6 +2881,51 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
                 }
 
             </div >
+            {/* Transcription Configuration Dialog */}
+			<TranscriptionConfigDialog
+				open={configDialogOpen}
+				onOpenChange={setConfigDialogOpen}
+				onStartTranscription={handleStartTranscription}
+				loading={transcriptionLoading}
+				isMultiTrack={audioFile?.is_multi_track || false}
+			/>
+
+			{/* Transcribe-D Dialog */}
+			<TranscribeDDialog
+				open={transcribeDDialogOpen}
+				onOpenChange={setTranscribeDDialogOpen}
+				onStartTranscription={handleStartTranscriptionWithProfile}
+				loading={transcriptionLoading}
+			/>
+
+			{/* Delete Audio File Dialog */}
+			<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+				<AlertDialogContent className="bg-white dark:bg-carbon-800 border-carbon-200 dark:border-carbon-700">
+					<AlertDialogHeader>
+						<AlertDialogTitle className="text-carbon-900 dark:text-carbon-100">
+							Delete Audio File
+						</AlertDialogTitle>
+						<AlertDialogDescription className="text-carbon-600 dark:text-carbon-400">
+							Are you sure you want to delete "
+							{audioFile?.title || (audioFile ? getFileName(audioFile.audio_path) : "")}
+							"? This action cannot be undone and will
+							permanently remove the audio file and any
+							transcription data.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel className="bg-carbon-100 dark:bg-carbon-800 border-carbon-300 dark:border-carbon-600 text-carbon-700 dark:text-carbon-200 hover:bg-carbon-200 dark:hover:bg-carbon-700">
+							Cancel
+						</AlertDialogCancel>
+						<AlertDialogAction
+							className="bg-red-600 text-white hover:bg-red-700"
+							onClick={handleDelete}
+						>
+							Delete
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
         </div >
     );
 });
