@@ -47,9 +47,9 @@ func RegisterTranscriptionAdapter(modelID string, adapter interfaces.Transcripti
 
 	registry.transcriptionAdapters[modelID] = adapter
 	registry.capabilities[modelID] = adapter.GetCapabilities()
-	
-	logger.Debug("Registered transcription adapter", 
-		"model_id", modelID, 
+
+	logger.Debug("Registered transcription adapter",
+		"model_id", modelID,
 		"family", adapter.GetCapabilities().ModelFamily,
 		"display_name", adapter.GetCapabilities().DisplayName)
 }
@@ -62,9 +62,9 @@ func RegisterDiarizationAdapter(modelID string, adapter interfaces.DiarizationAd
 
 	registry.diarizationAdapters[modelID] = adapter
 	registry.capabilities[modelID] = adapter.GetCapabilities()
-	
-	logger.Debug("Registered diarization adapter", 
-		"model_id", modelID, 
+
+	logger.Debug("Registered diarization adapter",
+		"model_id", modelID,
 		"family", adapter.GetCapabilities().ModelFamily,
 		"display_name", adapter.GetCapabilities().DisplayName)
 }
@@ -77,9 +77,9 @@ func RegisterCompositeAdapter(modelID string, adapter interfaces.CompositeAdapte
 
 	registry.compositeAdapters[modelID] = adapter
 	registry.capabilities[modelID] = adapter.GetCapabilities()
-	
-	logger.Debug("Registered composite adapter", 
-		"model_id", modelID, 
+
+	logger.Debug("Registered composite adapter",
+		"model_id", modelID,
 		"family", adapter.GetCapabilities().ModelFamily,
 		"display_name", adapter.GetCapabilities().DisplayName)
 }
@@ -167,7 +167,7 @@ func (r *ModelRegistry) GetTranscriptionModels() []string {
 	for id := range r.compositeAdapters {
 		models = append(models, id)
 	}
-	
+
 	sort.Strings(models)
 	return models
 }
@@ -184,7 +184,7 @@ func (r *ModelRegistry) GetDiarizationModels() []string {
 	for id := range r.compositeAdapters {
 		models = append(models, id)
 	}
-	
+
 	sort.Strings(models)
 	return models
 }
@@ -235,8 +235,8 @@ func (r *ModelRegistry) SelectBestTranscriptionModel(requirements interfaces.Mod
 	})
 
 	bestModel := candidates[0]
-	logger.Info("Selected best transcription model", 
-		"model_id", bestModel.ModelID, 
+	logger.Info("Selected best transcription model",
+		"model_id", bestModel.ModelID,
 		"score", bestModel.Score,
 		"reasons", strings.Join(bestModel.Reasons, ", "))
 
@@ -282,8 +282,8 @@ func (r *ModelRegistry) SelectBestDiarizationModel(requirements interfaces.Model
 	})
 
 	bestModel := candidates[0]
-	logger.Info("Selected best diarization model", 
-		"model_id", bestModel.ModelID, 
+	logger.Info("Selected best diarization model",
+		"model_id", bestModel.ModelID,
 		"score", bestModel.Score,
 		"reasons", strings.Join(bestModel.Reasons, ", "))
 
@@ -355,21 +355,21 @@ func (r *ModelRegistry) scoreModel(capabilities interfaces.ModelCapabilities, re
 	switch requirements.Quality {
 	case "fast":
 		if strings.Contains(strings.ToLower(capabilities.ModelID), "fast") ||
-		   strings.Contains(strings.ToLower(capabilities.ModelID), "tiny") ||
-		   strings.Contains(strings.ToLower(capabilities.ModelID), "small") {
+			strings.Contains(strings.ToLower(capabilities.ModelID), "tiny") ||
+			strings.Contains(strings.ToLower(capabilities.ModelID), "small") {
 			score += 10
 			reasons = append(reasons, "optimized for speed")
 		}
 	case "best":
 		if strings.Contains(strings.ToLower(capabilities.ModelID), "large") ||
-		   strings.Contains(strings.ToLower(capabilities.ModelID), "xl") ||
-		   strings.Contains(strings.ToLower(capabilities.ModelID), "turbo") {
+			strings.Contains(strings.ToLower(capabilities.ModelID), "xl") ||
+			strings.Contains(strings.ToLower(capabilities.ModelID), "turbo") {
 			score += 10
 			reasons = append(reasons, "optimized for quality")
 		}
 	case "good":
 		if strings.Contains(strings.ToLower(capabilities.ModelID), "medium") ||
-		   strings.Contains(strings.ToLower(capabilities.ModelID), "base") {
+			strings.Contains(strings.ToLower(capabilities.ModelID), "base") {
 			score += 10
 			reasons = append(reasons, "balanced quality/speed")
 		}

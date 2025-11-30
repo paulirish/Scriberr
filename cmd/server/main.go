@@ -16,6 +16,8 @@ import (
 	"scriberr/internal/config"
 	"scriberr/internal/database"
 	"scriberr/internal/queue"
+	"scriberr/internal/repository"
+	"scriberr/internal/service"
 	"scriberr/internal/transcription"
 	"scriberr/internal/transcription/adapters"
 	"scriberr/internal/transcription/registry"
@@ -70,7 +72,7 @@ func main() {
 	// Initialize structured logging first
 	logger.Init(os.Getenv("LOG_LEVEL"))
 	logger.Info("Starting Scriberr", "version", version)
-	
+
 	// Load configuration
 	logger.Startup("config", "Loading configuration")
 	cfg := config.Load()
@@ -90,10 +92,27 @@ func main() {
 	logger.Startup("auth", "Setting up authentication")
 	authService := auth.NewAuthService(cfg.JWTSecret)
 
+	// Initialize repositories
+	logger.Startup("repository", "Initializing repositories")
+	jobRepo := repository.NewJobRepository(database.DB)
+	userRepo := repository.NewUserRepository(database.DB)
+	apiKeyRepo := repository.NewAPIKeyRepository(database.DB)
+	profileRepo := repository.NewProfileRepository(database.DB)
+	llmConfigRepo := repository.NewLLMConfigRepository(database.DB)
+	summaryRepo := repository.NewSummaryRepository(database.DB)
+	chatRepo := repository.NewChatRepository(database.DB)
+	noteRepo := repository.NewNoteRepository(database.DB)
+	speakerMappingRepo := repository.NewSpeakerMappingRepository(database.DB)
+
+	// Initialize services
+	logger.Startup("service", "Initializing services")
+	userService := service.NewUserService(userRepo, authService)
+	fileService := service.NewFileService()
+
 	// Initialize unified transcription processor
 	logger.Startup("transcription", "Initializing transcription service")
-	unifiedProcessor := transcription.NewUnifiedJobProcessor()
-	
+	unifiedProcessor := transcription.NewUnifiedJobProcessor(jobRepo)
+
 	// Bootstrap embedded Python environment (for all adapters)
 	logger.Startup("python", "Preparing Python environment")
 	if err := unifiedProcessor.InitEmbeddedPythonEnv(); err != nil {
@@ -116,7 +135,24 @@ func main() {
 	defer taskQueue.Stop()
 
 	// Initialize API handlers
-	handler := api.NewHandler(cfg, authService, taskQueue, unifiedProcessor, quickTranscriptionService)
+	handler := api.NewHandler(
+		cfg,
+		authService,
+		userService,
+		fileService,
+		jobRepo,
+		apiKeyRepo,
+		profileRepo,
+		userRepo,
+		llmConfigRepo,
+		summaryRepo,
+		chatRepo,
+		noteRepo,
+		speakerMappingRepo,
+		taskQueue,
+		unifiedProcessor,
+		quickTranscriptionService,
+	)
 
 	// Set up router
 	router := api.SetupRoutes(handler, authService)
@@ -135,10 +171,10 @@ func main() {
 			os.Exit(1)
 		}
 	}()
-	
+
 	// Give the server a moment to start
 	time.Sleep(100 * time.Millisecond)
-	logger.Info("Scriberr is ready", 
+	logger.Info("Scriberr is ready",
 		"url", fmt.Sprintf("http://%s:%s", cfg.Host, cfg.Port))
 	logger.Debug("API documentation available at /swagger/index.html")
 
@@ -169,6 +205,9 @@ func registerAdapters(cfg *config.Config) {
 	logger.Info("Registering adapters with environment path", nvidiaEnvPath)
 
 
+	// Dedicated environment path for PyAnnote (to avoid dependency conflicts)
+	pyannoteEnvPath := filepath.Join(cfg.WhisperXEnv, "pyannote")
+
 	// Register transcription adapters
 	// registry.RegisterTranscriptionAdapter("whisperx",
 	// 	adapters.NewWhisperXAdapter(cfg.WhisperXEnv))
@@ -179,7 +218,7 @@ func registerAdapters(cfg *config.Config) {
 
 	// Register diarization adapters
 	// registry.RegisterDiarizationAdapter("pyannote",
-	// 	adapters.NewPyAnnoteAdapter(nvidiaEnvPath)) // Shares with Parakeet
+	// 	adapters.NewPyAnnoteAdapter(pyannoteEnvPath)) // Dedicated environment
 	registry.RegisterDiarizationAdapter("sortformer",
 		adapters.NewSortformerAdapter(nvidiaEnvPath)) // Shares with Parakeet
 
