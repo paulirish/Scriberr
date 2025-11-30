@@ -409,18 +409,18 @@ func (r *ModelRegistry) InitializeModels(ctx context.Context) error {
 		// Initialize transcription adapters in parallel
 		for modelID, adapter := range r.transcriptionAdapters {
 			wg.Add(1)
-			go func(id string, adp interfaces.TranscriptionAdapter) {
+			go func(modelID string, adapter interfaces.TranscriptionAdapter) {
 				defer wg.Done()
-				logger.Debug("Initializing transcription model", "model_id", id)
-				if err := adp.PrepareEnvironment(ctx); err != nil {
+				logger.Debug("Initializing transcription model", "model_id", modelID)
+				if err := adapter.PrepareEnvironment(ctx); err != nil {
 					logger.Error("Failed to initialize transcription model",
-						"model_id", id, "error", err)
+						"model_id", modelID, "error", err)
 					select {
-					case initErrors <- fmt.Errorf("transcription model %s: %w", id, err):
+					case initErrors <- fmt.Errorf("transcription model %s: %w", modelID, err):
 					default:
 					}
 				} else {
-					logger.Info("Transcription model initialized", "model_id", id)
+					logger.Info("Transcription model initialized", "model_id", modelID)
 				}
 			}(modelID, adapter)
 		}
@@ -428,18 +428,18 @@ func (r *ModelRegistry) InitializeModels(ctx context.Context) error {
 		// Initialize diarization adapters in parallel
 		for modelID, adapter := range r.diarizationAdapters {
 			wg.Add(1)
-			go func(id string, adp interfaces.DiarizationAdapter) {
+			go func(modelID string, adapter interfaces.DiarizationAdapter) {
 				defer wg.Done()
-				logger.Debug("Initializing diarization model", "model_id", id)
-				if err := adp.PrepareEnvironment(ctx); err != nil {
+				logger.Debug("Initializing diarization model", "model_id", modelID)
+				if err := adapter.PrepareEnvironment(ctx); err != nil {
 					logger.Error("Failed to initialize diarization model",
-						"model_id", id, "error", err)
+						"model_id", modelID, "error", err)
 					select {
-					case initErrors <- fmt.Errorf("diarization model %s: %w", id, err):
+					case initErrors <- fmt.Errorf("diarization model %s: %w", modelID, err):
 					default:
 					}
 				} else {
-					logger.Info("Diarization model initialized", "model_id", id)
+					logger.Info("Diarization model initialized", "model_id", modelID)
 				}
 			}(modelID, adapter)
 		}
@@ -447,18 +447,18 @@ func (r *ModelRegistry) InitializeModels(ctx context.Context) error {
 		// Initialize composite adapters in parallel
 		for modelID, adapter := range r.compositeAdapters {
 			wg.Add(1)
-			go func(id string, adp interfaces.CompositeAdapter) {
+			go func(modelID string, adapter interfaces.CompositeAdapter) {
 				defer wg.Done()
-				logger.Debug("Initializing composite model", "model_id", id)
-				if err := adp.PrepareEnvironment(ctx); err != nil {
+				logger.Debug("Initializing composite model", "model_id", modelID)
+				if err := adapter.PrepareEnvironment(ctx); err != nil {
 					logger.Error("Failed to initialize composite model",
-						"model_id", id, "error", err)
+						"model_id", modelID, "error", err)
 					select {
-					case initErrors <- fmt.Errorf("composite model %s: %w", id, err):
+					case initErrors <- fmt.Errorf("composite model %s: %w", modelID, err):
 					default:
 					}
 				} else {
-					logger.Info("Composite model initialized", "model_id", id)
+					logger.Info("Composite model initialized", "model_id", modelID)
 				}
 			}(modelID, adapter)
 		}
