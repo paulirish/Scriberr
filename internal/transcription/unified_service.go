@@ -13,6 +13,7 @@ import (
 
 	"scriberr/internal/models"
 	"scriberr/internal/repository"
+	"scriberr/internal/transcription/adapters"
 	"scriberr/internal/transcription/interfaces"
 	"scriberr/internal/transcription/pipeline"
 	"scriberr/internal/transcription/registry"
@@ -30,6 +31,7 @@ type UnifiedTranscriptionService struct {
 	defaultModelIDs       map[string]string      // Default model IDs for each task type
 	multiTrackTranscriber *MultiTrackTranscriber // For termination support
 	jobRepo               repository.JobRepository
+	titanetAdapter        *adapters.TitanetAdapter // Speaker identification adapter
 }
 
 // NewUnifiedTranscriptionService creates a new unified transcription service
@@ -46,6 +48,8 @@ func NewUnifiedTranscriptionService(jobRepo repository.JobRepository) *UnifiedTr
 			"diarization":   "pyannote",
 		},
 		jobRepo: jobRepo,
+		// Assuming shared environment path for now, consistent with SortformerAdapter
+		titanetAdapter: adapters.NewTitanetAdapter("data/models/nvidia/env"),
 	}
 }
 
@@ -64,6 +68,12 @@ func (u *UnifiedTranscriptionService) Initialize(ctx context.Context) error {
 	// Initialize all registered models
 	if err := u.registry.InitializeModels(ctx); err != nil {
 		return fmt.Errorf("failed to initialize models: %w", err)
+	}
+
+	// Initialize TitaNet adapter
+	if err := u.titanetAdapter.PrepareEnvironment(ctx); err != nil {
+		// Log warning but don't fail, as other models might still work
+		logger.Warn("Failed to initialize TitaNet adapter", "error", err)
 	}
 
 	logger.Info("Unified transcription service initialized successfully")
@@ -242,6 +252,20 @@ func (u *UnifiedTranscriptionService) processSingleTrackJob(ctx context.Context,
 			diarizationResult, err = diarizationAdapter.Diarize(ctx, preprocessedInput, diarizationParams, procCtx)
 			if err != nil {
 				return fmt.Errorf("diarization failed: %w", err)
+			}
+
+			// Run Speaker Identification (TitaNet + Qdrant)
+			// Only run if we have a valid result and TitaNet is ready
+			// Note: We might want a flag to enable/disable this feature
+			// For now, let's assume it's enabled if initialized
+			if diarizationResult != nil && diarizationResult.SpeakerCount > 0 {
+				logger.Info("Running speaker identification")
+				identifiedResult, err := u.titanetAdapter.IdentifySpeakers(ctx, preprocessedInput, diarizationResult, nil, procCtx)
+				if err != nil {
+					logger.Warn("Speaker identification failed, using local speaker IDs", "error", err)
+				} else {
+					diarizationResult = identifiedResult
+				}
 			}
 
 			// Merge diarization results with transcription
