@@ -10,7 +10,7 @@ interface AudioFile {
   created_at: string;
 }
 
-interface AudioFilesCalendarProps {
+interface AudioFilesMonthCalendarProps {
   data: AudioFile[];
   onFileClick: (fileId: string) => void;
 }
@@ -19,7 +19,7 @@ interface AudioFilesCalendarProps {
 
 const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export const AudioFilesCalendar = ({ data, onFileClick }: AudioFilesCalendarProps) => {
+export const AudioFilesMonthCalendar = ({ data, onFileClick }: AudioFilesMonthCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
