@@ -6,7 +6,17 @@ services:
     volumes:
       - scriberr_data:/app/data
     restart: unless-stopped
+    depends_on:
+      - qdrant
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    restart: unless-stopped
 
 volumes:
   scriberr_data:
-
+  qdrant_storage:
