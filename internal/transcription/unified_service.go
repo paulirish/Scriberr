@@ -49,7 +49,7 @@ func NewUnifiedTranscriptionService(jobRepo repository.JobRepository) *UnifiedTr
 		},
 		jobRepo: jobRepo,
 		// Assuming shared environment path for now, consistent with SortformerAdapter
-		titanetAdapter: adapters.NewTitanetAdapter("data/models/whisperx-env/parakeet/"),
+		titanetAdapter: adapters.NewTitanetAdapter("data/whisperx-env/parakeet/"),
 	}
 }
 

@@ -3,9 +3,10 @@ package api
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"scriberr/internal/transcription/adapters"
 	"scriberr/pkg/logger"
+
+	"github.com/gin-gonic/gin"
 )
 
 // ListSpeakers returns all known speakers from the vector DB
@@ -25,7 +26,7 @@ func (h *Handler) ListSpeakers(c *gin.Context) {
 
 	// FIX: Ideally, the unified service or titanet adapter should be injected into Handler.
 	// For this task, I will create a new instance pointing to the standard path.
-	adapter := adapters.NewTitanetAdapter("data/models/whisperx-env/parakeet/")
+	adapter := adapters.NewTitanetAdapter("data/whisperx-env/parakeet/")
 
 	speakers, err := adapter.ListSpeakers(c.Request.Context())
 	if err != nil {
@@ -62,7 +63,7 @@ func (h *Handler) RenameSpeaker(c *gin.Context) {
 		return
 	}
 
-	adapter := adapters.NewTitanetAdapter("data/models/whisperx-env/parakeet/")
+	adapter := adapters.NewTitanetAdapter("data/whisperx-env/parakeet/")
 
 	if err := adapter.RenameSpeaker(c.Request.Context(), id, req.Name); err != nil {
 		logger.Error("Failed to rename speaker", "error", err)
@@ -85,7 +86,7 @@ func (h *Handler) RenameSpeaker(c *gin.Context) {
 func (h *Handler) DeleteSpeaker(c *gin.Context) {
 	id := c.Param("id")
 
-	adapter := adapters.NewTitanetAdapter("data/models/whisperx-env/parakeet/")
+	adapter := adapters.NewTitanetAdapter("data/whisperx-env/parakeet/")
 
 	if err := adapter.DeleteSpeaker(c.Request.Context(), id); err != nil {
 		logger.Error("Failed to delete speaker", "error", err)
