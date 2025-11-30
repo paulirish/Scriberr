@@ -211,6 +211,7 @@ dependencies = [
     "onnx>=1.15.0,<1.18.0",
     "pyannote.audio",
     "qdrant-client"
+     "torchcodec",
 ]
 
 [tool.uv.sources]
@@ -355,7 +356,7 @@ def diarize_audio(
     try:
         # Run diarization
         print(f"Running diarization with batch_size={batch_size}, max_speakers={max_speakers}")
-        
+
         if streaming_mode:
             print(f"Using streaming mode with chunk_length_s={chunk_length_s}")
             # Note: Streaming mode implementation would go here
@@ -546,10 +547,10 @@ def main():
 Examples:
     # Basic diarization with JSON output
     python sortformer_diarize.py samples/sample.wav output.json
-    
+
     # Generate RTTM format output
     python sortformer_diarize.py samples/sample.wav output.rttm
-    
+
     # Specify device and batch size
     python sortformer_diarize.py --device cuda --batch-size 2 samples/sample.wav output.json
 
