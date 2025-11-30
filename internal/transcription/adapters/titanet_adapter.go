@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"scriberr/internal/transcription/interfaces"
@@ -397,6 +398,9 @@ func (t *TitanetAdapter) IdentifySpeakers(ctx context.Context, input interfaces.
 		"--collection", "speakers", // Could be parameterized
 		"--threshold", "0.5", // Could be parameterized
 	)
+
+  logger.Info("Executing Titanet command", "args", strings.Join(cmd.Args, " "))
+
 
 	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1")
     // Capture output for debugging
