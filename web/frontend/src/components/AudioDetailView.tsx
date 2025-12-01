@@ -1271,6 +1271,16 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
         }
     };
 
+    const handleTimestampClick = (time: number) => {
+        if (audioPlayerRef.current) {
+            const duration = audioPlayerRef.current.getDuration();
+            if (duration > 0) {
+                const ratio = time / duration;
+                audioPlayerRef.current.seekTo(ratio);
+            }
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-carbon-50 dark:bg-carbon-950">
@@ -1684,6 +1694,7 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
                                                 notes={notes}
                                                 highlightedWordRef={highlightedWordRef}
                                                 speakerMappings={speakerMappings}
+                                                onTimestampClick={handleTimestampClick}
                                             />
                                         </div>
                                     </div>
