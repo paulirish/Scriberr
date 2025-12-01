@@ -8,7 +8,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 const BACKEND_PORT = process.env.PORT || '8080'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
@@ -64,6 +64,8 @@ export default defineConfig({
     },
     // Improve performance by optimizing chunk sizes
     chunkSizeWarningLimit: 1000,
+    sourcemap: true,
+    minify: mode !== 'development',
   },
   base: "/",
   server: {
@@ -74,4 +76,4 @@ export default defineConfig({
       }
     }
   }
-})
+}))
