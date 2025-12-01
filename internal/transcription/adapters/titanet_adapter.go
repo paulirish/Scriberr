@@ -41,12 +41,6 @@ func NewTitanetAdapter(envPath string) *TitanetAdapter {
 	// Schema for parameters
 	schema := []interfaces.ParameterSchema{
 		{
-			Name:        "collection_name",
-			Type:        "string",
-			Default:     "speakers",
-			Description: "Qdrant collection name for speaker embeddings",
-		},
-		{
 			Name:        "similarity_threshold",
 			Type:        "float",
 			Default:     0.5,
@@ -397,8 +391,7 @@ func (t *TitanetAdapter) IdentifySpeakers(ctx context.Context, input interfaces.
 		inputJSON,
 		outputJSON,
 		"--qdrant", qdrantHost,
-		"--collection", "speakers", // Could be parameterized
-		"--threshold", "0.5", // Could be parameterized
+		"--threshold", fmt.Sprintf("%.2f", t.GetFloatParameter(params, "similarity_threshold")),
 	)
 
   logger.Info("Executing Titanet command", "args", strings.Join(cmd.Args, " "))
