@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, Play, Pause, List, AlignLeft, MessageCircle, Download, FileText, FileJson, FileImage, Check, StickyNote, Plus, X, Sparkles, Pencil, ChevronUp, ChevronDown, Info, Clock, Settings, Users, Loader2, Home, Trash2 } from "lucide-react";
+import { ArrowLeft, Play, Pause, List, AlignLeft, MessageCircle, Download, FileText, FileJson, FileImage, Check, StickyNote, Plus, X, Sparkles, Pencil, ChevronUp, ChevronDown, Info, Clock, Settings, Users, Loader2, Home, ArrowDownCircle, Trash2 } from "lucide-react";
 import { AudioPlayer, type AudioPlayerRef } from "./audio/AudioPlayer";
 import { TranscriptView } from "./transcript/TranscriptView";
 import { Button } from "./ui/button";
@@ -284,6 +284,7 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
     const [titleInput, setTitleInput] = useState("");
     const [savingTitle, setSavingTitle] = useState(false);
     const [audioCollapsed, setAudioCollapsed] = useState(false);
+    const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
 
     // Execution info state
     const [executionInfoOpen, setExecutionInfoOpen] = useState(false);
@@ -669,7 +670,7 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
 
     const handleStartTranscriptionWithProfile = async (params: WhisperXParams, _profileId?: string) => {
         if (!audioFile) return;
-        
+
         if (audioFile?.is_multi_track && !params.is_multi_track_enabled) {
 			alert("Multi-track audio requires a profile with multi-track transcription enabled. Please select a different profile with multi-track support.");
 			return;
@@ -1326,7 +1327,7 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
 
     return (
         <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
                 {/* Header with back button and theme switcher */}
                 <div className="flex items-center justify-between mb-3 sm:mb-6">
                     <Button onClick={() => navigate({ path: "home" })} variant="outline" size="icon" className="h-9 w-9 cursor-pointer" title="Back to Home">
@@ -1421,14 +1422,8 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
                     <div className="glass rounded-xl p-3 sm:p-6 transition-all duration-300">
                         {/* Header Section */}
                         <div className="mb-10 sm:mb-16">
-                            {/* Title Row */}
-                            <div className="flex items-center justify-between mb-6 sm:mb-0">
-                                <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
-                                    <h1 className="text-2xl font-bold text-carbon-900 dark:text-carbon-100 truncate flex-1" title={audioFile.title || audioFile.audio_path}>
-                                        {getFileNameWithoutExt()}
-                                    </h1>
-                                </div>
-
+                            {/* Title Row - Centered Toolbar */}
+                            <div className="flex items-center justify-center mb-6 sm:mb-0">
                                 {/* Desktop: Show toolbar inline, Mobile: Hide here (shown below) */}
                                 <div className="hidden sm:flex items-center gap-2">
                                     {/* Sleek toolbar (desktop only) */}
@@ -1446,6 +1441,18 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
                                                 ) : (
                                                     <AlignLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                                 )}
+                                            </button>
+
+                                            <div className="mx-1 h-5 w-px bg-carbon-300 dark:bg-carbon-700" />
+
+                                            {/* Auto-Scroll Toggle */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setAutoScrollEnabled(v => !v)}
+                                                className={`h-6 w-6 sm:h-7 sm:w-7 inline-flex items-center justify-center rounded-md cursor-pointer text-carbon-600 dark:text-carbon-300 hover:bg-carbon-200 dark:hover:bg-carbon-700 transition-colors ${autoScrollEnabled ? 'bg-white dark:bg-carbon-700 shadow-sm' : ''}`}
+                                                title={autoScrollEnabled ? 'Disable auto-scroll' : 'Enable auto-scroll'}
+                                            >
+                                                <ArrowDownCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                             </button>
 
                                             <div className="mx-1 h-5 w-px bg-carbon-300 dark:bg-carbon-700" />
@@ -1561,15 +1568,15 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
                                     )}
                                 </div>
 
-                                {/* Mobile Toolbar Placeholder */}
+                                {/* Mobile Toolbar */}
                                 {viewMode === 'transcript' && (
-                                    <div className="flex sm:hidden justify-center">
-                                        <div className="flex items-center gap-1 rounded-md bg-carbon-100/80 dark:bg-carbon-800/80 px-1.5 py-0.5 border border-carbon-200 dark:border-carbon-700 shadow-sm">
+                                    <div className="flex sm:hidden justify-center mt-4">
+                                        <div className="flex items-center justify-center gap-1 rounded-lg bg-carbon-100/90 dark:bg-carbon-800/90 p-1 border border-carbon-200 dark:border-carbon-700 shadow-sm backdrop-blur-md">
                                             {/* View toggle */}
                                             <button
                                                 type="button"
                                                 onClick={() => setTranscriptMode(m => m === 'compact' ? 'expanded' : 'compact')}
-                                                className={`h-6 w-6 inline-flex items-center justify-center rounded-md cursor-pointer text-carbon-600 dark:text-carbon-300 hover:bg-carbon-200 dark:hover:bg-carbon-700 transition-colors ${transcriptMode === 'compact' ? 'bg-white dark:bg-carbon-700 shadow-sm' : ''}`}
+                                                className={`h-7 w-7 inline-flex items-center justify-center rounded-md cursor-pointer text-carbon-600 dark:text-carbon-300 hover:bg-carbon-200 dark:hover:bg-carbon-700 transition-colors ${transcriptMode === 'compact' ? 'bg-white dark:bg-carbon-700 shadow-sm' : ''}`}
                                                 title={transcriptMode === 'compact' ? 'Switch to Timeline view' : 'Switch to Compact view'}
                                             >
                                                 {transcriptMode === 'compact' ? (
@@ -1579,71 +1586,70 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
                                                 )}
                                             </button>
 
-                                            <div className="mx-1 h-5 w-px bg-carbon-300 dark:bg-carbon-700" />
+                                            {/* Auto-Scroll Toggle */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setAutoScrollEnabled(v => !v)}
+                                                className={`h-7 w-7 inline-flex items-center justify-center rounded-md cursor-pointer text-carbon-600 dark:text-carbon-300 hover:bg-carbon-200 dark:hover:bg-carbon-700 transition-colors ${autoScrollEnabled ? 'bg-white dark:bg-carbon-700 shadow-sm' : ''}`}
+                                                title={autoScrollEnabled ? 'Disable auto-scroll' : 'Enable auto-scroll'}
+                                            >
+                                                <ArrowDownCircle className="h-3.5 w-3.5" />
+                                            </button>
 
                                             {/* Notes toggle */}
                                             <button
                                                 type="button"
                                                 onClick={() => setNotesOpen(v => !v)}
-                                                className={`relative h-6 w-6 inline-flex items-center justify-center rounded-md cursor-pointer text-carbon-600 dark:text-carbon-300 hover:bg-carbon-200 dark:hover:bg-carbon-700 transition-colors ${notesOpen ? 'bg-white dark:bg-carbon-700 shadow-sm' : ''}`}
+                                                className={`relative h-7 w-7 inline-flex items-center justify-center rounded-md cursor-pointer text-carbon-600 dark:text-carbon-300 hover:bg-carbon-200 dark:hover:bg-carbon-700 transition-colors ${notesOpen ? 'bg-white dark:bg-carbon-700 shadow-sm' : ''}`}
                                                 title="Toggle notes"
                                             >
                                                 <StickyNote className="h-3.5 w-3.5" />
                                                 {notes.length > 0 && (
-                                                    <span className="absolute -top-1 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-carbon-900 text-white text-[10px] leading-[15px] text-center">
+                                                    <span className="absolute -top-1 -right-0.5 min-w-[12px] h-[12px] px-0.5 rounded-full bg-carbon-900 text-white text-[8px] leading-[12px] text-center">
                                                         {notes.length > 99 ? '99+' : notes.length}
                                                     </span>
                                                 )}
                                             </button>
 
-                                            <div className="mx-1 h-5 w-px bg-carbon-300 dark:bg-carbon-700" />
-
                                             {/* Execution Info */}
                                             <button
                                                 type="button"
                                                 onClick={openExecutionInfo}
-                                                className="h-6 w-6 inline-flex items-center justify-center rounded-md cursor-pointer text-carbon-600 dark:text-carbon-300 hover:bg-carbon-200 dark:hover:bg-carbon-700 transition-colors"
-                                                title="View execution parameters and timing"
+                                                className="h-7 w-7 inline-flex items-center justify-center rounded-md cursor-pointer text-carbon-600 dark:text-carbon-300 hover:bg-carbon-200 dark:hover:bg-carbon-700 transition-colors"
+                                                title="View execution parameters"
                                             >
                                                 <Info className="h-3.5 w-3.5" />
                                             </button>
 
-                                            {/* Speaker Renaming - only show if there are speakers (from diarization or multi-track) */}
+                                            {/* Speaker Renaming */}
                                             {hasSpeakers() && getDetectedSpeakers().length > 0 && (
-                                                <>
-                                                    <div className="mx-1 h-5 w-px bg-carbon-300 dark:bg-carbon-700" />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setSpeakerRenameDialogOpen(true)}
-                                                        className="h-6 w-6 inline-flex items-center justify-center rounded-md cursor-pointer text-carbon-600 dark:text-carbon-300 hover:bg-carbon-200 dark:hover:bg-carbon-700 transition-colors"
-                                                        title="Rename speakers"
-                                                    >
-                                                        <Users className="h-3.5 w-3.5" />
-                                                    </button>
-                                                </>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSpeakerRenameDialogOpen(true)}
+                                                    className="h-7 w-7 inline-flex items-center justify-center rounded-md cursor-pointer text-carbon-600 dark:text-carbon-300 hover:bg-carbon-200 dark:hover:bg-carbon-700 transition-colors"
+                                                    title="Rename speakers"
+                                                >
+                                                    <Users className="h-3.5 w-3.5" />
+                                                </button>
                                             )}
-
-                                            <div className="mx-1 h-5 w-px bg-carbon-300 dark:bg-carbon-700" />
 
                                             {/* Summarize */}
                                             <button
                                                 type="button"
                                                 onClick={openSummarizeDialog}
-                                                className="h-6 w-6 inline-flex items-center justify-center rounded-md cursor-pointer text-carbon-600 dark:text-carbon-300 hover:bg-carbon-200 dark:hover:bg-carbon-700 transition-colors disabled:opacity-50"
-                                                title={llmReady === false ? 'Configure LLM in Settings' : 'Summarize transcript'}
+                                                className="h-7 w-7 inline-flex items-center justify-center rounded-md cursor-pointer text-carbon-600 dark:text-carbon-300 hover:bg-carbon-200 dark:hover:bg-carbon-700 transition-colors disabled:opacity-50"
+                                                title="Summarize transcript"
                                                 disabled={llmReady === false}
                                             >
                                                 <Sparkles className="h-3.5 w-3.5" />
                                             </button>
-
-                                            <div className="mx-1 h-5 w-px bg-carbon-300 dark:bg-carbon-700" />
 
                                             {/* Download dropdown */}
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <button
                                                         type="button"
-                                                        className="h-6 w-6 inline-flex items-center justify-center rounded-md cursor-pointer text-carbon-600 dark:text-carbon-300 hover:bg-carbon-200 dark:hover:bg-carbon-700 transition-colors"
+                                                        className="h-7 w-7 inline-flex items-center justify-center rounded-md cursor-pointer text-carbon-600 dark:text-carbon-300 hover:bg-carbon-200 dark:hover:bg-carbon-700 transition-colors"
                                                         title="Download transcript"
                                                     >
                                                         <Download className="h-3.5 w-3.5" />
@@ -1665,13 +1671,11 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
 
-                                            <div className="mx-1 h-5 w-px bg-carbon-300 dark:bg-carbon-700" />
-
                                             {/* Open Chat Page */}
                                             <button
                                                 type="button"
                                                 onClick={() => navigate({ path: 'chat', params: { audioId } })}
-                                                className="h-6 w-6 inline-flex items-center justify-center rounded-md cursor-pointer text-carbon-600 dark:text-carbon-300 hover:bg-carbon-200 dark:hover:bg-carbon-700 transition-colors"
+                                                className="h-7 w-7 inline-flex items-center justify-center rounded-md cursor-pointer text-carbon-600 dark:text-carbon-300 hover:bg-carbon-200 dark:hover:bg-carbon-700 transition-colors"
                                                 title="Open chat"
                                             >
                                                 <MessageCircle className="h-3.5 w-3.5" />
@@ -1685,7 +1689,7 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
                             {viewMode === "transcript" ? (
                                 <div className="relative overflow-hidden">
                                     {/* Transcript Content */}
-                                    <div className="prose prose-gray dark:prose-invert max-w-none font-transcript">
+                                    <div className="w-full font-transcript">
                                         <div ref={transcriptRef} className="relative">
                                             <TranscriptView
                                                 transcript={transcript}
@@ -1694,6 +1698,7 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
                                                 notes={notes}
                                                 highlightedWordRef={highlightedWordRef}
                                                 speakerMappings={speakerMappings}
+                                                autoScrollEnabled={autoScrollEnabled}
                                                 onTimestampClick={handleTimestampClick}
                                             />
                                         </div>
