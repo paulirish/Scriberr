@@ -311,7 +311,7 @@ def identify_speakers(
             # In a real app, user might rename "Speaker 1" later.
             human_name = f"Speaker-{new_id[:8]}"
 
-            logger.info(f"Enrolling new speaker {human_name}")
+            logger.info(f"Enrolling {local_spk} as new speaker {human_name}")
 
             client.upsert(
                 collection_name=collection_name,
@@ -411,7 +411,20 @@ func (t *TitanetAdapter) IdentifySpeakers(ctx context.Context, input interfaces.
 		logger.Error("Identity script failed", "output", string(output))
 		return nil, fmt.Errorf("identity script failed: %w", err)
 	}
-    logger.Info("Identity script output", "output", string(output))
+	logger.Debug("Identity script output", "output", string(output))
+
+	// Extract speaker matching/enrolling events from the log
+	var speakerEvents []string
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		if strings.Contains(line, " Matched ") || strings.Contains(line, " Enrolling ") {
+			speakerEvents = append(speakerEvents, line)
+		}
+	}
+
+	if len(speakerEvents) > 0 {
+		logger.Info("Speaker identification events", "details", "\n"+strings.Join(speakerEvents, "\n"))
+	}
 
 	// 3. Read back result
 	resultData, err := os.ReadFile(outputJSON)
