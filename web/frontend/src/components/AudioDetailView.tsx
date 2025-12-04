@@ -1757,7 +1757,8 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
                                         {(currentStatus || audioFile.status) === "uploaded" && "Ready for Transcription"}
                                         {(currentStatus || audioFile.status) === "failed" && "Transcription Failed"}
                                     </h2>
-                                    <p className="text-carbon-600 dark:text-carbon-400">
+                                    <div className="text-carbon-600 dark:text-carbon-400">
+
                                         {(currentStatus || audioFile.status) === "pending" &&
                                             "Your audio file is in the transcription queue."}
                                         {(currentStatus || audioFile.status) === "uploaded" &&
@@ -1788,7 +1789,7 @@ export const AudioDetailView = memo(function AudioDetailView({ audioId }: AudioD
                                         }
                                         {(currentStatus || audioFile.status) === "failed" &&
                                             "There was an error processing your audio file."}
-                                    </p>
+                                    </div>
                                     {(currentStatus || audioFile.status) === "failed" && (
                                         <div className="mt-4">
                                             <button
