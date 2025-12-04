@@ -3,7 +3,6 @@ package api
 import (
 	"net/http"
 
-	"scriberr/internal/transcription/adapters"
 	"scriberr/pkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -18,17 +17,7 @@ import (
 // @Failure 500 {object} ErrorResponse
 // @Router /api/v1/speakers [get]
 func (h *Handler) ListSpeakers(c *gin.Context) {
-	// Initialize adapter (using the shared path or getting from a service registry would be better)
-	// For now, we create a temporary instance or reusing logic would be ideal.
-	// In a real dependency injection setup, the adapter should be part of the Handler struct or accessible via a Service.
-	// Given the current architecture in handler.go, we might not have direct access to the specific UnifiedTranscriptionService instance.
-	// However, we can re-instantiate the adapter wrapper as it's lightweight (just path config).
-
-	// FIX: Ideally, the unified service or titanet adapter should be injected into Handler.
-	// For this task, I will create a new instance pointing to the standard path.
-	adapter := adapters.NewTitanetAdapter("data/whisperx-env/parakeet/")
-
-	speakers, err := adapter.ListSpeakers(c.Request.Context())
+	speakers, err := h.speakerService.ListSpeakers(c.Request.Context())
 	if err != nil {
 		logger.Error("Failed to list speakers", "error", err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to list speakers"})
@@ -45,7 +34,7 @@ type RenameSpeakerRequest struct {
 
 // RenameSpeaker updates a speaker's name
 // @Summary Rename speaker
-// @Description Rename an identified speaker
+// @Description Rename an identified speaker and update past transcripts
 // @Tags speakers
 // @Accept json
 // @Produce json
@@ -63,9 +52,7 @@ func (h *Handler) RenameSpeaker(c *gin.Context) {
 		return
 	}
 
-	adapter := adapters.NewTitanetAdapter("data/whisperx-env/parakeet/")
-
-	if err := adapter.RenameSpeaker(c.Request.Context(), id, req.Name); err != nil {
+	if err := h.speakerService.RenameSpeaker(c.Request.Context(), id, req.Name); err != nil {
 		logger.Error("Failed to rename speaker", "error", err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to rename speaker"})
 		return
@@ -86,9 +73,7 @@ func (h *Handler) RenameSpeaker(c *gin.Context) {
 func (h *Handler) DeleteSpeaker(c *gin.Context) {
 	id := c.Param("id")
 
-	adapter := adapters.NewTitanetAdapter("data/whisperx-env/parakeet/")
-
-	if err := adapter.DeleteSpeaker(c.Request.Context(), id); err != nil {
+	if err := h.speakerService.DeleteSpeaker(c.Request.Context(), id); err != nil {
 		logger.Error("Failed to delete speaker", "error", err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to delete speaker"})
 		return

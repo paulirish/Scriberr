@@ -63,9 +63,12 @@ When the same person speaks in a *future* file (or later in the same file):
 Users interact with these identities via the Web UI:
 1.  **Renaming**: In the transcript editor, a user renames "Speaker-a1b2..." to "Alice".
     *   The user checks **"Also rename globally"**.
-    *   The Frontend calls `PUT /api/v1/speakers/{uuid}`.
-    *   The Backend updates the metadata payload in Qdrant: `{ "name": "Alice" }`.
-    *   **Effect**: All future identifications of this voice will return "Alice". Note: Past transcripts are *not* automatically rewritten in the database, but new requests will resolve correctly.
+    *   The Frontend calls `PUT /api/v1/speakers/{uuid}` with the new name "Alice".
+    *   The backend `SpeakerService` receives the request and performs a two-step process:
+        1.  **Fetch Old Name**: It first queries Qdrant using the speaker's UUID (`a1b2-c3d4...`) to retrieve the current name ("Speaker-a1b2...").
+        2.  **Update Qdrant**: It updates the metadata payload in Qdrant for that speaker's vector, setting the name to "Alice". All future identifications of this voice will now correctly return "Alice".
+        3.  **Retroactive Update**: The service then queries the main application database for all `TranscriptionJob` records. It iterates through each completed transcript, finds all occurrences of the old name ("Speaker-a1b2..."), and replaces them with the new name ("Alice").
+    *   **Effect**: All future identifications of this voice will return "Alice", and all previously recorded transcripts are updated to reflect the new name, ensuring consistency across the entire application.
 
 2.  **Deletion**: A user deletes a speaker profile via API.
     *   The vector is removed from Qdrant.

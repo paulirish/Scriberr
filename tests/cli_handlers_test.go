@@ -47,6 +47,7 @@ func (suite *CLIHandlerTestSuite) SetupSuite() {
 	// Initialize services
 	userService := service.NewUserService(userRepo, suite.helper.AuthService)
 	fileService := service.NewFileService()
+	speakerService := service.NewSpeakerService(jobRepo)
 
 	// Initialize services
 	suite.unifiedProcessor = transcription.NewUnifiedJobProcessor(jobRepo)
@@ -72,6 +73,7 @@ func (suite *CLIHandlerTestSuite) SetupSuite() {
 		suite.taskQueue,
 		suite.unifiedProcessor,
 		suite.quickTranscription,
+		speakerService,
 	)
 
 	// Set up router

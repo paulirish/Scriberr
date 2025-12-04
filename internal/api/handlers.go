@@ -46,6 +46,7 @@ type Handler struct {
 	chatRepo            repository.ChatRepository
 	noteRepo            repository.NoteRepository
 	speakerMappingRepo  repository.SpeakerMappingRepository
+	speakerService      *service.SpeakerService
 	taskQueue           *queue.TaskQueue
 	unifiedProcessor    *transcription.UnifiedJobProcessor
 	quickTranscription  *transcription.QuickTranscriptionService
@@ -70,6 +71,7 @@ func NewHandler(
 	taskQueue *queue.TaskQueue,
 	unifiedProcessor *transcription.UnifiedJobProcessor,
 	quickTranscription *transcription.QuickTranscriptionService,
+	speakerService *service.SpeakerService,
 ) *Handler {
 	return &Handler{
 		config:              cfg,
@@ -88,6 +90,7 @@ func NewHandler(
 		taskQueue:           taskQueue,
 		unifiedProcessor:    unifiedProcessor,
 		quickTranscription:  quickTranscription,
+		speakerService:      speakerService,
 		multiTrackProcessor: processing.NewMultiTrackProcessor(),
 	}
 }

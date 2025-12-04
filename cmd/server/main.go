@@ -108,6 +108,7 @@ func main() {
 	logger.Startup("service", "Initializing services")
 	userService := service.NewUserService(userRepo, authService)
 	fileService := service.NewFileService()
+	speakerService := service.NewSpeakerService(jobRepo)
 
 	// Initialize unified transcription processor
 	logger.Startup("transcription", "Initializing transcription service")
@@ -152,6 +153,7 @@ func main() {
 		taskQueue,
 		unifiedProcessor,
 		quickTranscriptionService,
+		speakerService,
 	)
 
 	// Set up router

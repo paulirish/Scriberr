@@ -73,6 +73,7 @@ func (suite *SecurityTestSuite) SetupSuite() {
 	// Initialize services
 	userService := service.NewUserService(userRepo, suite.authService)
 	fileService := service.NewFileService()
+	speakerService := service.NewSpeakerService(jobRepo)
 
 	// Initialize services
 	suite.unifiedProcessor = transcription.NewUnifiedJobProcessor(jobRepo)
@@ -99,6 +100,7 @@ func (suite *SecurityTestSuite) SetupSuite() {
 		suite.taskQueue,
 		suite.unifiedProcessor,
 		suite.quickTranscriptionService,
+		speakerService,
 	)
 
 	// Set up router

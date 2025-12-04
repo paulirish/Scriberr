@@ -134,6 +134,26 @@ func (h *TestHelper) CreateTestTranscriptionJob(t *testing.T, title string) *mod
 	return job
 }
 
+// CreateTestTranscriptionJobWithTranscript creates a test transcription job with a transcript
+func (h *TestHelper) CreateTestTranscriptionJobWithTranscript(t *testing.T, title string, transcript *string) *models.TranscriptionJob {
+	job := &models.TranscriptionJob{
+		Title:      &title,
+		Status:     models.StatusCompleted,
+		AudioPath:  "test/path/audio.mp3",
+		Transcript: transcript,
+		Parameters: models.WhisperXParams{
+			Model:       "base",
+			BatchSize:   16,
+			ComputeType: "float16",
+			Device:      "auto",
+		},
+	}
+
+	result := h.DB.Create(job)
+	assert.NoError(t, result.Error)
+	return job
+}
+
 // CreateTestProfile creates a test transcription profile
 func (h *TestHelper) CreateTestProfile(t *testing.T, name string, isDefault bool) *models.TranscriptionProfile {
 	profile := &models.TranscriptionProfile{
