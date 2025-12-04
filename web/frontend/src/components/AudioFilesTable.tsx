@@ -121,6 +121,11 @@ function DebouncedSearchInput({
 	);
 }
 
+interface IndividualTranscript {
+    speaker?: string;
+    [key: string]: any;
+}
+
 interface AudioFile {
 	id: string;
 	title?: string;
@@ -130,7 +135,7 @@ interface AudioFile {
 	diarization?: boolean;
 	is_multi_track?: boolean;
 	error_message?: string;
-	individual_transcripts?: any;
+	individual_transcripts?: IndividualTranscript[];
 }
 
 interface AudioFilesTableProps {
@@ -147,6 +152,24 @@ interface PaginationResponse {
 		pages: number;
 	};
 }
+
+
+const getSpeakerNames = (file: AudioFile): string[] => {
+    if (file.status !== 'completed') {
+        return [];
+    }
+
+    const speakerSet = file.transcript ? new Set(JSON.parse(file.transcript).segments.map(s => s.speaker).filter(Boolean)) : new Set<string>();
+    for (const transcript of file.individual_transcripts || []) {
+        if (transcript?.speaker) {
+            speakerSet.add(transcript.speaker);
+        }
+    }
+
+    const speakers = Array.from(speakerSet);
+    speakers.sort();
+    return speakers;
+};
 
 
 import { AudioFilesMonthCalendar } from "./AudioFilesMonthCalendar";
@@ -183,7 +206,7 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 	const [killingJobs, setKillingJobs] = useState<Set<string>>(new Set());
 	const [transcribeDDialogOpen, setTranscribeDDialogOpen] = useState(false);
 	const [trackProgress, setTrackProgress] = useState<Record<string, any>>({});
-	const [view, setView] = useState<"calendar" | "table" | "week">("calendar");
+	const [view, setView] = useState<"calendar" | "table" | "week">("table");
 
 	// Dialog state management (moved outside table to prevent re-renders)
 	const [stopDialogOpen, setStopDialogOpen] = useState(false);
@@ -850,13 +873,21 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 				},
 				cell: ({ row }) => {
 					const file = row.original;
+					const speakers = getSpeakerNames(file);
 					return (
-						<button
-							onClick={() => handleAudioClick(file.id)}
-							className="text-foreground font-medium hover:text-primary transition-colors cursor-pointer text-left font-inter"
-						>
-							{file.title || getFileName(file.audio_path)}
-						</button>
+						<div className="flex flex-col items-start">
+							<button
+								onClick={() => handleAudioClick(file.id)}
+								className="text-foreground font-medium hover:text-primary transition-colors cursor-pointer text-left font-inter"
+							>
+								{file.title || getFileName(file.audio_path)}
+							</button>
+							{speakers.length > 0 && (
+								<div className="text-xs text-muted-foreground mt-1">
+									{speakers.join(", ")}
+								</div>
+							)}
+						</div>
 					);
 				},
 				enableGlobalFilter: false,
