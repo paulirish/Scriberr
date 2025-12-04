@@ -125,7 +125,7 @@ def identify_speakers(
             len_tensor = torch.tensor([sub_audio.shape[1]], device=device)
             with torch.no_grad():
                 _, embs = model(input_signal=sub_audio, input_signal_length=len_tensor)
-                embeddings.append(embs[0].cpu().numpy())
+                embeddings.append(embs[0])
 
         if not embeddings:
             logger.warning(f"No valid embeddings for {local_spk}")
