@@ -45,7 +45,7 @@ def identify_speakers(
     threshold: float = 0.7,
     threshold_new: float = 0.55,
     alpha_max: float = 0.25,
-    min_duration_for_full_weight: float = 4.0,
+    min_duration_full_weight: float = 4.0,
     device: str = "auto"
 ):
     # 1. Load Model
@@ -60,7 +60,7 @@ def identify_speakers(
     # 2. Setup Qdrant
     client = setup_qdrant(qdrant_host, collection_name, vector_size=192)
     imposter_collection_name = "imposter_candidates"
-    setup_qdrant(qdrant_host, imposter_collection_.name, vector_size=192)
+    setup_qdrant(qdrant_host, imposter_collection_name, vector_size=192)
 
     # 3. Load Segments
     with open(segments_file, 'r') as f:
@@ -87,7 +87,7 @@ def identify_speakers(
         embeddings = []
         indices.sort(key=lambda i: segments[i].get("end") - segments[i].get("start"), reverse=True)
         top_indices = indices[:10]
-        
+
         total_duration = 0
         for idx in top_indices:
             seg = segments[idx]
@@ -98,7 +98,7 @@ def identify_speakers(
             start_frame, end_frame = int(start * sample_rate), int(end * sample_rate)
             if end_frame > full_waveform.shape[1]: end_frame = full_waveform.shape[1]
             sub_audio = full_waveform[:, start_frame:end_frame]
-            
+
             if sub_audio.shape[1] < 1600: continue
             len_tensor = torch.tensor([sub_audio.shape[1]], device=device)
             with torch.no_grad():
@@ -123,7 +123,7 @@ def identify_speakers(
         )
 
         best_match_score = search_result[0].score if search_result else 0.0
-        
+
         if best_match_score >= threshold:
             # High confidence match
             best_match = search_result[0]
@@ -131,14 +131,14 @@ def identify_speakers(
             logger.info(f"Matched {local_spk} to {global_id} (score: {best_match.score:.4f})")
 
             existing_centroid = np.array(best_match.vector)
-            wt = min(alpha_max, total_duration / min_duration_for_full_weight)
-            
+            wt = min(alpha_max, total_duration / min_duration_full_weight)
+
             logger.info(f"Updating speaker {global_id} with weight {wt:.4f} from {total_duration:.2f}s of audio")
             updated_centroid = ((1 - wt) * existing_centroid) + (wt * centroid)
-            
+
             norm = np.linalg.norm(updated_centroid)
             if norm > 0: updated_centroid = updated_centroid / norm
-            
+
             client.upsert(
                 collection_name=collection_name,
                 points=[qmodels.PointStruct(id=best_match.id, vector=updated_centroid.tolist(), payload=best_match.payload)]
@@ -177,7 +177,7 @@ def identify_speakers(
         local = seg.get("speaker")
         if local in global_mapping:
             seg["speaker"] = global_mapping[local]
-    
+
     output_data = {"segments": segments}
     with open(output_file, 'w') as f:
         json.dump(output_data, f, indent=2)
@@ -206,5 +206,6 @@ if __name__ == "__main__":
         threshold=args.threshold,
         threshold_new=args.threshold_new,
         alpha_max=args.alpha_max,
-        min_duration_for_full_weight=args.min_duration_for_full_weight,
+        min_duration_full_weight=args.min_duration_full_weight,
     )
+

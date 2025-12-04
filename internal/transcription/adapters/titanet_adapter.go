@@ -59,7 +59,7 @@ func NewTitanetAdapter(envPath string) *TitanetAdapter {
 			Description: "Maximum learning rate for Confidence-Weighted EMA.",
 		},
 		{
-			Name:        "min_duration_for_full_weight",
+			Name:        "min_duration_full_weight",
 			Type:        "float",
 			Default:     4.0,
 			Description: "Minimum duration in seconds for a segment to receive full weight in EMA update.",
@@ -149,7 +149,7 @@ func (t *TitanetAdapter) IdentifySpeakers(ctx context.Context, input interfaces.
 		"--threshold", fmt.Sprintf("%.2f", t.GetFloatParameter(params, "similarity_threshold")),
 		"--threshold-new", fmt.Sprintf("%.2f", t.GetFloatParameter(params, "threshold_new")),
 		"--alpha-max", fmt.Sprintf("%.2f", t.GetFloatParameter(params, "alpha_max")),
-		"--min-duration-full-weight", fmt.Sprintf("%.2f", t.GetFloatParameter(params, "min_duration_for_full_weight")),
+		"--min-duration-full-weight", fmt.Sprintf("%.2f", t.GetFloatParameter(params, "min_duration_full_weight")),
 	)
 
 	logger.Info("Executing Titanet command", "args", strings.Join(cmd.Args, " "))
