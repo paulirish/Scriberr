@@ -90,9 +90,9 @@ func (t *TitanetAdapter) PrepareEnvironment(ctx context.Context) error {
 
 	// The python scripts are now part of the source code, so we don't need to create them dynamically.
 	// We just need to ensure they are executable.
-	scripts := []string{"titanet_identify_v2.py", "titanet_manage.py"}
+	scripts := []string{"titanet_identify_v2.py", "titanet_cohort_manager.py"}
 	for _, script := range scripts {
-		scriptPath := filepath.Join("internal/transcription/adapters", script)
+		scriptPath := filepath.Join("data/whisperx-env/parakeet", script)
 		if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
 			// This should not happen if the code is checked out correctly.
 			return fmt.Errorf("required script not found: %s", scriptPath)
@@ -141,7 +141,7 @@ func (t *TitanetAdapter) IdentifySpeakers(ctx context.Context, input interfaces.
 		return nil, fmt.Errorf("failed to write input json: %w", err)
 	}
 
-	scriptPath := filepath.Join("internal/transcription/adapters", "titanet_identify_v2.py")
+	scriptPath := filepath.Join("data/whisperx-env/parakeet", "titanet_identify_v2.py")
 	qdrantHost := os.Getenv("QDRANT_HOST")
 	if qdrantHost == "" {
 		qdrantHost = "qdrant"
@@ -522,7 +522,7 @@ func (t *TitanetAdapter) RefreshSnormCohort(ctx context.Context) error {
 
 
 
-	scriptPath := filepath.Join("internal/transcription/adapters", "titanet_cohort_manager.py")
+	scriptPath := filepath.Join("data/whisperx-env/parakeet", "titanet_cohort_manager.py")
 
 	cmd := exec.CommandContext(ctx, "uv", "run", "--native-tls", "--project", t.envPath, "python", scriptPath,
 
