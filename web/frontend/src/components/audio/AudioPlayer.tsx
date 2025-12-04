@@ -32,13 +32,15 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
     className = ''
 }, ref) => {
     const { theme } = useTheme();
-    const { getAuthHeaders } = useAuth();
+    const { token, isInitialized } = useAuth();
     const containerRef = useRef<HTMLDivElement>(null);
     const wavesurferRef = useRef<WaveSurfer | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
     const [isReady, setIsReady] = useState(false);
+    const [audioUrl, setAudioUrl] = useState<string | null>(null);
+
 
     useImperativeHandle(ref, () => ({
         playPause: () => wavesurferRef.current?.playPause(),
@@ -48,89 +50,101 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
         isPlaying: () => wavesurferRef.current?.isPlaying() || false,
     }));
 
+    // Effect to fetch audio data and create a blob URL
     useEffect(() => {
-        if (!containerRef.current) return;
+        if (!isInitialized || !audioId) return;
 
-        const initWaveSurfer = async () => {
+        let objectUrl: string | null = null;
+
+        const fetchAudio = async () => {
             try {
-                const audioUrl = `/api/v1/transcription/${audioId}/audio`;
-                const response = await fetch(audioUrl, { headers: { ...getAuthHeaders() } });
+                const apiUrl = `/api/v1/transcription/${audioId}/audio`;
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const response = await fetch(apiUrl, { headers });
 
                 if (!response.ok) throw new Error('Failed to load audio');
 
                 const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-
-                const isDark = theme === 'dark';
-                // Aesthetic Gray / True Black Palette
-                const waveColor = isDark ? '#525252' : '#D1D5DB'; // black-600 / gray-300
-                const progressColor = isDark ? '#E5E5E5' : '#111827'; // black-200 / gray-900 (High contrast)
-                const cursorColor = isDark ? '#3b82f6' : '#2563eb'; // Blue accent for cursor
-
-                const ws = WaveSurfer.create({
-                    container: containerRef.current!,
-                    waveColor,
-                    progressColor,
-                    cursorColor,
-                    barWidth: 2,
-                    barGap: 2,
-                    barRadius: 2,
-                    height: collapsed ? 0 : 64,
-                    normalize: true,
-                    backend: 'WebAudio',
-                });
-
-                wavesurferRef.current = ws;
-
-                ws.on('ready', () => {
-                    setIsReady(true);
-                    const dur = ws.getDuration();
-                    setDuration(dur);
-                    onDurationChange?.(dur);
-                });
-
-                ws.on('play', () => {
-                    setIsPlaying(true);
-                    onPlayStateChange?.(true);
-                });
-
-                ws.on('pause', () => {
-                    setIsPlaying(false);
-                    onPlayStateChange?.(false);
-                });
-
-                ws.on('audioprocess', (time) => {
-                    setCurrentTime(time);
-                    onTimeUpdate?.(time);
-                });
-
-                ws.on('interaction', () => {
-                    const time = ws.getCurrentTime();
-                    setCurrentTime(time);
-                    onTimeUpdate?.(time);
-                });
-
-                ws.on('finish', () => {
-                    setIsPlaying(false);
-                    onPlayStateChange?.(false);
-                });
-
-                await ws.load(url);
+                objectUrl = URL.createObjectURL(blob);
+                setAudioUrl(objectUrl);
 
             } catch (error) {
-                console.error('Error initializing audio player:', error);
+                console.error('Error fetching audio data:', error);
             }
         };
 
-        initWaveSurfer();
+        fetchAudio();
 
         return () => {
-            if (wavesurferRef.current) {
-                wavesurferRef.current.destroy();
-                wavesurferRef.current = null;
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
             }
         };
-    }, [audioId, theme, getAuthHeaders]);
+    }, [audioId, token, isInitialized]);
+
+
+    // Effect to initialize WaveSurfer when audioUrl is ready
+    useEffect(() => {
+        if (!containerRef.current || !audioUrl) return;
+
+        const isDark = theme === 'dark';
+        const waveColor = isDark ? '#525252' : '#D1D5DB';
+        const progressColor = isDark ? '#E5E5E5' : '#111827';
+        const cursorColor = isDark ? '#3b82f6' : '#2563eb';
+
+        const ws = WaveSurfer.create({
+            container: containerRef.current,
+            waveColor,
+            progressColor,
+            cursorColor,
+            barWidth: 2,
+            barGap: 2,
+            barRadius: 2,
+            height: collapsed ? 0 : 64,
+            normalize: true,
+            backend: 'WebAudio',
+            url: audioUrl,
+        });
+
+        wavesurferRef.current = ws;
+
+        const subscriptions = [
+            ws.on('ready', () => {
+                setIsReady(true);
+                const dur = ws.getDuration();
+                setDuration(dur);
+                onDurationChange?.(dur);
+            }),
+            ws.on('play', () => {
+                setIsPlaying(true);
+                onPlayStateChange?.(true);
+            }),
+            ws.on('pause', () => {
+                setIsPlaying(false);
+                onPlayStateChange?.(false);
+            }),
+            ws.on('audioprocess', (time) => {
+                setCurrentTime(time);
+                onTimeUpdate?.(time);
+            }),
+            ws.on('interaction', () => {
+                const time = ws.getCurrentTime();
+                setCurrentTime(time);
+                onTimeUpdate?.(time);
+            }),
+            ws.on('finish', () => {
+                setIsPlaying(false);
+                onPlayStateChange?.(false);
+            }),
+        ];
+
+
+        return () => {
+            subscriptions.forEach(unsub => unsub());
+            ws.destroy();
+            wavesurferRef.current = null;
+        };
+    }, [audioUrl, theme]);
 
     // Update height when collapsed state changes
     useEffect(() => {
@@ -199,3 +213,4 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
 });
 
 AudioPlayer.displayName = 'AudioPlayer';
+
