@@ -86,3 +86,45 @@ We will implement a mechanism for the system to automatically build and maintain
 *   **Self-Tuning:** The system automatically adapts its decision threshold to the acoustic realities of its environment, dramatically reducing the need for manual tuning.
 *   **Accuracy:** The normalized score becomes a much more reliable measure of speaker similarity, as it is contextualized by "what is typical" for that specific environment.
 *   **Resilience:** The system becomes resilient to changes in the environment, such as the introduction of new background noise or a shift in microphone types used by the speaker population.
+
+---
+
+## **3. Implementation Status and Next Steps**
+
+This section tracks the progress of implementing the v2 features described in this document.
+
+### **3.1. Confidence-Weighted EMA (Section 1)**
+
+*   **Status:** ✅ **Complete**
+*   **Details:** The `titanet_identify_v2.py` script now successfully implements the Confidence-Weighted EMA for updating existing speaker profiles. The learning rate (`Wt`) is dynamically calculated based on the total duration of the speaker's segments in the current audio file. The Go adapter has been updated to pass all necessary parameters (`alpha_max`, `min_duration_for_full_weight`).
+
+### **3.2. Self-Tuning Adaptive S-Norm (Section 2)**
+
+*   **Status:** 🟡 **In Progress**
+
+#### **Step 1: Imposter Candidate Collection**
+
+*   **Status:** ✅ **Complete**
+*   **Details:** The `titanet_identify_v2.py` script now identifies "confirmed imposter" segments. When a segment's best match score is below the `threshold_new`, its embedding is saved to a dedicated `imposter_candidates` collection in Qdrant.
+
+#### **Step 2: Background Cohort Refresh Process**
+
+*   **Status:** 🔴 **To Do**
+*   **Next Steps:**
+    1.  Create a new Python script, `titanet_cohort_manager.py`.
+    2.  This script will contain a function to be run as a background job (e.g., via a cron job or a simple scheduler).
+    3.  The function will:
+        *   Connect to Qdrant.
+        *   Retrieve a random sample of N embeddings (e.g., 500) from the `imposter_candidates` collection.
+        *   Overwrite the contents of a `snorm_cohort` collection with the sampled embeddings.
+
+#### **Step 3: Dynamic S-Norm Calculation**
+
+*   **Status:** 🔴 **To Do**
+*   **Next Steps:**
+    1.  Modify the `identify_speakers` function in `titanet_identify_v2.py`.
+    2.  Before the decision logic, add a step to fetch all vectors from the `snorm_cohort` collection.
+    3.  For a given input `centroid`, calculate the cosine similarity against every vector in the cohort.
+    4.  Compute the mean (`μ_cohort`) and standard deviation (`σ_cohort`) of these cohort scores.
+    5.  Normalize the raw match score `S_best` using the formula: `S_norm = (S_best - μ_cohort) / σ_cohort`.
+    6.  The final decision logic will then use `S_norm` against a new, normalized threshold (e.g., `τ_norm = 1.5`).
