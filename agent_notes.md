@@ -18,3 +18,28 @@ I will now begin implementing the `speaker_system_v2.md` design. I will break th
 I will start with this part.
 
 
+
+### Part 2: Self-Tuning Adaptive S-Norm
+
+**Current state:** The system uses a fixed similarity threshold.
+
+**Plan:**
+
+1.  **Imposter Candidate Collection:**
+    *   In `titanet_identify.py`, when a segment is a clear non-match (e.g., score below a new, lower threshold `τ_new`), I will store its embedding in a new Qdrant collection, e.g., `imposter_candidates`.
+2.  **Cohort Management Script:**
+    *   Create a new Python script, `titanet_cohort_manager.py`.
+    *   This script will have functions to:
+        *   Create the `imposter_candidates` collection if it doesn't exist.
+        *   Create a `snorm_cohort` collection.
+        *   Run a background job to sample from `imposter_candidates` and refresh `snorm_cohort`.
+    *   I will add a new function `EnsureCohortManagementScript` to `titanet_adapter.go` to write this script.
+3.  **S-Norm in Identification:**
+    *   In `titanet_identify.py`, before making a decision, I will:
+        *   Fetch the current `snorm_cohort`.
+        *   Calculate the S-Norm score for the input embedding against the candidate centroid.
+        *   Use the normalized score against the threshold.
+
+This is a significant change, so I will implement it step by step. I'll start with step 1.
+
+

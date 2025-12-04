@@ -43,8 +43,20 @@ func NewTitanetAdapter(envPath string) *TitanetAdapter {
 		{
 			Name:        "similarity_threshold",
 			Type:        "float",
-			Default:     0.5,
+			Default:     0.7,
 			Description: "Threshold for cosine similarity to identify a speaker",
+		},
+		{
+			Name:        "alpha_max",
+			Type:        "float",
+			Default:     0.25,
+			Description: "Maximum learning rate for Confidence-Weighted EMA.",
+		},
+		{
+			Name:        "min_duration_for_full_weight",
+			Type:        "float",
+			Default:     4.0,
+			Description: "Minimum duration in seconds for a segment to receive full weight in EMA update.",
 		},
 	}
 
@@ -102,7 +114,7 @@ func (t *TitanetAdapter) createIdentityScript() error {
 	// Python script content
 	content := `#!/usr/bin/env python3
 """
-TitaNet Speaker Identification Script
+TitaNet Speaker Identification Script (v2 with Confidence-Weighted EMA)
 """
 import argparse
 import json
@@ -125,67 +137,16 @@ except ImportError as e:
     logger.error(f"Import Error: {e}")
     sys.exit(1)
 
-def get_embedding(model, audio_file: str, start: float, duration: float) -> np.ndarray:
-    """Extract embedding for a specific segment."""
-    # NeMo models typically expect a file path or a tensor.
-    # For efficiency with many segments, we might want to load audio once,
-    # but TitaNet's simple API takes a file.
-    # To handle segments, we'll use a temporary file or in-memory trimming if possible.
-    # However, EncDecSpeakerLabelModel usually takes a path.
-    # We will use ffmpeg/sox to slice or load full audio and slice tensor.
-    # For robustness, let's use a temporary sliced file for this implementation prototype
-    # or better, use Torchaudio to load and slice.
-
-    import torchaudio
-
-    waveform, sample_rate = torchaudio.load(audio_file)
-
-    # Calculate frames
-    start_frame = int(start * sample_rate)
-    end_frame = int((start + duration) * sample_rate)
-
-    # Pad if necessary or valid check
-    if end_frame > waveform.shape[1]:
-        end_frame = waveform.shape[1]
-
-    segment = waveform[:, start_frame:end_frame]
-
-    # If segment is too short, we might skip or pad? TitaNet is robust but needs some data.
-    if segment.shape[1] < 160: # 10ms
-         return None
-
-    # Determine input length
-    input_length = torch.tensor([segment.shape[1]], device=model.device)
-    segment = segment.to(model.device)
-
-    with torch.no_grad():
-        # model.forward expects (batch, audio_signal, length)
-        # But verify_speakers signature is different.
-        # We use 'get_embedding' usually.
-        # Let's check if the model has 'get_embedding' or we call forward.
-        # EncDecSpeakerLabelModel has 'forward' which returns logits + embeddings (sometimes)
-        # It usually has a dedicated method.
-        # For EncDecSpeakerLabelModel:
-        # output = model(input_signal=..., input_signal_length=...)
-        # output is (logits, embeddings)
-
-        _, embs = model(input_signal=segment.unsqueeze(0), input_signal_length=input_length)
-        return embs[0].cpu().numpy()
-
 def setup_qdrant(host: str, collection_name: str, vector_size: int = 192):
     client = QdrantClient(host=host, port=6333)
-
-    # Check if collection exists
     collections = client.get_collections().collections
     exists = any(c.name == collection_name for c in collections)
-
     if not exists:
         logger.info(f"Creating collection {collection_name}")
         client.create_collection(
             collection_name=collection_name,
             vectors_config=qmodels.VectorParams(size=vector_size, distance=qmodels.Distance.COSINE),
         )
-
     return client
 
 def identify_speakers(
@@ -194,23 +155,21 @@ def identify_speakers(
     output_file: str,
     qdrant_host: str = "qdrant",
     collection_name: str = "speakers",
-    threshold: float = 0.5,
+    threshold: float = 0.7,
+    alpha_max: float = 0.25,
+    min_duration_for_full_weight: float = 4.0,
     device: str = "auto"
 ):
     # 1. Load Model
     if device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
-
     logger.info(f"Loading TitaNet on {device}")
-
     script_dir = os.path.dirname(os.path.abspath(__file__))
     model_path = os.path.join(script_dir, "titanet-l.nemo")
-
     model = EncDecSpeakerLabelModel.restore_from(restore_path=model_path, map_location=device)
     model.eval()
 
     # 2. Setup Qdrant
-    # The vector size for TitaNet Large is 192
     client = setup_qdrant(qdrant_host, collection_name, vector_size=192)
 
     # 3. Load Segments
@@ -218,8 +177,7 @@ def identify_speakers(
         data = json.load(f)
         segments = data.get("segments", [])
 
-    # Group segments by local speaker (from diarization)
-    local_speakers = {} # "speaker_0": [seg_indices...]
+    local_speakers = {}
     for idx, seg in enumerate(segments):
         spk = seg.get("speaker")
         if spk not in local_speakers:
@@ -227,86 +185,78 @@ def identify_speakers(
         local_speakers[spk].append(idx)
 
     # 4. Process each local speaker
-    # We aggregate embeddings for a local speaker to get a robust representation
-    # Then query/enroll
-
-    global_mapping = {} # "speaker_0" -> "Global_ID_XYZ"
-
+    global_mapping = {}
     import soundfile as sf
     full_waveform, sample_rate = sf.read(audio_path)
     full_waveform = torch.from_numpy(full_waveform).float()
-    if full_waveform.ndim > 1:
-        full_waveform = full_waveform.squeeze()
-    full_waveform = full_waveform.unsqueeze(0)
-    full_waveform = full_waveform.to(device)
+    if full_waveform.ndim > 1: full_waveform = full_waveform.mean(dim=0)
+    full_waveform = full_waveform.unsqueeze(0).to(device)
+
     for local_spk, indices in local_speakers.items():
         logger.info(f"Processing local speaker {local_spk} ({len(indices)} segments)")
-
         embeddings = []
-
-        # Collect embeddings for this speaker
-        # To save time, maybe just take the longest 5 segments?
-        # Sort indices by duration
         indices.sort(key=lambda i: segments[i].get("end") - segments[i].get("start"), reverse=True)
         top_indices = indices[:10]
-
+        
+        total_duration = 0
         for idx in top_indices:
             seg = segments[idx]
-            start = seg["start"]
-            duration = seg["end"] - start
+            start, end = seg["start"], seg["end"]
+            duration = end - start
+            total_duration += duration
 
-            # Extract
-            start_frame = int(start * sample_rate)
-            end_frame = int(seg["end"] * sample_rate)
+            start_frame, end_frame = int(start * sample_rate), int(end * sample_rate)
             if end_frame > full_waveform.shape[1]: end_frame = full_waveform.shape[1]
-
             sub_audio = full_waveform[:, start_frame:end_frame]
-            if sub_audio.shape[1] < 1600: continue # Skip very short < 0.1s
+            
+            if sub_audio.shape[1] < 1600: continue
             len_tensor = torch.tensor([sub_audio.shape[1]], device=device)
-
             with torch.no_grad():
                 _, embs = model(input_signal=sub_audio, input_signal_length=len_tensor)
-                emb = embs[0].cpu().numpy()
-                embeddings.append(emb)
+                embeddings.append(embs[0].cpu().numpy())
 
         if not embeddings:
             logger.warning(f"No valid embeddings for {local_spk}")
             continue
 
-        # Average embedding (Centroid)
-        # Normalize each first? TitaNet output is usually normalized?
-        # Let's normalize centroid.
-
         centroid = np.mean(embeddings, axis=0)
         norm = np.linalg.norm(centroid)
-        if norm > 0:
-            centroid = centroid / norm
+        if norm > 0: centroid = centroid / norm
 
         # 5. Query Qdrant
         search_result = client.search(
             collection_name=collection_name,
             query_vector=centroid.tolist(),
             limit=1,
-            score_threshold=threshold
+            score_threshold=threshold,
+            with_vector=True  # Retrieve vector for EMA update
         )
 
         if search_result:
-            # Match found
+            # Match found - Update profile with Confidence-Weighted EMA
             best_match = search_result[0]
             global_id = best_match.payload.get("name", "Unknown")
-            logger.info(f"Matched {local_spk} to {global_id} (score: {best_match.score})")
+            logger.info(f"Matched {local_spk} to {global_id} (score: {best_match.score:.4f})")
 
-            # Optional: Update existing profile (Moving Average) - for now just identify
+            existing_centroid = np.array(best_match.vector)
+            wt = min(alpha_max, total_duration / min_duration_for_full_weight)
+            
+            logger.info(f"Updating speaker {global_id} with weight {wt:.4f} from {total_duration:.2f}s of audio")
+            updated_centroid = ((1 - wt) * existing_centroid) + (wt * centroid)
+            
+            norm = np.linalg.norm(updated_centroid)
+            if norm > 0: updated_centroid = updated_centroid / norm
+            
+            client.upsert(
+                collection_name=collection_name,
+                points=[qmodels.PointStruct(id=best_match.id, vector=updated_centroid.tolist(), payload=best_match.payload)]
+            )
         else:
-            # No match -> Enroll
+            # No match -> Enroll new speaker
             import uuid
             new_id = str(uuid.uuid4())
-            # Use a human readable name if possible, else UUID
-            # In a real app, user might rename "Speaker 1" later.
             human_name = f"Speaker-{new_id[:8]}"
-
             logger.info(f"Enrolling {local_spk} as new speaker {human_name}")
-
             client.upsert(
                 collection_name=collection_name,
                 points=[
@@ -326,22 +276,23 @@ def identify_speakers(
         local = seg.get("speaker")
         if local in global_mapping:
             seg["speaker"] = global_mapping[local]
-            seg["original_speaker"] = local
-
+    
+    output_data = {"segments": segments}
     with open(output_file, 'w') as f:
-        json.dump(data, f, indent=2)
+        json.dump(output_data, f, indent=2)
 
     logger.info(f"Identification complete. Saved to {output_file}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="TitaNet Speaker Identification")
     parser.add_argument("audio_file")
-    parser.add_argument("segments_file", help="JSON file with diarization segments")
+    parser.add_argument("segments_file")
     parser.add_argument("output_file")
     parser.add_argument("--qdrant", default="qdrant")
     parser.add_argument("--collection", default="speakers")
-    parser.add_argument("--threshold", type=float, default=0.5)
-
+    parser.add_argument("--threshold", type=float, default=0.7)
+    parser.add_argument("--alpha-max", type=float, default=0.25, help="Max learning rate for EMA.")
+    parser.add_argument("--min-duration-full-weight", type=float, default=4.0, help="Min duration for full weight in EMA.")
     args = parser.parse_args()
 
     identify_speakers(
@@ -350,7 +301,9 @@ if __name__ == "__main__":
         args.output_file,
         qdrant_host=args.qdrant,
         collection_name=args.collection,
-        threshold=args.threshold
+        threshold=args.threshold,
+        alpha_max=args.alpha_max,
+        min_duration_for_full_weight=args.min_duration_full_weight,
     )
 `
 	return os.WriteFile(scriptPath, []byte(content), 0755)
@@ -392,6 +345,8 @@ func (t *TitanetAdapter) IdentifySpeakers(ctx context.Context, input interfaces.
 		outputJSON,
 		"--qdrant", qdrantHost,
 		"--threshold", fmt.Sprintf("%.2f", t.GetFloatParameter(params, "similarity_threshold")),
+		"--alpha-max", fmt.Sprintf("%.2f", t.GetFloatParameter(params, "alpha_max")),
+		"--min-duration-full-weight", fmt.Sprintf("%.2f", t.GetFloatParameter(params, "min_duration_for_full_weight")),
 	)
 
   logger.Info("Executing Titanet command", "args", strings.Join(cmd.Args, " "))
