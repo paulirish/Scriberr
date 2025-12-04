@@ -53,6 +53,12 @@ func NewTitanetAdapter(envPath string) *TitanetAdapter {
 			Description: "Threshold below which a speaker is considered a new speaker.",
 		},
 		{
+			Name:        "norm_threshold",
+			Type:        "float",
+			Default:     1.5,
+			Description: "Z-score like threshold for matching when S-Norm is enabled.",
+		},
+		{
 			Name:        "alpha_max",
 			Type:        "float",
 			Default:     0.25,
@@ -148,6 +154,7 @@ func (t *TitanetAdapter) IdentifySpeakers(ctx context.Context, input interfaces.
 		"--qdrant", qdrantHost,
 		"--threshold", fmt.Sprintf("%.2f", t.GetFloatParameter(params, "similarity_threshold")),
 		"--threshold-new", fmt.Sprintf("%.2f", t.GetFloatParameter(params, "threshold_new")),
+		"--norm-threshold", fmt.Sprintf("%.2f", t.GetFloatParameter(params, "norm_threshold")),
 		"--alpha-max", fmt.Sprintf("%.2f", t.GetFloatParameter(params, "alpha_max")),
 		"--min-duration-full-weight", fmt.Sprintf("%.2f", t.GetFloatParameter(params, "min_duration_full_weight")),
 	)
@@ -452,26 +459,97 @@ func (t *TitanetAdapter) RenameSpeaker(ctx context.Context, id, newName string) 
 }
 
 // DeleteSpeaker removes a speaker
+
 func (t *TitanetAdapter) DeleteSpeaker(ctx context.Context, id string) error {
+
 	if err := t.EnsureManagementScript(); err != nil {
+
 		return err
+
 	}
+
+
 
 	qdrantHost := os.Getenv("QDRANT_HOST")
+
 	if qdrantHost == "" {
+
 		qdrantHost = "qdrant"
+
 	}
+
+
 
 	scriptPath := filepath.Join(t.envPath, "titanet_manage.py")
+
 	cmd := exec.CommandContext(ctx, "uv", "run", "--native-tls", "--project", t.envPath, "python", scriptPath,
+
 		"delete",
+
 		id,
+
 		"--qdrant", qdrantHost,
+
 	)
 
+
+
 	if output, err := cmd.CombinedOutput(); err != nil {
+
 		return fmt.Errorf("failed to delete speaker: %s", string(output))
+
 	}
 
+
+
 	return nil
+
+}
+
+
+
+// RefreshSnormCohort runs the cohort refresh script.
+
+func (t *TitanetAdapter) RefreshSnormCohort(ctx context.Context) error {
+
+	qdrantHost := os.Getenv("QDRANT_HOST")
+
+	if qdrantHost == "" {
+
+		qdrantHost = "qdrant"
+
+	}
+
+
+
+	scriptPath := filepath.Join("internal/transcription/adapters", "titanet_cohort_manager.py")
+
+	cmd := exec.CommandContext(ctx, "uv", "run", "--native-tls", "--project", t.envPath, "python", scriptPath,
+
+		"--qdrant", qdrantHost,
+
+	)
+
+
+
+	logger.Info("Executing S-Norm cohort refresh command", "args", strings.Join(cmd.Args, " "))
+
+
+
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+
+		logger.Error("S-Norm cohort refresh script failed", "output", string(output))
+
+		return fmt.Errorf("s-norm cohort refresh script failed: %w", err)
+
+	}
+
+
+
+	logger.Info("S-Norm cohort refresh successful", "output", string(output))
+
+	return nil
+
 }
