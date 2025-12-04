@@ -30,8 +30,8 @@ class TestIdentifier(unittest.TestCase):
         with open(self.segments_file, 'w') as f:
             json.dump({
                 "segments": [
-                    {"speaker": "speaker_0", "start": 0.0, "end": 2.5},
-                    {"speaker": "speaker_1", "start": 2.5, "end": 5.0},
+                    {"speaker": "speaker_0", "start": 0.0, "end": 2.5, "duration": 2.5},
+                    {"speaker": "speaker_1", "start": 2.5, "end": 5.0, "duration": 2.5},
                 ]
             }, f)
 
@@ -41,10 +41,11 @@ class TestIdentifier(unittest.TestCase):
             if os.path.exists(f):
                 os.remove(f)
 
+    @patch('titanet_identify_v2.os.path.getctime', return_value=12345.0) # Mock getctime
     @patch('titanet_identify_v2.EncDecSpeakerLabelModel')
     @patch('titanet_identify_v2.QdrantClient')
     @patch('titanet_identify_v2.sf')
-    def test_enroll_new_speaker(self, mock_sf, MockQdrantClient, MockNeMoModel):
+    def test_enroll_new_speaker(self, mock_sf, MockQdrantClient, MockNeMoModel, mock_getctime): # Added mock_getctime
         """Test enrolling a new speaker when no match is found."""
         mock_client = MockQdrantClient.return_value
         mock_client.search.return_value = [] # No match found
@@ -78,10 +79,11 @@ class TestIdentifier(unittest.TestCase):
         )
         self.assertTrue(imposter_collection_call)
 
+    @patch('titanet_identify_v2.os.path.getctime', return_value=12345.0) # Mock getctime
     @patch('titanet_identify_v2.EncDecSpeakerLabelModel')
     @patch('titanet_identify_v2.QdrantClient')
     @patch('titanet_identify_v2.sf')
-    def test_match_and_update_speaker(self, mock_sf, MockQdrantClient, MockNeMoModel):
+    def test_match_and_update_speaker(self, mock_sf, MockQdrantClient, MockNeMoModel, mock_getctime): # Added mock_getctime
         """Test matching an existing speaker and updating their profile with EMA."""
         mock_client = MockQdrantClient.return_value
         
@@ -122,10 +124,11 @@ class TestIdentifier(unittest.TestCase):
         self.assertAlmostEqual(updated_point.vector[0] / np.linalg.norm(updated_point.vector), expected_val / np.linalg.norm([expected_val]*192), places=4)
 
 
+    @patch('titanet_identify_v2.os.path.getctime', return_value=12345.0) # Mock getctime
     @patch('titanet_identify_v2.EncDecSpeakerLabelModel')
     @patch('titanet_identify_v2.QdrantClient')
     @patch('titanet_identify_v2.sf')
-    def test_s_norm_logic(self, mock_sf, MockQdrantClient, MockNeMoModel):
+    def test_s_norm_logic(self, mock_sf, MockQdrantClient, MockNeMoModel, mock_getctime): # Added mock_getctime
         """Test that S-Norm is applied when a cohort is available."""
         mock_client = MockQdrantClient.return_value
         
@@ -160,12 +163,8 @@ class TestIdentifier(unittest.TestCase):
             )
 
         # Assertions
-        # With a high norm_score, we expect a match and update.
-        # Plus one new speaker (speaker_1) and one imposter.
-        self.assertEqual(mock_client.upsert.call_count, 3)
-        update_call = mock_client.upsert.call_args_list[0]
+        # With a high norm_score, we expect a match and update.                                                                                         
+        # Plus one new speaker (speaker_1) and one imposter.                                                                                            
+        self.assertEqual(mock_client.upsert.call_count, 3)                                                                                              
+        update_call = mock_client.upsert.call_args_list[0]                                                                                              
         self.assertEqual(update_call.kwargs['points'][0].id, '123')
-
-
-if __name__ == '__main__':
-    unittest.main()

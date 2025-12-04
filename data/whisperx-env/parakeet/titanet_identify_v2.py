@@ -11,6 +11,7 @@ import numpy as np
 from typing import List, Dict
 import logging
 import uuid
+import soundfile as sf # Moved import to top-level
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -98,7 +99,6 @@ def identify_speakers(
 
     # 4. Process each local speaker
     global_mapping = {}
-    import soundfile as sf
     full_waveform, sample_rate = sf.read(audio_path)
     full_waveform = torch.from_numpy(full_waveform).float()
     if full_waveform.ndim > 1: full_waveform = full_waveform.mean(dim=0)
@@ -222,30 +222,30 @@ def identify_speakers(
         json.dump(output_data, f, indent=2)
 
     logger.info(f"Identification complete. Saved to {output_file}")
-    
-    if __name__ == "__main__":
-        parser = argparse.ArgumentParser(description="TitaNet Speaker Identification")
-        parser.add_argument("audio_file")
-        parser.add_argument("segments_file")
-        parser.add_argument("output_file")
-        parser.add_argument("--qdrant", default="qdrant")
-        parser.add_argument("--collection", default="speakers")
-        parser.add_argument("--threshold", type=float, default=0.7, help="Threshold for matching an existing speaker (used if S-Norm is disabled).")
-        parser.add_argument("--threshold-new", type=float, default=0.55, help="Threshold below which a new speaker is definitely enrolled.")
-        parser.add_argument("--norm-threshold", type=float, default=1.5, help="Z-score like threshold for matching when S-Norm is enabled.")
-        parser.add_argument("--alpha-max", type=float, default=0.25, help="Max learning rate for EMA.")
-        parser.add_argument("--min-duration-full-weight", type=float, default=4.0, help="Min duration for full weight in EMA.")
-        args = parser.parse_args()
-    
-        identify_speakers(
-            args.audio_file,
-            args.segments_file,
-            args.output_file,
-            qdrant_host=args.qdrant,
-            collection_name=args.collection,
-            threshold=args.threshold,
-            threshold_new=args.threshold_new,
-            norm_threshold=args.norm_threshold,
-            alpha_max=args.alpha_max,
-            min_duration_full_weight=args.min_duration_full_weight,
-        )
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="TitaNet Speaker Identification")
+    parser.add_argument("audio_file")
+    parser.add_argument("segments_file")
+    parser.add_argument("output_file")
+    parser.add_argument("--qdrant", default="qdrant")
+    parser.add_argument("--collection", default="speakers")
+    parser.add_argument("--threshold", type=float, default=0.7, help="Threshold for matching an existing speaker (used if S-Norm is disabled).")
+    parser.add_argument("--threshold-new", type=float, default=0.55, help="Threshold below which a new speaker is definitely enrolled.")
+    parser.add_argument("--norm-threshold", type=float, default=1.5, help="Z-score like threshold for matching when S-Norm is enabled.")
+    parser.add_argument("--alpha-max", type=float, default=0.25, help="Max learning rate for EMA.")
+    parser.add_argument("--min-duration-full-weight", type=float, default=4.0, help="Min duration for full weight in EMA.")
+    args = parser.parse_args()
+
+    identify_speakers(
+        args.audio_file,
+        args.segments_file,
+        args.output_file,
+        qdrant_host=args.qdrant,
+        collection_name=args.collection,
+        threshold=args.threshold,
+        threshold_new=args.threshold_new,
+        norm_threshold=args.norm_threshold,
+        alpha_max=args.alpha_max,
+        min_duration_full_weight=args.min_duration_full_weight,
+    )

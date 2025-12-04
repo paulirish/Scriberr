@@ -6,6 +6,7 @@ import argparse
 import logging
 import random
 import sys
+import uuid # Added import
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
