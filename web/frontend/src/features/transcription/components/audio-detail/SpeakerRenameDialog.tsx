@@ -41,15 +41,7 @@ const SpeakerRenameDialog: React.FC<SpeakerRenameDialogProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize speaker mappings when dialog opens
-  useEffect(() => {
-    if (open && transcriptionId) {
-      fetchSpeakerMappings();
-      checkGlobalSpeakers();
-    }
-  }, [open, transcriptionId]);
-
-  const checkGlobalSpeakers = async () => {
+  const checkGlobalSpeakers = useCallback(async () => {
     try {
       const speakers = await speakersApi.list(getAuthHeaders);
       const speakerMap: Record<string, boolean> = {};
@@ -71,7 +63,7 @@ const SpeakerRenameDialog: React.FC<SpeakerRenameDialogProps> = ({
     } catch (err) {
       console.warn("Failed to check global speakers", err);
     }
-  };
+  }, [getAuthHeaders]);
 
   const fetchSpeakerMappings = async () => {
     setIsLoading(true);
@@ -123,8 +115,9 @@ const SpeakerRenameDialog: React.FC<SpeakerRenameDialogProps> = ({
   useEffect(() => {
     if (open && transcriptionId) {
       fetchSpeakerMappings();
+      checkGlobalSpeakers();
     }
-  }, [open, transcriptionId, fetchSpeakerMappings]);
+  }, [open, transcriptionId, fetchSpeakerMappings, checkGlobalSpeakers]);
 
   const handleSpeakerNameChange = (originalSpeaker: string, customName: string) => {
     setSpeakerMappings(prev => ({
