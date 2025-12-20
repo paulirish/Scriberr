@@ -456,7 +456,7 @@ func (r *ModelRegistry) InitializeModels(ctx context.Context) error {
 		}
 
 		logger.Info("Model initialization completed")
-	}()
+
 
 	return nil
 }

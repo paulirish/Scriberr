@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Users, Save, X, Globe } from 'lucide-react';
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { speakersApi } from '../lib/speakersApi';
+import { speakersApi } from '../../../../lib/speakersApi';
 // Note: Install framer-motion for enhanced animations
 // import { motion, AnimatePresence } from 'framer-motion';
 

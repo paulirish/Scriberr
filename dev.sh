@@ -23,7 +23,7 @@ trap cleanup SIGINT SIGTERM
 if ! command -v air &> /dev/null; then
     echo "⚠️  'air' command not found."
     echo "📦 Auto-installing 'air' for live reload..."
-    
+
     # Check if GOPATH/bin is in PATH
     GOPATH=$(go env GOPATH)
     if [[ ":$PATH:" != *":$GOPATH/bin:"* ]]; then
@@ -53,7 +53,7 @@ if [ ! -d "$DIST_DIR" ]; then
     mkdir -p "$DIST_DIR"
 fi
 
-# Go's embed directive requires at least one file to match "dist/*" 
+# Go's embed directive requires at least one file to match "dist/*"
 # If the directory is empty, create a dummy file to prevent compilation errors.
 if [ -z "$(ls -A $DIST_DIR)" ]; then
     echo "📄 Creating dummy index.html to satisfy embed directive..."
