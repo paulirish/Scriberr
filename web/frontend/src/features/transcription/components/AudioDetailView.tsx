@@ -44,7 +44,7 @@ export const AudioDetailView = function AudioDetailView({ audioId: propAudioId }
     const [newTitle, setNewTitle] = useState("");
 
     // Lifted Transcript State
-    const [transcriptMode, setTranscriptMode] = useState<"compact" | "expanded">("compact");
+    const [transcriptMode, setTranscriptMode] = useState<"compact" | "expanded">("expanded");
     const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
     const [notesOpen, setNotesOpen] = useState(false);
     const [speakerRenameOpen, setSpeakerRenameOpen] = useState(false);
@@ -145,7 +145,6 @@ export const AudioDetailView = function AudioDetailView({ audioId: propAudioId }
         if (open) setNotesOpen(false);
         setChatOpen(open);
     };
-
 
     if (!audioId) return <div>Invalid Audio ID</div>;
 
