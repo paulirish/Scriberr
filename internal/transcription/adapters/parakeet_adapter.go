@@ -2,7 +2,6 @@ package adapters
 
 import (
 	"context"
-	"embed"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -16,9 +15,6 @@ import (
 	"scriberr/pkg/downloader"
 	"scriberr/pkg/logger"
 )
-
-//go:embed py/adapters/parakeet/*
-var parakeetScripts embed.FS
 
 // ParakeetAdapter implements the TranscriptionAdapter interface for NVIDIA Parakeet
 type ParakeetAdapter struct {
@@ -132,8 +128,8 @@ func (p *ParakeetAdapter) PrepareEnvironment(ctx context.Context) error {
 	// Check if environment is already ready (using cache to speed up repeated checks)
 	if CheckEnvironmentReady(p.envPath, "import nemo.collections.asr") {
 		modelPath := filepath.Join(p.envPath, "parakeet-tdt-0.6b-v3.nemo")
-		scriptPath := filepath.Join(p.envPath, "transcribe.py")
-		bufferedScriptPath := filepath.Join(p.envPath, "transcribe_buffered.py")
+		scriptPath := filepath.Join(p.envPath, "parakeet_transcribe.py")
+		bufferedScriptPath := filepath.Join(p.envPath, "parakeet_transcribe_buffered.py")
 
 		// Check model, standard script, and buffered script all exist
 		if stat, err := os.Stat(modelPath); err == nil && stat.Size() > 1024*1024 {
@@ -184,7 +180,7 @@ func (p *ParakeetAdapter) setupParakeetEnvironment() error {
 	}
 
 	// Create pyproject.toml
-	pyprojectContent, err := parakeetScripts.ReadFile("py/adapters/parakeet/pyproject.toml")
+	pyprojectContent, err := nvidiaScripts.ReadFile("py/adapters/nvidia/pyproject.toml")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded pyproject.toml: %w", err)
 	}
@@ -242,12 +238,12 @@ func (p *ParakeetAdapter) downloadParakeetModel() error {
 
 // createTranscriptionScript creates the Python script for Parakeet transcription
 func (p *ParakeetAdapter) createTranscriptionScript() error {
-	scriptContent, err := parakeetScripts.ReadFile("py/adapters/parakeet/transcribe.py")
+	scriptContent, err := nvidiaScripts.ReadFile("py/adapters/nvidia/parakeet_transcribe.py")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded transcribe.py: %w", err)
 	}
 
-	scriptPath := filepath.Join(p.envPath, "transcribe.py")
+	scriptPath := filepath.Join(p.envPath, "parakeet_transcribe.py")
 	if err := os.WriteFile(scriptPath, scriptContent, 0755); err != nil {
 		return fmt.Errorf("failed to write transcription script: %w", err)
 	}
@@ -467,7 +463,7 @@ func (p *ParakeetAdapter) transcribeBuffered(ctx context.Context, input interfac
 func (p *ParakeetAdapter) buildParakeetArgs(input interfaces.AudioInput, params map[string]interface{}, tempDir string) ([]string, error) {
 	outputFile := filepath.Join(tempDir, "result.json")
 
-	scriptPath := filepath.Join(p.envPath, "transcribe.py")
+	scriptPath := filepath.Join(p.envPath, "parakeet_transcribe.py")
 	args := []string{
 		"run", "--native-tls", "--project", p.envPath, "python", scriptPath,
 		input.FilePath,
@@ -554,12 +550,12 @@ func (p *ParakeetAdapter) parseResult(tempDir string, input interfaces.AudioInpu
 
 // createBufferedScript creates the Python script for NeMo buffered inference
 func (p *ParakeetAdapter) createBufferedScript() error {
-	scriptContent, err := parakeetScripts.ReadFile("py/adapters/parakeet/transcribe_buffered.py")
+	scriptContent, err := nvidiaScripts.ReadFile("py/adapters/nvidia/parakeet_transcribe_buffered.py")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded transcribe_buffered.py: %w", err)
 	}
 
-	scriptPath := filepath.Join(p.envPath, "transcribe_buffered.py")
+	scriptPath := filepath.Join(p.envPath, "parakeet_transcribe_buffered.py")
 	if err := os.WriteFile(scriptPath, scriptContent, 0755); err != nil {
 		return fmt.Errorf("failed to write buffered script: %w", err)
 	}
@@ -578,7 +574,7 @@ func (p *ParakeetAdapter) buildBufferedArgs(input interfaces.AudioInput, params 
 		chunkDuration = thresholdStr
 	}
 
-	scriptPath := filepath.Join(p.envPath, "transcribe_buffered.py")
+	scriptPath := filepath.Join(p.envPath, "parakeet_transcribe_buffered.py")
 	args := []string{
 		"run", "--native-tls", "--project", p.envPath, "python", scriptPath,
 		input.FilePath,
