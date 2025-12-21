@@ -14,7 +14,7 @@ import nemo.collections.asr as nemo_asr
 def transcribe_audio(
     audio_path: str,
     source_lang: str = "en",
-    target_lang: str = "en", 
+    target_lang: str = "en",
     task: str = "transcribe",
     timestamps: bool = True,
     output_file: str = None,
@@ -27,24 +27,24 @@ def transcribe_audio(
     # Get the directory where this script is located
     script_dir = os.path.dirname(os.path.abspath(__file__))
     model_path = os.path.join(script_dir, "canary-1b-v2.nemo")
-    
+
     if not os.path.exists(model_path):
         print(f"Error: Model file not found: {model_path}")
         sys.exit(1)
-    
+
     print(f"Loading NVIDIA Canary model from: {model_path}")
     asr_model = nemo_asr.models.ASRModel.restore_from(model_path)
-    
+
     print(f"Processing: {audio_path}")
     print(f"Task: {task}")
     print(f"Source language: {source_lang}")
     print(f"Target language: {target_lang}")
-    
+
     if timestamps:
         if task == "translate" and source_lang != target_lang:
             # Translation with timestamps
             output = asr_model.transcribe(
-                [audio_path], 
+                [audio_path],
                 source_lang=source_lang,
                 target_lang=target_lang,
                 timestamps=True
@@ -57,15 +57,15 @@ def transcribe_audio(
                 target_lang=target_lang,
                 timestamps=True
             )
-        
+
         # Extract text and timestamps
         result_data = output[0]
         text = result_data.text
         word_timestamps = result_data.timestamp.get("word", [])
         segment_timestamps = result_data.timestamp.get("segment", [])
-        
+
         print(f"Result: {text}")
-        
+
         # Prepare output data
         output_data = {
             "transcription": text,
@@ -77,12 +77,12 @@ def transcribe_audio(
             "audio_file": audio_path,
             "model": "canary-1b-v2"
         }
-        
+
         if include_confidence:
             # Add confidence scores if available
             if hasattr(result_data, 'confidence') and result_data.confidence:
                 output_data["confidence"] = result_data.confidence
-        
+
         # Save to file
         if output_file:
             with open(output_file, 'w', encoding='utf-8') as f:
@@ -90,7 +90,7 @@ def transcribe_audio(
             print(f"Results saved to: {output_file}")
         else:
             print(json.dumps(output_data, indent=2, ensure_ascii=False))
-    
+
     else:
         # Simple transcription/translation without timestamps
         if task == "translate" and source_lang != target_lang:
@@ -105,9 +105,9 @@ def transcribe_audio(
                 source_lang=source_lang,
                 target_lang=target_lang
             )
-        
+
         text = output[0].text
-        
+
         output_data = {
             "transcription": text,
             "source_language": source_lang,
@@ -116,7 +116,7 @@ def transcribe_audio(
             "audio_file": audio_path,
             "model": "canary-1b-v2"
         }
-        
+
         if output_file:
             with open(output_file, 'w', encoding='utf-8') as f:
                 json.dump(output_data, f, indent=2, ensure_ascii=False)
@@ -167,14 +167,14 @@ def main():
         "--preserve-formatting", action="store_true", default=True,
         help="Preserve punctuation and capitalization"
     )
-    
+
     args = parser.parse_args()
-    
+
     # Validate input file
     if not os.path.exists(args.audio_file):
         print(f"Error: Audio file not found: {args.audio_file}")
         sys.exit(1)
-    
+
     try:
         transcribe_audio(
             audio_path=args.audio_file,

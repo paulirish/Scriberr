@@ -39,14 +39,14 @@ def diarize_audio(
     Perform speaker diarization on audio file using PyAnnote.
     """
     print(f"Loading PyAnnote speaker diarization pipeline: {model}")
-    
+
     try:
         # Initialize the diarization pipeline
         pipeline = Pipeline.from_pretrained(
             model,
             token=hf_token
         )
-        
+
         # Move to specified device
         # if device == "auto" or device == "cuda":
         try:
@@ -61,7 +61,7 @@ def diarize_audio(
             print("PyTorch not available for CUDA, using CPU")
         except Exception as e:
             print(f"Error moving to device: {e}, using CPU")
-        
+
         print("Pipeline loaded successfully")
     except Exception as e:
         print(f"Error loading pipeline: {e}")
@@ -69,7 +69,7 @@ def diarize_audio(
         sys.exit(1)
 
     print(f"Processing audio file: {audio_path}")
-    
+
     try:
         # Run diarization
         diarization_params = {}
@@ -77,16 +77,16 @@ def diarize_audio(
             diarization_params["min_speakers"] = min_speakers
         if max_speakers is not None:
             diarization_params["max_speakers"] = max_speakers
-            
+
         if diarization_params:
             print(f"Using speaker constraints: {diarization_params}")
             diarization = pipeline(audio_path, **diarization_params)
         else:
             print("Using automatic speaker detection")
             diarization = pipeline(audio_path)
-        
+
         print(f"Diarization completed. Saving results to: {output_file}")
-        
+
         if output_format == "rttm":
             # Save the diarization output to RTTM format
             with open(output_file, "w") as rttm:
@@ -94,11 +94,11 @@ def diarize_audio(
         else:
             # Save as JSON format
             save_json_format(diarization, output_file, audio_path)
-        
+
         # Print summary
         speakers = set()
         total_speech_time = 0.0
-        
+
         # Iterate over speaker diarization
         # PyAnnote 4.x returns a DiarizeOutput object with a speaker_diarization attribute
         if hasattr(diarization, "speaker_diarization"):
@@ -115,13 +115,13 @@ def diarize_audio(
             for segment, track, speaker in diarization.itertracks(yield_label=True):
                 speakers.add(speaker)
                 total_speech_time += segment.duration
-        
+
         print(f"\nDiarization Summary:")
         print(f"  Speakers detected: {len(speakers)}")
         print(f"  Speaker labels: {sorted(speakers)}")
         print(f"  Total speech time: {total_speech_time:.2f} seconds")
         print(f"  Output file saved: {output_file}")
-        
+
     except Exception as e:
         print(f"Error during diarization: {e}")
         sys.exit(1)
@@ -131,7 +131,7 @@ def save_json_format(diarization, output_file: str, audio_path: str):
     """Save diarization results in JSON format."""
     segments = []
     speakers = set()
-    
+
     # PyAnnote 4.x
     if hasattr(diarization, "speaker_diarization"):
         for turn, speaker in diarization.speaker_diarization:
@@ -154,10 +154,10 @@ def save_json_format(diarization, output_file: str, audio_path: str):
                 "duration": segment.duration
             })
             speakers.add(speaker)
-    
+
     # Sort segments by start time
     segments.sort(key=lambda x: x["start"])
-    
+
     results = {
         "audio_file": audio_path,
         "model": "pyannote/speaker-diarization-community-1",
@@ -170,7 +170,7 @@ def save_json_format(diarization, output_file: str, audio_path: str):
             "total_speech_time": sum(seg["duration"] for seg in segments)
         }
     }
-    
+
     with open(output_file, "w") as f:
         json.dump(results, f, indent=2)
 
@@ -232,12 +232,12 @@ def main():
     if args.min_speakers is not None and args.min_speakers < 1:
         print("Error: min_speakers must be at least 1")
         sys.exit(1)
-        
+
     if args.max_speakers is not None and args.max_speakers < 1:
         print("Error: max_speakers must be at least 1")
         sys.exit(1)
-        
-    if (args.min_speakers is not None and args.max_speakers is not None and 
+
+    if (args.min_speakers is not None and args.max_speakers is not None and
         args.min_speakers > args.max_speakers):
         print("Error: min_speakers cannot be greater than max_speakers")
         sys.exit(1)
