@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
-import { MoreVertical, Edit2, Activity, FileText, Bot, Check, Loader2, List, AlignLeft, ArrowDownCircle, StickyNote, MessageCircle, FileImage, FileJson, Clock, AlertCircle } from "lucide-react";
+import { MoreVertical, Edit2, Activity, FileText, Bot, Check, Loader2, List, AlignLeft, ArrowDownCircle, StickyNote, MessageCircle, FileImage, FileJson, Clock, AlertCircle, Users } from "lucide-react";
 import { Header } from "@/components/Header";
 
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { EmberPlayer, type EmberPlayerRef } from "@/components/audio/EmberPlayer
 import { cn } from "@/lib/utils";
 
 // Custom Hooks
-import { useAudioDetail, useUpdateTitle, useTranscript } from "@/features/transcription/hooks/useAudioDetail";
+import { useAudioDetail, useUpdateTitle, useTranscript, type TranscriptSegment } from "@/features/transcription/hooks/useAudioDetail";
 import { useSpeakerMappings } from "@/features/transcription/hooks/useTranscriptionSpeakers";
 import { useTranscriptDownload } from "@/features/transcription/hooks/useTranscriptDownload";
 
@@ -311,7 +311,12 @@ export const AudioDetailView = function AudioDetailView({ audioId: propAudioId }
                                                         <MessageCircle className={cn("mr-2 h-4 w-4 opacity-70", chatOpen && "text-[var(--brand-solid)]")} />
                                                         Chat with Audio
                                                     </DropdownMenuItem>
-                                                    {/* ... Rest of menu items ... */}
+                                                    {transcript?.segments?.some((s: TranscriptSegment) => s.speaker) && (
+                                                        <DropdownMenuItem onClick={() => setSpeakerRenameOpen(true)} className="rounded-[8px] cursor-pointer">
+                                                            <Users className="mr-2 h-4 w-4 opacity-70" />
+                                                            Rename Speakers
+                                                        </DropdownMenuItem>
+                                                    )}
                                                     <DropdownMenuItem onClick={() => setSummaryDialogOpen(true)} className="rounded-[8px] cursor-pointer text-[var(--brand-solid)] focus:text-[var(--brand-solid)] focus:bg-[var(--brand-light)]">
                                                         <Bot className="mr-2 h-4 w-4" /> AI Summary
                                                     </DropdownMenuItem>
