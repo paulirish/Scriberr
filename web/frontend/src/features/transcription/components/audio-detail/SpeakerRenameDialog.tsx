@@ -65,7 +65,7 @@ const SpeakerRenameDialog: React.FC<SpeakerRenameDialogProps> = ({
     }
   }, [getAuthHeaders]);
 
-  const fetchSpeakerMappings = async () => {
+  const fetchSpeakerMappings = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
