@@ -5,7 +5,7 @@ This guide explains how to extract inline Python scripts and configuration files
 ## 1. Create a Scripts Directory
 
 Create a directory to hold the scripts corresponding to the adapter.
-Standard location: `internal/transcription/adapters/scripts/<adapter_name>`
+Standard location: `internal/transcription/adapters/py/adapters/<adapter_name>`
 
 ```bash
 mkdir -p internal/transcription/adapters/py/adapters/<adapter_name>
@@ -37,7 +37,7 @@ import (
 Add the `//go:embed` directive and a variable to hold the file system. This should be at the package level.
 
 ```go
-//go:embed scripts/<adapter_name>/*
+//go:embed py/adapters/<adapter_name>/*
 var <adapterName>Scripts embed.FS
 ```
 
@@ -56,7 +56,7 @@ if err := os.WriteFile(scriptPath, []byte(scriptContent), 0755); err != nil { ..
 
 **After:**
 ```go
-scriptContent, err := <adapterName>Scripts.ReadFile("scripts/<adapter_name>/transcribe.py")
+scriptContent, err := <adapterName>Scripts.ReadFile("py/adapters/<adapter_name>/transcribe.py")
 if err != nil {
     return fmt.Errorf("failed to read embedded transcribe.py: %w", err)
 }
@@ -118,12 +118,14 @@ There is a clear separation between the **Source Code** (where you edit files) a
 #### Source Location (In Git)
 Where you develop and commit changes.
 ```text
-internal/transcription/adapters/scripts/
+internal/transcription/adapters/py/adapters/
 └── <adapter_name>/
     ├── pyproject.toml       # Dependency definitions
     ├── transcribe.py        # Main logic
     └── other_scripts.py     # Helper scripts
 ```
+
+**Note:** The `py/` directory is located within the `adapters` package to satisfy Go's `embed` directive requirements, which cannot reference parent directories. All Python source files live here and are version-controlled, making them easily lintable and testable.
 
 #### Runtime Location (On Disk)
 Where the application sets up the environment during execution.

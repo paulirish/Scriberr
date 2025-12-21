@@ -17,7 +17,7 @@ import (
 	"scriberr/pkg/logger"
 )
 
-//go:embed scripts/sortformer/*
+//go:embed py/adapters/sortformer/*
 var sortformerScripts embed.FS
 
 // SortformerAdapter implements the DiarizationAdapter interface for NVIDIA Sortformer
@@ -200,7 +200,7 @@ func (s *SortformerAdapter) setupSortformerEnvironment() error {
 	}
 
 	// Create pyproject.toml (same as other NVIDIA models)
-	pyprojectContent, err := parakeetScripts.ReadFile("scripts/parakeet/pyproject.toml")
+	pyprojectContent, err := parakeetScripts.ReadFile("py/adapters/parakeet/pyproject.toml")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded pyproject.toml: %w", err)
 	}
@@ -258,7 +258,7 @@ func (s *SortformerAdapter) downloadSortformerModel() error {
 
 // createDiarizationScript creates the Python script for Sortformer diarization
 func (s *SortformerAdapter) createDiarizationScript() error {
-	scriptContent, err := sortformerScripts.ReadFile("scripts/sortformer/sortformer_diarize.py")
+	scriptContent, err := sortformerScripts.ReadFile("py/adapters/sortformer/sortformer_diarize.py")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded sortformer_diarize.py: %w", err)
 	}
