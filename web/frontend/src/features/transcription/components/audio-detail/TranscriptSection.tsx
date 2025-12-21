@@ -122,7 +122,7 @@ export function TranscriptSection({
     }, [onSeek, isDesktop]);
 
     // Helpers
-    const getDetectedSpeakers = () => {
+    const detectedSpeakers = useMemo(() => {
         // Safe check for segments array
         if (!transcript?.segments) return [];
         const speakers = new Set<string>();
@@ -132,7 +132,7 @@ export function TranscriptSection({
             if (segment.speaker) speakers.add(segment.speaker);
         });
         return Array.from(speakers).sort();
-    };
+    }, [transcript?.segments]);
 
     const handleSaveNote = (content: string) => {
         if (menuState) {
@@ -211,7 +211,7 @@ export function TranscriptSection({
                 open={speakerRenameOpen}
                 onOpenChange={setSpeakerRenameOpen}
                 transcriptionId={audioId}
-                initialSpeakers={getDetectedSpeakers()}
+                initialSpeakers={detectedSpeakers}
                 onSpeakerMappingsUpdate={() => { }}
             />
             {/* Portals */}
