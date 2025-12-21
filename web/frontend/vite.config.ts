@@ -70,58 +70,26 @@ export default defineConfig(({ mode }) => ({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: `http://localhost:${BACKEND_PORT}`,
         changeOrigin: true,
       },
       '/health': {
-        target: 'http://localhost:8080',
+        target: `http://localhost:${BACKEND_PORT}`,
         changeOrigin: true,
       },
       '/swagger': {
-        target: 'http://localhost:8080',
+        target: `http://localhost:${BACKEND_PORT}`,
         changeOrigin: true,
       },
       '/install.sh': {
-        target: 'http://localhost:8080',
+        target: `http://localhost:${BACKEND_PORT}`,
         changeOrigin: true,
       },
       '/install-cli.sh': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-      }
-    }
-  },
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-      },
-      '/health': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-      },
-      '/swagger': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-      },
-      '/install.sh': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-      },
-      '/install-cli.sh': {
-        target: 'http://localhost:8080',
+        target: `http://localhost:${BACKEND_PORT}`,
         changeOrigin: true,
       }
     }
   },
   base: "/",
-  server: {
-    proxy: {
-      '/api': {
-        target: `http://localhost:${BACKEND_PORT}`,
-        changeOrigin: true,
-      }
-    }
-  }
 }))
