@@ -15,15 +15,15 @@ import (
 	"scriberr/internal/auth"
 	"scriberr/internal/config"
 	"scriberr/internal/database"
+	"scriberr/internal/processing"
 	"scriberr/internal/queue"
 	"scriberr/internal/repository"
 	"scriberr/internal/service"
+	"scriberr/internal/sse"
 	"scriberr/internal/transcription"
 	"scriberr/internal/transcription/adapters"
 	"scriberr/internal/transcription/registry"
 	"scriberr/pkg/logger"
-
-	_ "scriberr/api-docs" // Import generated Swagger docs
 )
 
 // Version information (set by GoReleaser)
@@ -92,6 +92,10 @@ func main() {
 	logger.Startup("auth", "Setting up authentication")
 	authService := auth.NewAuthService(cfg.JWTSecret)
 
+	// Initialize SSE Broadcaster
+	logger.Startup("sse", "Initializing SSE broadcaster")
+	broadcaster := sse.NewBroadcaster()
+
 	// Initialize repositories
 	logger.Startup("repository", "Initializing repositories")
 	jobRepo := repository.NewJobRepository(database.DB)
@@ -103,6 +107,7 @@ func main() {
 	chatRepo := repository.NewChatRepository(database.DB)
 	noteRepo := repository.NewNoteRepository(database.DB)
 	speakerMappingRepo := repository.NewSpeakerMappingRepository(database.DB)
+	refreshTokenRepo := repository.NewRefreshTokenRepository(database.DB)
 
 	// Initialize services
 	logger.Startup("service", "Initializing services")
@@ -112,7 +117,10 @@ func main() {
 
 	// Initialize unified transcription processor
 	logger.Startup("transcription", "Initializing transcription service")
+	// Initialize unified transcription processor
+	logger.Startup("transcription", "Initializing transcription service")
 	unifiedProcessor := transcription.NewUnifiedJobProcessor(jobRepo)
+	unifiedProcessor.GetUnifiedService().SetBroadcaster(broadcaster)
 
 	// Bootstrap embedded Python environment (for all adapters)
 	logger.Startup("python", "Preparing Python environment")
@@ -123,7 +131,7 @@ func main() {
 
 	// Initialize quick transcription service
 	logger.Startup("quick-transcription", "Initializing quick transcription service")
-	quickTranscriptionService, err := transcription.NewQuickTranscriptionService(cfg, unifiedProcessor)
+	quickTranscriptionService, err := transcription.NewQuickTranscriptionService(cfg, unifiedProcessor, jobRepo)
 	if err != nil {
 		logger.Error("Failed to initialize quick transcription service", "error", err)
 		os.Exit(1)
@@ -131,9 +139,12 @@ func main() {
 
 	// Initialize task queue
 	logger.Startup("queue", "Starting background processing")
-	taskQueue := queue.NewTaskQueue(2, unifiedProcessor) // 2 workers
+	taskQueue := queue.NewTaskQueue(2, unifiedProcessor, jobRepo) // 2 workers
 	taskQueue.Start()
 	defer taskQueue.Stop()
+
+	// Initialize multi-track processor
+	multiTrackProcessor := processing.NewMultiTrackProcessor(database.DB, jobRepo)
 
 	// Initialize API handlers
 	handler := api.NewHandler(
@@ -150,10 +161,13 @@ func main() {
 		chatRepo,
 		noteRepo,
 		speakerMappingRepo,
+		refreshTokenRepo,
 		taskQueue,
 		unifiedProcessor,
 		quickTranscriptionService,
 		speakerService,
+		multiTrackProcessor,
+		broadcaster,
 	)
 
 	// Set up router
@@ -191,6 +205,11 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// Shutdown broadcaster to close all active SSE connections
+	if broadcaster != nil {
+		broadcaster.Shutdown()
+	}
+
 	// Gracefully shutdown the server
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Error("Server forced to shutdown", "error", err)
@@ -217,6 +236,8 @@ func registerAdapters(cfg *config.Config) {
 		adapters.NewParakeetAdapter(nvidiaEnvPath))
 	registry.RegisterTranscriptionAdapter("canary",
 		adapters.NewCanaryAdapter(nvidiaEnvPath)) // Shares with Parakeet
+	registry.RegisterTranscriptionAdapter("openai_whisper",
+		adapters.NewOpenAIAdapter(cfg.OpenAIAPIKey))
 
 	// Register diarization adapters
 	// registry.RegisterDiarizationAdapter("pyannote",

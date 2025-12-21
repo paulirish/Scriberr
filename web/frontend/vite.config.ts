@@ -67,6 +67,54 @@ export default defineConfig(({ mode }) => ({
     sourcemap: true,
     minify: mode !== 'development',
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/health': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/swagger': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/install.sh': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/install-cli.sh': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      }
+    }
+  },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/health': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/swagger': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/install.sh': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/install-cli.sh': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      }
+    }
+  },
   base: "/",
   server: {
     proxy: {

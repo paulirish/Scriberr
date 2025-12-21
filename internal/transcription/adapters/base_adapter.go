@@ -3,6 +3,7 @@ package adapters
 import (
 	"context"
 	"fmt"
+
 	"io"
 	"os"
 	"os/exec"
@@ -15,15 +16,18 @@ import (
 
 	"scriberr/internal/transcription/interfaces"
 	"scriberr/pkg/logger"
+
+	"golang.org/x/sync/singleflight"
 )
 
 // Environment readiness cache to avoid repeated expensive UV checks
 var (
 	envCacheMutex sync.RWMutex
 	envCache      = make(map[string]bool)
+	requestGroup  singleflight.Group
 )
 
-// CheckEnvironmentReady checks if a UV environment is ready with caching
+// CheckEnvironmentReady checks if a UV environment is ready with caching and singleflight
 func CheckEnvironmentReady(envPath, importStatement string) bool {
 	cacheKey := fmt.Sprintf("%s:%s", envPath, importStatement)
 
@@ -35,16 +39,29 @@ func CheckEnvironmentReady(envPath, importStatement string) bool {
 	}
 	envCacheMutex.RUnlock()
 
-	// Run the actual check
-	testCmd := exec.Command("uv", "run", "--native-tls", "--project", envPath, "python", "-c", importStatement)
-	ready := testCmd.Run() == nil
+	// Use singleflight to prevent duplicate checks
+	result, _, _ := requestGroup.Do(cacheKey, func() (interface{}, error) {
+		// Check cache again (double-checked locking)
+		envCacheMutex.RLock()
+		if ready, exists := envCache[cacheKey]; exists {
+			envCacheMutex.RUnlock()
+			return ready, nil
+		}
+		envCacheMutex.RUnlock()
 
-	// Cache the result
-	envCacheMutex.Lock()
-	envCache[cacheKey] = ready
-	envCacheMutex.Unlock()
+		// Run the actual check
+		testCmd := exec.Command("uv", "run", "--native-tls", "--project", envPath, "python", "-c", importStatement)
+		ready := testCmd.Run() == nil
 
-	return ready
+		// Cache the result
+		envCacheMutex.Lock()
+		envCache[cacheKey] = ready
+		envCacheMutex.Unlock()
+
+		return ready, nil
+	})
+
+	return result.(bool)
 }
 
 // BaseAdapter provides common functionality for all model adapters
@@ -121,31 +138,33 @@ func (b *BaseAdapter) ValidateParameters(params map[string]interface{}) error {
 }
 
 // validateParameterValue validates a single parameter value against its schema
+//
+//nolint:gocyclo // Switch case with type checking is complex
 func (b *BaseAdapter) validateParameterValue(schema interfaces.ParameterSchema, value interface{}) error {
 	// Type validation
 	switch schema.Type {
 	case "int":
-		if intVal, err := b.convertToInt(value); err != nil {
+		intVal, err := b.convertToInt(value)
+		if err != nil {
 			return fmt.Errorf("expected int, got %T", value)
-		} else {
-			if schema.Min != nil && float64(intVal) < *schema.Min {
-				return fmt.Errorf("value %d is below minimum %g", intVal, *schema.Min)
-			}
-			if schema.Max != nil && float64(intVal) > *schema.Max {
-				return fmt.Errorf("value %d is above maximum %g", intVal, *schema.Max)
-			}
+		}
+		if schema.Min != nil && float64(intVal) < *schema.Min {
+			return fmt.Errorf("value %d is below minimum %g", intVal, *schema.Min)
+		}
+		if schema.Max != nil && float64(intVal) > *schema.Max {
+			return fmt.Errorf("value %d is above maximum %g", intVal, *schema.Max)
 		}
 
 	case "float":
-		if floatVal, err := b.convertToFloat(value); err != nil {
+		floatVal, err := b.convertToFloat(value)
+		if err != nil {
 			return fmt.Errorf("expected float, got %T", value)
-		} else {
-			if schema.Min != nil && floatVal < *schema.Min {
-				return fmt.Errorf("value %g is below minimum %g", floatVal, *schema.Min)
-			}
-			if schema.Max != nil && floatVal > *schema.Max {
-				return fmt.Errorf("value %g is above maximum %g", floatVal, *schema.Max)
-			}
+		}
+		if schema.Min != nil && floatVal < *schema.Min {
+			return fmt.Errorf("value %g is below minimum %g", floatVal, *schema.Min)
+		}
+		if schema.Max != nil && floatVal > *schema.Max {
+			return fmt.Errorf("value %g is above maximum %g", floatVal, *schema.Max)
 		}
 
 	case "string":

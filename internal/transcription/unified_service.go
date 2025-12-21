@@ -14,11 +14,28 @@ import (
 	"scriberr/internal/models"
 	"scriberr/internal/repository"
 	"scriberr/internal/transcription/adapters"
+	"scriberr/internal/sse"
 	"scriberr/internal/transcription/interfaces"
 	"scriberr/internal/transcription/pipeline"
 	"scriberr/internal/transcription/registry"
 	"scriberr/internal/webhook"
 	"scriberr/pkg/logger"
+)
+
+const (
+	ModelWhisperX        = "whisperx"
+	ModelPyannote        = "pyannote"
+	ModelParakeet        = "parakeet"
+	ModelCanary          = "canary"
+	ModelSortformer      = "sortformer"
+	ModelOpenAI          = "openai_whisper"
+	ModelDiarization31   = "pyannote/speaker-diarization-3.1"
+	FamilyNvidiaCanary   = "nvidia_canary"
+	FamilyNvidiaParakeet = "nvidia_parakeet"
+	FamilyWhisper        = "whisper"
+	FamilyOpenAI         = "openai"
+	DiarizeSortformer    = "nvidia_sortformer"
+	OutputFormatJSON     = "json"
 )
 
 // UnifiedTranscriptionService provides a unified interface for all transcription and diarization models
@@ -34,6 +51,7 @@ type UnifiedTranscriptionService struct {
 	jobRepo               repository.JobRepository
 	titanetAdapter        *adapters.TitanetAdapter // Speaker identification adapter
 	webhookService        *webhook.Service
+	broadcaster           *sse.Broadcaster
 }
 
 // NewUnifiedTranscriptionService creates a new unified transcription service
@@ -46,14 +64,19 @@ func NewUnifiedTranscriptionService(jobRepo repository.JobRepository) *UnifiedTr
 		tempDirectory:   "data/temp",
 		outputDirectory: "data/transcripts",
 		defaultModelIDs: map[string]string{
-			"transcription": "whisperx",
-			"diarization":   "pyannote",
+			"transcription": ModelWhisperX,
+			"diarization":   ModelPyannote,
 		},
 		jobRepo:        jobRepo,
 		// Assuming shared environment path for now, consistent with SortformerAdapter
 		titanetAdapter: adapters.NewTitanetAdapter("data/whisperx-env/parakeet/"),
 		webhookService: webhook.NewService(),
 	}
+}
+
+// SetBroadcaster sets the SSE broadcaster for the service
+func (u *UnifiedTranscriptionService) SetBroadcaster(b *sse.Broadcaster) {
+	u.broadcaster = b
 }
 
 // Initialize prepares all registered models for use
@@ -84,6 +107,8 @@ func (u *UnifiedTranscriptionService) Initialize(ctx context.Context) error {
 }
 
 // ProcessJob processes a transcription job using the new adapter architecture
+//
+//nolint:gocyclo // Complex orchestration required
 func (u *UnifiedTranscriptionService) ProcessJob(ctx context.Context, jobID string) error {
 	startTime := time.Now()
 	logger.Info("Processing job with unified service", "job_id", jobID)
@@ -107,6 +132,14 @@ func (u *UnifiedTranscriptionService) ProcessJob(ctx context.Context, jobID stri
 		return fmt.Errorf("failed to create execution record: %w", err)
 	}
 
+	// Broadcast initial processing status
+	if u.broadcaster != nil {
+		u.broadcaster.Broadcast(jobID, "job_update", map[string]interface{}{
+			"job_id": jobID,
+			"status": models.StatusProcessing,
+		})
+	}
+
 	// Helper function to update execution status
 	updateExecutionStatus := func(status models.JobStatus, errorMsg string) {
 		completedAt := time.Now()
@@ -118,7 +151,16 @@ func (u *UnifiedTranscriptionService) ProcessJob(ctx context.Context, jobID stri
 			execution.ErrorMessage = &errorMsg
 		}
 
-		u.jobRepo.UpdateExecution(ctx, execution)
+		_ = u.jobRepo.UpdateExecution(ctx, execution)
+
+		// Broadcast update via SSE
+		if u.broadcaster != nil {
+			u.broadcaster.Broadcast(jobID, "job_update", map[string]interface{}{
+				"job_id": jobID,
+				"status": status,
+				"error":  errorMsg,
+			})
+		}
 
 		// Trigger webhook if callback URL is present
 		if job.Parameters.CallbackURL != nil && *job.Parameters.CallbackURL != "" {
@@ -174,6 +216,8 @@ func (u *UnifiedTranscriptionService) ProcessJob(ctx context.Context, jobID stri
 }
 
 // processSingleTrackJob handles single audio file transcription
+//
+//nolint:gocyclo // Orchestrator function with multiple steps
 func (u *UnifiedTranscriptionService) processSingleTrackJob(ctx context.Context, job *models.TranscriptionJob) error {
 	logger.Info("Processing single-track job", "job_id", job.ID, "model_family", job.Parameters.ModelFamily)
 
@@ -355,25 +399,27 @@ func (u *UnifiedTranscriptionService) IsMultiTrackJob(jobID string) bool {
 func (u *UnifiedTranscriptionService) selectModels(params models.WhisperXParams) (transcriptionModelID, diarizationModelID string, err error) {
 	// Determine transcription model
 	switch params.ModelFamily {
-	case "nvidia_parakeet":
-		transcriptionModelID = "parakeet"
-	case "nvidia_canary":
-		transcriptionModelID = "canary"
-	case "whisper":
-		transcriptionModelID = "whisperx"
+	case FamilyNvidiaParakeet:
+		transcriptionModelID = ModelParakeet
+	case FamilyNvidiaCanary:
+		transcriptionModelID = ModelCanary
+	case FamilyWhisper:
+		transcriptionModelID = ModelWhisperX
+	case FamilyOpenAI:
+		transcriptionModelID = ModelOpenAI
 	default:
-		transcriptionModelID = "whisperx" // Default fallback
+		transcriptionModelID = ModelWhisperX // Default fallback
 	}
 
 	// Determine diarization model if needed
 	if params.Diarize {
 		switch params.DiarizeModel {
-		case "nvidia_sortformer":
-			diarizationModelID = "sortformer"
-		case "pyannote", "pyannote/speaker-diarization-3.1":
-			diarizationModelID = "pyannote"
+		case DiarizeSortformer:
+			diarizationModelID = ModelSortformer
+		case ModelPyannote, ModelDiarization31:
+			diarizationModelID = ModelPyannote
 		default:
-			diarizationModelID = "pyannote" // Default fallback
+			diarizationModelID = ModelPyannote // Default fallback
 		}
 	}
 
@@ -389,10 +435,11 @@ func (u *UnifiedTranscriptionService) selectModels(params models.WhisperXParams)
 // transcriptionIncludesDiarization checks if the transcription model already includes diarization
 func (u *UnifiedTranscriptionService) transcriptionIncludesDiarization(modelID string, params models.WhisperXParams) bool {
 	// WhisperX includes diarization when enabled
-	if modelID == "whisperx" {
+	// WhisperX includes diarization when enabled
+	if modelID == ModelWhisperX {
 		if params.Diarize {
 			// Check if it's using nvidia_sortformer (which requires separate processing)
-			if params.DiarizeModel == "nvidia_sortformer" {
+			if params.DiarizeModel == DiarizeSortformer {
 				return false
 			}
 			return true
@@ -524,20 +571,44 @@ func (u *UnifiedTranscriptionService) createAudioInput(audioPath string) (interf
 // convertParametersForModel converts WhisperX parameters to model-specific parameters
 func (u *UnifiedTranscriptionService) convertParametersForModel(params models.WhisperXParams, modelID string) map[string]interface{} {
 	switch modelID {
-	case "parakeet":
+	case ModelParakeet:
 		return u.convertToParakeetParams(params)
-	case "canary":
+	case ModelCanary:
 		return u.convertToCanaryParams(params)
-	case "whisperx":
+	case ModelWhisperX:
 		return u.convertToWhisperXParams(params)
-	case "pyannote":
+	case ModelPyannote:
 		return u.convertToPyannoteParams(params)
-	case "sortformer":
+	case ModelSortformer:
 		return u.convertToSortformerParams(params)
+	case ModelOpenAI:
+		return u.convertToOpenAIParams(params)
 	default:
 		// Fallback to legacy conversion
 		return u.parametersToMap(params)
 	}
+}
+
+// convertToOpenAIParams converts to OpenAI-specific parameters
+func (u *UnifiedTranscriptionService) convertToOpenAIParams(params models.WhisperXParams) map[string]interface{} {
+	paramMap := map[string]interface{}{
+		"model":       params.Model,
+		"temperature": params.Temperature,
+	}
+
+	if params.Language != nil {
+		paramMap["language"] = *params.Language
+	}
+	if params.InitialPrompt != nil {
+		paramMap["prompt"] = *params.InitialPrompt
+	}
+
+	// Add API key if provided in params (e.g. from UI override)
+	if params.APIKey != nil && *params.APIKey != "" {
+		paramMap["api_key"] = *params.APIKey
+	}
+
+	return paramMap
 }
 
 // convertToParakeetParams converts to Parakeet-specific parameters
@@ -546,7 +617,7 @@ func (u *UnifiedTranscriptionService) convertToParakeetParams(params models.Whis
 		"timestamps":         true,
 		"context_left":       params.AttentionContextLeft,
 		"context_right":      params.AttentionContextRight,
-		"output_format":      "json",
+		"output_format":      OutputFormatJSON,
 		"auto_convert_audio": true,
 	}
 }
@@ -555,7 +626,7 @@ func (u *UnifiedTranscriptionService) convertToParakeetParams(params models.Whis
 func (u *UnifiedTranscriptionService) convertToCanaryParams(params models.WhisperXParams) map[string]interface{} {
 	paramMap := map[string]interface{}{
 		"timestamps":         true,
-		"output_format":      "json",
+		"output_format":      OutputFormatJSON,
 		"auto_convert_audio": true,
 		"task":               params.Task,
 	}
@@ -638,7 +709,7 @@ func (u *UnifiedTranscriptionService) convertToWhisperXParams(params models.Whis
 // convertToPyannoteParams converts to PyAnnote-specific parameters
 func (u *UnifiedTranscriptionService) convertToPyannoteParams(params models.WhisperXParams) map[string]interface{} {
 	paramMap := map[string]interface{}{
-		"output_format":      "json",
+		"output_format":      OutputFormatJSON,
 		"auto_convert_audio": true,
 		"device":             "auto",
 	}
@@ -659,7 +730,7 @@ func (u *UnifiedTranscriptionService) convertToPyannoteParams(params models.Whis
 // convertToSortformerParams converts to Sortformer-specific parameters
 func (u *UnifiedTranscriptionService) convertToSortformerParams(params models.WhisperXParams) map[string]interface{} {
 	return map[string]interface{}{
-		"output_format":      "json",
+		"output_format":      OutputFormatJSON,
 		"auto_convert_audio": true,
 		// Sortformer is optimized for 4 speakers, no additional config needed
 	}
@@ -720,11 +791,11 @@ func (u *UnifiedTranscriptionService) parametersToMap(params models.WhisperXPara
 	paramMap["context_left"] = params.AttentionContextLeft
 	paramMap["context_right"] = params.AttentionContextRight
 	paramMap["timestamps"] = true
-	paramMap["output_format"] = "json"
+	paramMap["output_format"] = OutputFormatJSON
 	paramMap["auto_convert_audio"] = true
 
 	// For Canary model, set source and target languages
-	if params.ModelFamily == "nvidia_canary" {
+	if params.ModelFamily == FamilyNvidiaCanary {
 		if params.Language != nil {
 			paramMap["source_lang"] = *params.Language
 		} else {

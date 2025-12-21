@@ -7,8 +7,6 @@ import (
 	"scriberr/pkg/middleware"
 
 	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // SetupRoutes sets up all API routes
@@ -29,9 +27,30 @@ func SetupRoutes(handler *Handler, authService *auth.AuthService) *gin.Engine {
 	// Add compression middleware first for maximum benefit
 	router.Use(middleware.CompressionMiddleware())
 
-	// Add CORS middleware
+	// Add CORS middleware (uses config from handler)
 	router.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
+		origin := c.Request.Header.Get("Origin")
+
+		// Determine allowed origin based on config
+		allowOrigin := "*"
+		if handler.config.IsProduction() && len(handler.config.AllowedOrigins) > 0 {
+			// In production, validate against configured origins
+			allowOrigin = ""
+			for _, allowed := range handler.config.AllowedOrigins {
+				if origin == allowed {
+					allowOrigin = origin
+					break
+				}
+			}
+		} else if origin != "" {
+			// In development, echo back the origin for credentials support
+			allowOrigin = origin
+		}
+
+		if allowOrigin != "" {
+			c.Header("Access-Control-Allow-Origin", allowOrigin)
+			c.Header("Access-Control-Allow-Credentials", "true")
+		}
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-API-Key")
 
@@ -45,9 +64,6 @@ func SetupRoutes(handler *Handler, authService *auth.AuthService) *gin.Engine {
 
 	// Health check endpoint (no auth required)
 	router.GET("/health", handler.HealthCheck)
-
-	// Swagger documentation
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// CLI install script alias (root level for easier access)
 	router.GET("/install.sh", handler.GetInstallScript)
@@ -223,6 +239,20 @@ func SetupRoutes(handler *Handler, authService *auth.AuthService) *gin.Engine {
 		summarize.Use(middleware.AuthMiddleware(authService))
 		{
 			summarize.POST("/", handler.Summarize)
+		}
+
+		// Config routes (require authentication)
+		config := v1.Group("/config")
+		config.Use(middleware.AuthMiddleware(authService))
+		{
+			config.POST("/openai/validate", handler.ValidateOpenAIKey)
+		}
+
+		// SSE Events (require authentication)
+		events := v1.Group("/events")
+		events.Use(middleware.AuthMiddleware(authService))
+		{
+			events.GET("/", handler.Events)
 		}
 
 		// Speaker management routes (require authentication)

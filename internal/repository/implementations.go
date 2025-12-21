@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"scriberr/internal/models"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -11,6 +12,8 @@ import (
 type UserRepository interface {
 	Repository[models.User]
 	FindByUsername(ctx context.Context, username string) (*models.User, error)
+	Count(ctx context.Context) (int64, error)
+	CountWithAutoTranscription(ctx context.Context) (int64, error)
 }
 
 type userRepository struct {
@@ -32,17 +35,36 @@ func (r *userRepository) FindByUsername(ctx context.Context, username string) (*
 	return &user, nil
 }
 
+func (r *userRepository) Count(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.User{}).Count(&count).Error
+	return count, err
+}
+
+func (r *userRepository) CountWithAutoTranscription(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.User{}).Where("auto_transcription_enabled = ?", true).Count(&count).Error
+	return count, err
+}
+
 // JobRepository handles transcription job operations
 type JobRepository interface {
 	Repository[models.TranscriptionJob]
 	FindWithAssociations(ctx context.Context, id string) (*models.TranscriptionJob, error)
-	ListWithParams(ctx context.Context, offset, limit int, sortBy, sortOrder, searchQuery string) ([]models.TranscriptionJob, int64, error)
+	FindActiveTrackJobs(ctx context.Context, parentJobID string) ([]models.TranscriptionJob, error)
+	FindLatestCompletedExecution(ctx context.Context, jobID string) (*models.TranscriptionJobExecution, error)
+	ListWithParams(ctx context.Context, offset, limit int, sortBy, sortOrder, searchQuery string, updatedAfter *time.Time) ([]models.TranscriptionJob, int64, error)
 	ListByUser(ctx context.Context, userID uint, offset, limit int) ([]models.TranscriptionJob, int64, error)
 	UpdateTranscript(ctx context.Context, jobID string, transcript string) error
 	CreateExecution(ctx context.Context, execution *models.TranscriptionJobExecution) error
 	UpdateExecution(ctx context.Context, execution *models.TranscriptionJobExecution) error
 	DeleteExecutionsByJobID(ctx context.Context, jobID string) error
 	DeleteMultiTrackFilesByJobID(ctx context.Context, jobID string) error
+	UpdateStatus(ctx context.Context, jobID string, status models.JobStatus) error
+	UpdateError(ctx context.Context, jobID string, errorMsg string) error
+	FindByStatus(ctx context.Context, status models.JobStatus) ([]models.TranscriptionJob, error)
+	CountByStatus(ctx context.Context, status models.JobStatus) (int64, error)
+	UpdateSummary(ctx context.Context, jobID string, summary string) error
 }
 
 type jobRepository struct {
@@ -67,11 +89,16 @@ func (r *jobRepository) FindWithAssociations(ctx context.Context, id string) (*m
 	return &job, nil
 }
 
-func (r *jobRepository) ListWithParams(ctx context.Context, offset, limit int, sortBy, sortOrder, searchQuery string) ([]models.TranscriptionJob, int64, error) {
+func (r *jobRepository) ListWithParams(ctx context.Context, offset, limit int, sortBy, sortOrder, searchQuery string, updatedAfter *time.Time) ([]models.TranscriptionJob, int64, error) {
 	var jobs []models.TranscriptionJob
 	var count int64
 
 	db := r.db.WithContext(ctx).Model(&models.TranscriptionJob{})
+
+	// Handle delta sync if updatedAfter provided
+	if updatedAfter != nil {
+		db = db.Unscoped().Where("updated_at > ?", *updatedAfter)
+	}
 
 	// Apply search filter
 	if searchQuery != "" {
@@ -135,6 +162,53 @@ func (r *jobRepository) DeleteMultiTrackFilesByJobID(ctx context.Context, jobID 
 	return r.db.WithContext(ctx).Where("transcription_job_id = ?", jobID).Delete(&models.MultiTrackFile{}).Error
 }
 
+func (r *jobRepository) FindActiveTrackJobs(ctx context.Context, parentJobID string) ([]models.TranscriptionJob, error) {
+	var jobs []models.TranscriptionJob
+	err := r.db.WithContext(ctx).
+		Where("id LIKE ? AND status IN (?)", "track_"+parentJobID+"_%", []string{"processing", "pending"}).
+		Find(&jobs).Error
+	return jobs, err
+}
+
+func (r *jobRepository) FindLatestCompletedExecution(ctx context.Context, jobID string) (*models.TranscriptionJobExecution, error) {
+	var execution models.TranscriptionJobExecution
+	err := r.db.WithContext(ctx).
+		Where("transcription_job_id = ? AND status = ?", jobID, models.StatusCompleted).
+		Order("created_at DESC").
+		First(&execution).Error
+	if err != nil {
+		return nil, err
+	}
+	return &execution, nil
+}
+
+func (r *jobRepository) UpdateStatus(ctx context.Context, jobID string, status models.JobStatus) error {
+	return r.db.WithContext(ctx).Model(&models.TranscriptionJob{}).Where("id = ?", jobID).Update("status", status).Error
+}
+
+func (r *jobRepository) UpdateError(ctx context.Context, jobID string, errorMsg string) error {
+	return r.db.WithContext(ctx).Model(&models.TranscriptionJob{}).Where("id = ?", jobID).Update("error_message", errorMsg).Error
+}
+
+func (r *jobRepository) FindByStatus(ctx context.Context, status models.JobStatus) ([]models.TranscriptionJob, error) {
+	var jobs []models.TranscriptionJob
+	err := r.db.WithContext(ctx).Where("status = ?", status).Find(&jobs).Error
+	if err != nil {
+		return nil, err
+	}
+	return jobs, nil
+}
+
+func (r *jobRepository) CountByStatus(ctx context.Context, status models.JobStatus) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.TranscriptionJob{}).Where("status = ?", status).Count(&count).Error
+	return count, err
+}
+
+func (r *jobRepository) UpdateSummary(ctx context.Context, jobID string, summary string) error {
+	return r.db.WithContext(ctx).Model(&models.TranscriptionJob{}).Where("id = ?", jobID).Update("summary", summary).Error
+}
+
 // APIKeyRepository handles API key operations
 type APIKeyRepository interface {
 	Repository[models.APIKey]
@@ -179,6 +253,7 @@ func (r *apiKeyRepository) Revoke(ctx context.Context, id uint) error {
 type ProfileRepository interface {
 	Repository[models.TranscriptionProfile]
 	FindDefault(ctx context.Context) (*models.TranscriptionProfile, error)
+	FindByName(ctx context.Context, name string) (*models.TranscriptionProfile, error)
 }
 
 type profileRepository struct {
@@ -194,6 +269,15 @@ func NewProfileRepository(db *gorm.DB) ProfileRepository {
 func (r *profileRepository) FindDefault(ctx context.Context) (*models.TranscriptionProfile, error) {
 	var profile models.TranscriptionProfile
 	err := r.db.WithContext(ctx).Where("is_default = ?", true).First(&profile).Error
+	if err != nil {
+		return nil, err
+	}
+	return &profile, nil
+}
+
+func (r *profileRepository) FindByName(ctx context.Context, name string) (*models.TranscriptionProfile, error) {
+	var profile models.TranscriptionProfile
+	err := r.db.WithContext(ctx).Where("name = ?", name).First(&profile).Error
 	if err != nil {
 		return nil, err
 	}
@@ -287,6 +371,8 @@ type ChatRepository interface {
 	DeleteSession(ctx context.Context, id string) error
 	GetMessages(ctx context.Context, sessionID string, limit int) ([]models.ChatMessage, error)
 	DeleteByJobID(ctx context.Context, jobID string) error
+	GetMessageCountsBySessionIDs(ctx context.Context, sessionIDs []string) (map[string]int64, error)
+	GetLastMessagesBySessionIDs(ctx context.Context, sessionIDs []string) (map[string]*models.ChatMessage, error)
 }
 
 type chatRepository struct {
@@ -337,10 +423,7 @@ func (r *chatRepository) DeleteSession(ctx context.Context, id string) error {
 			return err
 		}
 		// Delete session
-		if err := tx.Delete(&models.ChatSession{}, "id = ?", id).Error; err != nil {
-			return err
-		}
-		return nil
+		return tx.Delete(&models.ChatSession{}, "id = ?", id).Error
 	})
 }
 
@@ -371,6 +454,59 @@ func (r *chatRepository) GetMessages(ctx context.Context, sessionID string, limi
 		return nil, err
 	}
 	return messages, nil
+}
+
+func (r *chatRepository) GetMessageCountsBySessionIDs(ctx context.Context, sessionIDs []string) (map[string]int64, error) {
+	if len(sessionIDs) == 0 {
+		return make(map[string]int64), nil
+	}
+
+	type MessageCount struct {
+		SessionID string `gorm:"column:session_id"`
+		Count     int64  `gorm:"column:count"`
+	}
+	var counts []MessageCount
+
+	err := r.db.WithContext(ctx).Model(&models.ChatMessage{}).
+		Select("chat_session_id as session_id, COUNT(*) as count").
+		Where("chat_session_id IN ?", sessionIDs).
+		Group("chat_session_id").
+		Scan(&counts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]int64)
+	for _, c := range counts {
+		result[c.SessionID] = c.Count
+	}
+	return result, nil
+}
+
+func (r *chatRepository) GetLastMessagesBySessionIDs(ctx context.Context, sessionIDs []string) (map[string]*models.ChatMessage, error) {
+	if len(sessionIDs) == 0 {
+		return make(map[string]*models.ChatMessage), nil
+	}
+
+	var lastMessages []models.ChatMessage
+	err := r.db.WithContext(ctx).Where(`id IN (
+		SELECT id FROM chat_messages cm1
+		WHERE cm1.chat_session_id IN ? 
+		AND cm1.created_at = (
+			SELECT MAX(cm2.created_at) 
+			FROM chat_messages cm2 
+			WHERE cm2.chat_session_id = cm1.chat_session_id
+		)
+	)`, sessionIDs).Find(&lastMessages).Error
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]*models.ChatMessage)
+	for i := range lastMessages {
+		result[lastMessages[i].ChatSessionID] = &lastMessages[i]
+	}
+	return result, nil
 }
 
 // NoteRepository handles notes
@@ -449,4 +585,41 @@ func (r *speakerMappingRepository) UpdateMappings(ctx context.Context, jobID str
 		}
 		return nil
 	})
+}
+
+// RefreshTokenRepository handles refresh token operations
+type RefreshTokenRepository interface {
+	Create(ctx context.Context, token *models.RefreshToken) error
+	FindByHash(ctx context.Context, hash string) (*models.RefreshToken, error)
+	Revoke(ctx context.Context, id uint) error
+	RevokeByHash(ctx context.Context, hash string) error
+}
+
+type refreshTokenRepository struct {
+	db *gorm.DB
+}
+
+func NewRefreshTokenRepository(db *gorm.DB) RefreshTokenRepository {
+	return &refreshTokenRepository{db: db}
+}
+
+func (r *refreshTokenRepository) Create(ctx context.Context, token *models.RefreshToken) error {
+	return r.db.WithContext(ctx).Create(token).Error
+}
+
+func (r *refreshTokenRepository) FindByHash(ctx context.Context, hash string) (*models.RefreshToken, error) {
+	var token models.RefreshToken
+	err := r.db.WithContext(ctx).Where("hashed = ?", hash).First(&token).Error
+	if err != nil {
+		return nil, err
+	}
+	return &token, nil
+}
+
+func (r *refreshTokenRepository) Revoke(ctx context.Context, id uint) error {
+	return r.db.WithContext(ctx).Model(&models.RefreshToken{}).Where("id = ?", id).Update("revoked", true).Error
+}
+
+func (r *refreshTokenRepository) RevokeByHash(ctx context.Context, hash string) error {
+	return r.db.WithContext(ctx).Model(&models.RefreshToken{}).Where("hashed = ?", hash).Update("revoked", true).Error
 }

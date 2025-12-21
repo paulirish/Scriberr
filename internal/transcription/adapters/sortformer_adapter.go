@@ -81,7 +81,7 @@ func NewSortformerAdapter(envPath string) *SortformerAdapter {
 			Type:        "string",
 			Required:    false,
 			Default:     "rttm",
-			Options:     []string{"rttm", "json"},
+			Options:     []string{"rttm", OutputFormatJSON},
 			Description: "Output format for diarization results",
 			Group:       "advanced",
 		},
@@ -215,6 +215,29 @@ dependencies = [
 
 [tool.uv.sources]
 nemo-toolkit = { git = "https://github.com/NVIDIA/NeMo.git", tag = "v2.5.3" }
+torch = [
+    { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },
+    { index = "pytorch-cpu", marker = "platform_machine != 'x86_64' and sys_platform != 'darwin'" },
+    { index = "pytorch", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+]
+torchaudio = [
+    { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },
+    { index = "pytorch-cpu", marker = "platform_machine != 'x86_64' and sys_platform != 'darwin'" },
+    { index = "pytorch", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+]
+triton = [
+    { index = "pytorch", marker = "sys_platform == 'linux'" }
+]
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 `
 	pyprojectPath := filepath.Join(s.envPath, "pyproject.toml")
 	if err := os.WriteFile(pyprojectPath, []byte(pyprojectContent), 0644); err != nil {
@@ -708,7 +731,7 @@ func (s *SortformerAdapter) Diarize(ctx context.Context, input interfaces.AudioI
 func (s *SortformerAdapter) buildSortformerArgs(input interfaces.AudioInput, params map[string]interface{}, tempDir string) ([]string, error) {
 	outputFormat := s.GetStringParameter(params, "output_format")
 	var outputFile string
-	if outputFormat == "json" {
+	if outputFormat == OutputFormatJSON {
 		outputFile = filepath.Join(tempDir, "result.json")
 	} else {
 		outputFile = filepath.Join(tempDir, "result.rttm")
@@ -754,11 +777,10 @@ func (s *SortformerAdapter) buildSortformerArgs(input interfaces.AudioInput, par
 func (s *SortformerAdapter) parseResult(tempDir string, input interfaces.AudioInput, params map[string]interface{}) (*interfaces.DiarizationResult, error) {
 	outputFormat := s.GetStringParameter(params, "output_format")
 
-	if outputFormat == "json" {
+	if outputFormat == OutputFormatJSON {
 		return s.parseJSONResult(tempDir)
-	} else {
-		return s.parseRTTMResult(tempDir, input)
 	}
+	return s.parseRTTMResult(tempDir, input)
 }
 
 // parseJSONResult parses JSON format output

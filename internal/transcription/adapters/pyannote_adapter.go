@@ -15,6 +15,8 @@ import (
 	"scriberr/pkg/logger"
 )
 
+const OutputFormatJSON = "json"
+
 // PyAnnoteAdapter implements the DiarizationAdapter interface for PyAnnote
 type PyAnnoteAdapter struct {
 	*BaseAdapter
@@ -97,7 +99,7 @@ func NewPyAnnoteAdapter(envPath string) *PyAnnoteAdapter {
 			Type:        "string",
 			Required:    false,
 			Default:     "rttm",
-			Options:     []string{"rttm", "json"},
+			Options:     []string{"rttm", OutputFormatJSON},
 			Description: "Output format for diarization results",
 			Group:       "advanced",
 		},
@@ -228,6 +230,28 @@ dependencies = [
     "huggingface-hub>=0.28.1",
     "pyannote.audio==4.0.2"
 ]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },
+    { index = "pytorch-cpu", marker = "platform_machine != 'x86_64' and sys_platform != 'darwin'" },
+    { index = "pytorch", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+]
+torchaudio = [
+    { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },
+    { index = "pytorch-cpu", marker = "platform_machine != 'x86_64' and sys_platform != 'darwin'" },
+    { index = "pytorch", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 `
 	pyprojectPath := filepath.Join(p.envPath, "pyproject.toml")
 	if err := os.WriteFile(pyprojectPath, []byte(pyprojectContent), 0644); err != nil {
@@ -248,6 +272,11 @@ dependencies = [
 
 // createDiarizationScript creates the Python script for PyAnnote diarization
 func (p *PyAnnoteAdapter) createDiarizationScript() error {
+	// Ensure the directory exists first
+	if err := os.MkdirAll(p.envPath, 0755); err != nil {
+		return fmt.Errorf("failed to create pyannote directory: %w", err)
+	}
+
 	scriptPath := filepath.Join(p.envPath, "pyannote_diarize.py")
 
 	// Always recreate the script to ensure it's up to date with the adapter code
@@ -268,6 +297,17 @@ import os
 from pathlib import Path
 from pyannote.audio import Pipeline
 import torch
+
+# Fix for PyTorch 2.6+ which defaults weights_only=True
+# We need to allowlist PyAnnote's custom classes
+try:
+    from pyannote.audio.core.task import Specifications, Problem, Resolution
+    if hasattr(torch.serialization, "add_safe_globals"):
+        torch.serialization.add_safe_globals([Specifications, Problem, Resolution])
+except ImportError:
+    pass
+except Exception as e:
+    print(f"Warning: Could not add safe globals: {e}")
 
 
 def diarize_audio(
@@ -610,7 +650,7 @@ func (p *PyAnnoteAdapter) Diarize(ctx context.Context, input interfaces.AudioInp
 func (p *PyAnnoteAdapter) buildPyAnnoteArgs(input interfaces.AudioInput, params map[string]interface{}, tempDir string) ([]string, error) {
 	outputFormat := p.GetStringParameter(params, "output_format")
 	var outputFile string
-	if outputFormat == "json" {
+	if outputFormat == OutputFormatJSON {
 		outputFile = filepath.Join(tempDir, "result.json")
 	} else {
 		outputFile = filepath.Join(tempDir, "result.rttm")
@@ -649,11 +689,10 @@ func (p *PyAnnoteAdapter) buildPyAnnoteArgs(input interfaces.AudioInput, params 
 func (p *PyAnnoteAdapter) parseResult(tempDir string, input interfaces.AudioInput, params map[string]interface{}) (*interfaces.DiarizationResult, error) {
 	outputFormat := p.GetStringParameter(params, "output_format")
 
-	if outputFormat == "json" {
+	if outputFormat == OutputFormatJSON {
 		return p.parseJSONResult(tempDir)
-	} else {
-		return p.parseRTTMResult(tempDir, input)
 	}
+	return p.parseRTTMResult(tempDir, input)
 }
 
 // parseJSONResult parses JSON format output

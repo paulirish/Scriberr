@@ -139,12 +139,12 @@ var serviceRunCmd = &cobra.Command{
 		if err != nil {
 			log.Printf("Failed to get system logger: %v", err)
 		} else {
-			logger.Info("Scriberr service starting...")
+			_ = logger.Info("Scriberr service starting...")
 		}
 
 		if err = s.Run(); err != nil {
 			if logger != nil {
-				logger.Error(err)
+				_ = logger.Error(err)
 			}
 			log.Fatalf("Service failed to run: %v", err)
 		}

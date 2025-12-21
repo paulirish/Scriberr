@@ -84,9 +84,53 @@ func (m *MockJobRepository) DeleteMultiTrackFilesByJobID(ctx context.Context, jo
 	return args.Error(0)
 }
 
-func (m *MockJobRepository) ListWithParams(ctx context.Context, offset, limit int, sortBy, sortOrder, searchQuery string) ([]models.TranscriptionJob, int64, error) {
-	args := m.Called(ctx, offset, limit, sortBy, sortOrder, searchQuery)
+func (m *MockJobRepository) ListWithParams(ctx context.Context, offset, limit int, sortBy, sortOrder, searchQuery string, updatedAfter *time.Time) ([]models.TranscriptionJob, int64, error) {
+	args := m.Called(ctx, offset, limit, sortBy, sortOrder, searchQuery, updatedAfter)
 	return args.Get(0).([]models.TranscriptionJob), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockJobRepository) FindActiveTrackJobs(ctx context.Context, parentJobID string) ([]models.TranscriptionJob, error) {
+	args := m.Called(ctx, parentJobID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.TranscriptionJob), args.Error(1)
+}
+
+func (m *MockJobRepository) FindLatestCompletedExecution(ctx context.Context, jobID string) (*models.TranscriptionJobExecution, error) {
+	args := m.Called(ctx, jobID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.TranscriptionJobExecution), args.Error(1)
+}
+
+func (m *MockJobRepository) UpdateStatus(ctx context.Context, jobID string, status models.JobStatus) error {
+	args := m.Called(ctx, jobID, status)
+	return args.Error(0)
+}
+
+func (m *MockJobRepository) UpdateError(ctx context.Context, jobID string, errorMsg string) error {
+	args := m.Called(ctx, jobID, errorMsg)
+	return args.Error(0)
+}
+
+func (m *MockJobRepository) FindByStatus(ctx context.Context, status models.JobStatus) ([]models.TranscriptionJob, error) {
+	args := m.Called(ctx, status)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.TranscriptionJob), args.Error(1)
+}
+
+func (m *MockJobRepository) CountByStatus(ctx context.Context, status models.JobStatus) (int64, error) {
+	args := m.Called(ctx, status)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *MockJobRepository) UpdateSummary(ctx context.Context, jobID string, summary string) error {
+	args := m.Called(ctx, jobID, summary)
+	return args.Error(0)
 }
 
 // MockTranscriptionAdapter is a mock implementation of TranscriptionAdapter

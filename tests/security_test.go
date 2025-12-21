@@ -16,9 +16,11 @@ import (
 	"scriberr/internal/auth"
 	"scriberr/internal/config"
 	"scriberr/internal/database"
+	"scriberr/internal/processing"
 	"scriberr/internal/queue"
 	"scriberr/internal/repository"
 	"scriberr/internal/service"
+	"scriberr/internal/sse"
 	"scriberr/internal/transcription"
 
 	"github.com/gin-gonic/gin"
@@ -48,8 +50,8 @@ func (suite *SecurityTestSuite) SetupSuite() {
 		DatabasePath: "security_test.db",
 		JWTSecret:    "test-secret",
 		UploadDir:    "security_test_uploads",
-		UVPath:       "uv",
-		WhisperXEnv:  "test_whisperx_env",
+
+		WhisperXEnv: "test_whisperx_env",
 	}
 
 	// Initialize test database
@@ -69,6 +71,7 @@ func (suite *SecurityTestSuite) SetupSuite() {
 	chatRepo := repository.NewChatRepository(database.DB)
 	noteRepo := repository.NewNoteRepository(database.DB)
 	speakerMappingRepo := repository.NewSpeakerMappingRepository(database.DB)
+	refreshTokenRepo := repository.NewRefreshTokenRepository(database.DB)
 
 	// Initialize services
 	userService := service.NewUserService(userRepo, suite.authService)
@@ -78,11 +81,16 @@ func (suite *SecurityTestSuite) SetupSuite() {
 	// Initialize services
 	suite.unifiedProcessor = transcription.NewUnifiedJobProcessor(jobRepo)
 	var err error
-	suite.quickTranscriptionService, err = transcription.NewQuickTranscriptionService(suite.config, suite.unifiedProcessor)
+	suite.quickTranscriptionService, err = transcription.NewQuickTranscriptionService(suite.config, suite.unifiedProcessor, jobRepo)
 	if err != nil {
 		suite.T().Fatal("Failed to initialize quick transcription service:", err)
 	}
-	suite.taskQueue = queue.NewTaskQueue(1, suite.unifiedProcessor)
+	suite.taskQueue = queue.NewTaskQueue(1, suite.unifiedProcessor, jobRepo)
+
+	broadcaster := sse.NewBroadcaster()
+
+	multiTrackProcessor := processing.NewMultiTrackProcessor(database.DB, jobRepo)
+
 	suite.handler = api.NewHandler(
 		suite.config,
 		suite.authService,
@@ -97,10 +105,13 @@ func (suite *SecurityTestSuite) SetupSuite() {
 		chatRepo,
 		noteRepo,
 		speakerMappingRepo,
+		refreshTokenRepo,
 		suite.taskQueue,
 		suite.unifiedProcessor,
 		suite.quickTranscriptionService,
 		speakerService,
+		multiTrackProcessor,
+		broadcaster,
 	)
 
 	// Set up router

@@ -10,9 +10,11 @@ import (
 	"testing"
 
 	"scriberr/internal/api"
+	"scriberr/internal/processing"
 	"scriberr/internal/queue"
 	"scriberr/internal/repository"
 	"scriberr/internal/service"
+	"scriberr/internal/sse"
 	"scriberr/internal/transcription"
 
 	"github.com/gin-gonic/gin"
@@ -43,6 +45,7 @@ func (suite *CLIHandlerTestSuite) SetupSuite() {
 	chatRepo := repository.NewChatRepository(suite.helper.DB)
 	noteRepo := repository.NewNoteRepository(suite.helper.DB)
 	speakerMappingRepo := repository.NewSpeakerMappingRepository(suite.helper.DB)
+	refreshTokenRepo := repository.NewRefreshTokenRepository(suite.helper.DB)
 
 	// Initialize services
 	userService := service.NewUserService(userRepo, suite.helper.AuthService)
@@ -52,10 +55,15 @@ func (suite *CLIHandlerTestSuite) SetupSuite() {
 	// Initialize services
 	suite.unifiedProcessor = transcription.NewUnifiedJobProcessor(jobRepo)
 	var err error
-	suite.quickTranscription, err = transcription.NewQuickTranscriptionService(suite.helper.Config, suite.unifiedProcessor)
+	suite.quickTranscription, err = transcription.NewQuickTranscriptionService(suite.helper.Config, suite.unifiedProcessor, jobRepo)
 	assert.NoError(suite.T(), err)
 
-	suite.taskQueue = queue.NewTaskQueue(1, suite.unifiedProcessor)
+	suite.taskQueue = queue.NewTaskQueue(1, suite.unifiedProcessor, jobRepo)
+
+	broadcaster := sse.NewBroadcaster()
+
+	multiTrackProcessor := processing.NewMultiTrackProcessor(suite.helper.DB, jobRepo)
+
 	suite.handler = api.NewHandler(
 		suite.helper.Config,
 		suite.helper.AuthService,
@@ -70,10 +78,13 @@ func (suite *CLIHandlerTestSuite) SetupSuite() {
 		chatRepo,
 		noteRepo,
 		speakerMappingRepo,
+		refreshTokenRepo,
 		suite.taskQueue,
 		suite.unifiedProcessor,
 		suite.quickTranscription,
 		speakerService,
+		multiTrackProcessor,
+		broadcaster,
 	)
 
 	// Set up router
@@ -82,6 +93,10 @@ func (suite *CLIHandlerTestSuite) SetupSuite() {
 
 func (suite *CLIHandlerTestSuite) TearDownSuite() {
 	suite.helper.Cleanup()
+}
+
+func (suite *CLIHandlerTestSuite) SetupTest() {
+	suite.helper.ResetDB(suite.T())
 }
 
 func (suite *CLIHandlerTestSuite) makeAuthenticatedRequest(method, path string, body interface{}) *httptest.ResponseRecorder {

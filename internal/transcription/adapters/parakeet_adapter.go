@@ -140,9 +140,8 @@ func (p *ParakeetAdapter) PrepareEnvironment(ctx context.Context) error {
 				logger.Info("Parakeet environment already ready")
 				p.initialized = true
 				return nil
-			} else {
-				logger.Info("Parakeet model exists but scripts missing, recreating scripts")
 			}
+			logger.Info("Parakeet model exists but scripts missing, recreating scripts")
 		} else {
 			logger.Info("Parakeet model file missing or incomplete, redownloading")
 		}
@@ -199,6 +198,29 @@ dependencies = [
 
 [tool.uv.sources]
 nemo-toolkit = { git = "https://github.com/NVIDIA/NeMo.git", tag = "v2.5.3" }
+torch = [
+    { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },
+    { index = "pytorch-cpu", marker = "platform_machine != 'x86_64' and sys_platform != 'darwin'" },
+    { index = "pytorch", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+]
+torchaudio = [
+    { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },
+    { index = "pytorch-cpu", marker = "platform_machine != 'x86_64' and sys_platform != 'darwin'" },
+    { index = "pytorch", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+]
+triton = [
+    { index = "pytorch", marker = "sys_platform == 'linux'" }
+]
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 `
 	pyprojectPath := filepath.Join(p.envPath, "pyproject.toml")
 	if err := os.WriteFile(pyprojectPath, []byte(pyprojectContent), 0644); err != nil {

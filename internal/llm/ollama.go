@@ -94,7 +94,7 @@ func (s *OllamaService) ChatCompletion(ctx context.Context, model string, messag
 	// Map to Ollama messages
 	msgs := make([]ollamaChatMessage, 0, len(messages))
 	for _, m := range messages {
-		msgs = append(msgs, ollamaChatMessage{Role: m.Role, Content: m.Content})
+		msgs = append(msgs, ollamaChatMessage(m))
 	}
 	reqBody := ollamaChatRequest{
 		Model:    model,
@@ -154,7 +154,7 @@ func (s *OllamaService) ChatCompletionStream(ctx context.Context, model string, 
 
 		msgs := make([]ollamaChatMessage, 0, len(messages))
 		for _, m := range messages {
-			msgs = append(msgs, ollamaChatMessage{Role: m.Role, Content: m.Content})
+			msgs = append(msgs, ollamaChatMessage(m))
 		}
 		reqBody := ollamaChatRequest{Model: model, Messages: msgs, Stream: true}
 		if temperature > 0 {
@@ -172,6 +172,13 @@ func (s *OllamaService) ChatCompletionStream(ctx context.Context, model string, 
 			return
 		}
 		req.Header.Set("Content-Type", "application/json")
+
+		// Debug log the request body
+		if len(data) < 2000 {
+			fmt.Printf("Debug: Ollama request body: %s\n", string(data))
+		} else {
+			fmt.Printf("Debug: Ollama request body (truncated): %s...\n", string(data[:2000]))
+		}
 
 		resp, err := s.client.Do(req)
 		if err != nil {
@@ -276,6 +283,7 @@ func (s *OllamaService) GetContextWindow(ctx context.Context, model string) (int
 		for k, v := range showResp.ModelInfo {
 			if strings.Contains(k, "context_length") {
 				if f, ok := v.(float64); ok {
+					fmt.Printf("Debug: Found context length in model_info: %f\n", f)
 					return int(f), nil
 				}
 			}
@@ -292,6 +300,7 @@ func (s *OllamaService) GetContextWindow(ctx context.Context, model string) (int
 				if len(parts) >= 2 {
 					var ctxLen int
 					if _, err := fmt.Sscanf(parts[1], "%d", &ctxLen); err == nil {
+						fmt.Printf("Debug: Found context length in parameters: %d\n", ctxLen)
 						return ctxLen, nil
 					}
 				}
@@ -299,5 +308,6 @@ func (s *OllamaService) GetContextWindow(ctx context.Context, model string) (int
 		}
 	}
 
+	fmt.Printf("Debug: Ollama context window for model %s: %d (default: %d)\n", model, defaultContext, 4096)
 	return defaultContext, nil
 }

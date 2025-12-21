@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const ArchAMD64 = "amd64"
+
 // DownloadCLIBinary serves the requested CLI binary
 // GET /api/cli/download
 func (h *Handler) DownloadCLIBinary(c *gin.Context) {
@@ -26,17 +28,17 @@ func (h *Handler) DownloadCLIBinary(c *gin.Context) {
 	var filename string
 	switch osName {
 	case "linux":
-		if arch == "amd64" {
+		if arch == ArchAMD64 {
 			filename = "scriberr-linux-amd64"
 		}
 	case "darwin":
-		if arch == "amd64" {
+		if arch == ArchAMD64 {
 			filename = "scriberr-darwin-amd64"
 		} else if arch == "arm64" {
 			filename = "scriberr-darwin-arm64"
 		}
 	case "windows":
-		if arch == "amd64" {
+		if arch == ArchAMD64 {
 			filename = "scriberr-windows-amd64.exe"
 		}
 	}
@@ -140,7 +142,6 @@ func (h *Handler) GetInstallScript(c *gin.Context) {
 		scheme = "https"
 	}
 	host := c.Request.Host
-	serverURL := fmt.Sprintf("%s://%s", scheme, host)
 
 	// If behind a proxy (common in prod), use X-Forwarded-Proto/Host
 	if proto := c.GetHeader("X-Forwarded-Proto"); proto != "" {
@@ -149,7 +150,7 @@ func (h *Handler) GetInstallScript(c *gin.Context) {
 	if forwardedHost := c.GetHeader("X-Forwarded-Host"); forwardedHost != "" {
 		host = forwardedHost
 	}
-	serverURL = fmt.Sprintf("%s://%s", scheme, host)
+	serverURL := fmt.Sprintf("%s://%s", scheme, host)
 
 	tmpl, err := template.New("install").Parse(installScriptTemplate)
 	if err != nil {
@@ -166,5 +167,5 @@ func (h *Handler) GetInstallScript(c *gin.Context) {
 	}
 
 	c.Header("Content-Type", "text/x-shellscript")
-	tmpl.Execute(c.Writer, data)
+	_ = tmpl.Execute(c.Writer, data)
 }

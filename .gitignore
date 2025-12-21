@@ -61,3 +61,12 @@ tests/database_test.db-wal
 internal/web/dist
 
 tests/database_test.db-wal
+
+# Development files
+prompt.txt
+# .agent/
+agent-bak/
+tmp/
+# *.svg
+# *.png
+dhl.txt
