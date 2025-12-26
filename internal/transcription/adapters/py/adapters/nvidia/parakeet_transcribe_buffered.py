@@ -43,13 +43,24 @@ def transcribe_buffered(
     """
     Transcribe long audio by splitting into chunks and merging results.
     """
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(script_dir, "parakeet-tdt-0.6b-v3.nemo")
+    # Determine model path
+    model_filename = "parakeet-tdt-0.6b-v3.nemo"
+    model_path = None
+
+    # Locate project root: derived from VIRTUAL_ENV, which is set by `uv run` to path/.venv
+    virtual_env = os.environ.get("VIRTUAL_ENV")
+    if not virtual_env:
+        print("Error: VIRTUAL_ENV environment variable not set. Script must be run with 'uv run'.")
+        sys.exit(1)
+
+    project_root = os.path.dirname(virtual_env)
+    model_path = os.path.join(project_root, model_filename)
+
+    if not os.path.exists(model_path):
+        print(f"Error during transcription: Can't find {model_filename} in project root: {project_root}")
+        sys.exit(1)
 
     print(f"Loading NVIDIA Parakeet model from: {model_path}")
-    if not os.path.exists(model_path):
-        print(f"Error: Model not found at {model_path}")
-        sys.exit(1)
 
     asr_model = nemo_asr.models.ASRModel.restore_from(model_path)
 

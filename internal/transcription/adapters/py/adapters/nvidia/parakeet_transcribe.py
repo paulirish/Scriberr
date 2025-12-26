@@ -26,8 +26,7 @@ def transcribe_audio(
     model_filename = "parakeet-tdt-0.6b-v3.nemo"
     model_path = None
 
-    # Check project root (derived from VIRTUAL_ENV)
-    # uv run sets VIRTUAL_ENV to path/.venv
+    # Locate project root: derived from VIRTUAL_ENV, which is set by `uv run` to path/.venv
     virtual_env = os.environ.get("VIRTUAL_ENV")
     if not virtual_env:
         print("Error: VIRTUAL_ENV environment variable not set. Script must be run with 'uv run'.")

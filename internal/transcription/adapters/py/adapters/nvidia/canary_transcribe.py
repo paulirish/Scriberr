@@ -24,12 +24,21 @@ def transcribe_audio(
     """
     Transcribe or translate audio using NVIDIA Canary model.
     """
-    # Get the directory where this script is located
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(script_dir, "canary-1b-v2.nemo")
+    # Determine model path
+    model_filename = "canary-1b-v2.nemo"
+    model_path = None
+
+    # Locate project root: derived from VIRTUAL_ENV, which is set by `uv run` to path/.venv
+    virtual_env = os.environ.get("VIRTUAL_ENV")
+    if not virtual_env:
+        print("Error: VIRTUAL_ENV environment variable not set. Script must be run with 'uv run'.")
+        sys.exit(1)
+
+    project_root = os.path.dirname(virtual_env)
+    model_path = os.path.join(project_root, model_filename)
 
     if not os.path.exists(model_path):
-        print(f"Error: Model file not found: {model_path}")
+        print(f"Error during transcription: Can't find {model_filename} in project root: {project_root}")
         sys.exit(1)
 
     print(f"Loading NVIDIA Canary model from: {model_path}")

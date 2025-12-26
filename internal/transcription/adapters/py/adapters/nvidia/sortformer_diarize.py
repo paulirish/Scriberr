@@ -41,18 +41,26 @@ def diarize_audio(
     print(f"Using device: {device}")
     print(f"Loading NVIDIA Sortformer diarization model...")
 
-    # Get the directory where this script is located
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(script_dir, "diar_streaming_sortformer_4spk-v2.nemo")
+    # Determine model path
+    model_filename = "diar_streaming_sortformer_4spk-v2.nemo"
+    model_path = None
+
+    # Locate project root: derived from VIRTUAL_ENV, which is set by `uv run` to path/.venv
+    virtual_env = os.environ.get("VIRTUAL_ENV")
+    if not virtual_env:
+        print("Error: VIRTUAL_ENV environment variable not set. Script must be run with 'uv run'.")
+        sys.exit(1)
+
+    project_root = os.path.dirname(virtual_env)
+    model_path = os.path.join(project_root, model_filename)
 
     try:
         if not os.path.exists(model_path):
-            print(f"Error: Model file not found: {model_path}")
-            print("Please ensure diar_streaming_sortformer_4spk-v2.nemo is in the same directory as this script")
+            print(f"Error: Model file not found: {model_filename} in project root: {project_root}")
             sys.exit(1)
 
         # Load from local file
-        print(f"Loading model from local path: {model_path}")
+        print(f"Loading model from path: {model_path}")
         diar_model = SortformerEncLabelModel.restore_from(
             restore_path=model_path,
             map_location=device,
