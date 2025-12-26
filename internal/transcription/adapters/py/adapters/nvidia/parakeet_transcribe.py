@@ -22,21 +22,22 @@ def transcribe_audio(
     """
     Transcribe audio using NVIDIA Parakeet model.
     """
-    # Get the directory where this script is located
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(script_dir, "parakeet-tdt-0.6b-v3.nemo")
+    # Determine model path
+    model_filename = "parakeet-tdt-0.6b-v3.nemo"
+    model_path = None
 
-    print(f"Script directory: {script_dir}")
-    print(f"Looking for model at: {model_path}")
+    # Check project root (derived from VIRTUAL_ENV)
+    # uv run sets VIRTUAL_ENV to path/.venv
+    virtual_env = os.environ.get("VIRTUAL_ENV")
+    if not virtual_env:
+        print("Error: VIRTUAL_ENV environment variable not set. Script must be run with 'uv run'.")
+        sys.exit(1)
+
+    project_root = os.path.dirname(virtual_env)
+    model_path = os.path.join(project_root, model_filename)
 
     if not os.path.exists(model_path):
-        print(f"Error during transcription: Can't find {model_path}")
-        # List files in the directory to help debug
-        try:
-            files = os.listdir(script_dir)
-            print(f"Files in {script_dir}: {files}")
-        except Exception as e:
-            print(f"Could not list directory: {e}")
+        print(f"Error during transcription: Can't find {model_filename} in project root: {project_root}")
         sys.exit(1)
 
     print(f"Loading NVIDIA Parakeet model from: {model_path}")
