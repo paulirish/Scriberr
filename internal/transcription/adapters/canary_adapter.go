@@ -226,7 +226,7 @@ func (c *CanaryAdapter) setupCanaryEnvironment() error {
 		1,
 	)
 
-	pyprojectPath := filepath.Join(c.envPath, "pyproject.toml")
+	pyprojectPath = filepath.Join(c.envPath, "pyproject.toml")
 	if err := os.WriteFile(pyprojectPath, []byte(contentStr), 0644); err != nil {
 		return fmt.Errorf("failed to write pyproject.toml: %w", err)
 	}

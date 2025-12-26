@@ -359,7 +359,7 @@ func (w *WhisperXAdapter) updateWhisperXDependencies(whisperxPath string) error 
     "yt-dlp[default]",`)
 	}
 
-	// Pin PyTorch to CUDA 12.6
+	// Set PyTorch CUDA version based on environment configuration
 	// The repo already has the correct [tool.uv.sources] configuration, we just need to update the CUDA version
 	// This allows using cu126 for legacy GPUs (GTX 10-series through RTX 40-series) or cu128 for Blackwell (RTX 50-series)
 	content = strings.ReplaceAll(content, "https://download.pytorch.org/whl/cu128", GetPyTorchWheelURL())
