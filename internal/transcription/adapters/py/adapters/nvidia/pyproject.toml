@@ -1,7 +1,7 @@
 [project]
-name = "parakeet-transcription"
+name = "nvidia-transcription"
 version = "0.1.0"
-description = "Audio transcription using NVIDIA Parakeet models"
+description = "Audio transcription and diarization using NVIDIA models (Canary, Parakeet, Sortformer)"
 requires-python = ">=3.11"
 dependencies = [
     "nemo-toolkit[asr]",
@@ -12,6 +12,12 @@ dependencies = [
     "ml-dtypes>=0.3.1,<0.5.0",
     "onnx>=1.15.0,<1.18.0",
     # "pyannote.audio" # needed for sortformer or no?
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-mock>=3.12.0",
 ]
 
 [tool.uv.sources]
