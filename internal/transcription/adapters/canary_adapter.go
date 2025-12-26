@@ -211,13 +211,23 @@ func (c *CanaryAdapter) setupCanaryEnvironment() error {
 		return nil
 	}
 
-	// Create pyproject.toml (shared by all NVIDIA models)
+	// Create pyproject.toml
 	pyprojectContent, err := nvidiaScripts.ReadFile("py/adapters/nvidia/pyproject.toml")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded pyproject.toml: %w", err)
 	}
 
-	if err := os.WriteFile(pyprojectPath, pyprojectContent, 0644); err != nil {
+	// Replace the hardcoded PyTorch URL with the dynamic one based on environment
+	// The static file contains the default cu126 URL
+	contentStr := strings.Replace(
+		string(pyprojectContent),
+		"https://download.pytorch.org/whl/cu126",
+		GetPyTorchWheelURL(),
+		1,
+	)
+
+	pyprojectPath := filepath.Join(c.envPath, "pyproject.toml")
+	if err := os.WriteFile(pyprojectPath, []byte(contentStr), 0644); err != nil {
 		return fmt.Errorf("failed to write pyproject.toml: %w", err)
 	}
 

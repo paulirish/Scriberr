@@ -226,8 +226,17 @@ func (p *PyAnnoteAdapter) setupPyAnnoteEnvironment() error {
 		return fmt.Errorf("failed to read embedded pyproject.toml: %w", err)
 	}
 
+	// Replace the hardcoded PyTorch URL with the dynamic one based on environment
+	// The static file contains the default cu126 URL
+	contentStr := strings.Replace(
+		string(pyprojectContent),
+		"https://download.pytorch.org/whl/cu126",
+		GetPyTorchWheelURL(),
+		1,
+	)
+
 	pyprojectPath := filepath.Join(p.envPath, "pyproject.toml")
-	if err := os.WriteFile(pyprojectPath, pyprojectContent, 0644); err != nil {
+	if err := os.WriteFile(pyprojectPath, []byte(contentStr), 0644); err != nil {
 		return fmt.Errorf("failed to write pyproject.toml: %w", err)
 	}
 
