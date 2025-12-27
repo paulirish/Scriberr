@@ -89,7 +89,7 @@ func (t *TitanetAdapter) PrepareEnvironment(ctx context.Context) error {
 		return fmt.Errorf("failed to copy identity script: %w", err)
 	}
 
-  if err := t.EnsureManagementScripts(); err != nil {
+	if err := t.EnsureManagementScripts(); err != nil {
 		return fmt.Errorf("failed to ensure management script: %w", err)
 	}
 
@@ -119,7 +119,7 @@ func (t *TitanetAdapter) downloadTitanetModel() error {
 }
 
 func (t *TitanetAdapter) copyIdentifyScript() error {
-  scriptContent, err := nvidiaScripts.ReadFile("py/nvidia/titanet_identify_v2.py")
+	scriptContent, err := nvidiaScripts.ReadFile("py/nvidia/titanet_identify_v2.py")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded titanet_identify_v2.py: %w", err)
 	}
@@ -134,7 +134,7 @@ func (t *TitanetAdapter) copyIdentifyScript() error {
 
 // EnsureManagementScripts copies the python scripts for managing speakers
 func (t *TitanetAdapter) EnsureManagementScripts() error {
-  scriptContent, err := nvidiaScripts.ReadFile("py/nvidia/titanet_cohort_manager.py")
+	scriptContent, err := nvidiaScripts.ReadFile("py/nvidia/titanet_cohort_manager.py")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded titanet_cohort_manager.py: %w", err)
 	}
@@ -144,7 +144,7 @@ func (t *TitanetAdapter) EnsureManagementScripts() error {
 		return fmt.Errorf("failed to write manage script: %w", err)
 	}
 
-  mScriptContent, err := nvidiaScripts.ReadFile("py/nvidia/titanet_manage.py")
+	mScriptContent, err := nvidiaScripts.ReadFile("py/nvidia/titanet_manage.py")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded titanet_manage.py: %w", err)
 	}
@@ -255,9 +255,6 @@ func (t *TitanetAdapter) IdentifySpeakers(ctx context.Context, input interfaces.
 	return &newResult, nil
 }
 
-// ... (rest of the file is the same, with titanet_manage.py still embedded)
-// ... I will skip modifying the management script for now to keep the change focused.
-
 // SpeakerInfo represents a speaker in the vector DB
 type SpeakerInfo struct {
 	ID        string  `json:"id"`
@@ -332,80 +329,38 @@ func (t *TitanetAdapter) RenameSpeaker(ctx context.Context, id, newName string) 
 }
 
 // DeleteSpeaker removes a speaker
-
 func (t *TitanetAdapter) DeleteSpeaker(ctx context.Context, id string) error {
 	qdrantHost := t.getQdrantHost()
-
 	scriptPath := filepath.Join(t.envPath, "titanet_manage.py")
-
 	cmd := exec.CommandContext(ctx, "uv", "run", "--native-tls", "--project", t.envPath, "python", scriptPath,
-
 		"delete",
-
 		id,
-
 		"--qdrant", qdrantHost,
-
 	)
-
-
-
 	if output, err := cmd.CombinedOutput(); err != nil {
-
 		return fmt.Errorf("failed to delete speaker: %s", string(output))
-
 	}
-
-
-
 	return nil
 
 }
 
-
-
 // RefreshSnormCohort runs the cohort refresh script.
-
 func (t *TitanetAdapter) RefreshSnormCohort(ctx context.Context) error {
-
 	qdrantHost := os.Getenv("QDRANT_HOST")
-
 	if qdrantHost == "" {
-
 		qdrantHost = "qdrant"
-
 	}
-
-
-
 	scriptPath := filepath.Join("data/whisperx-env/parakeet", "titanet_cohort_manager.py")
-
 	cmd := exec.CommandContext(ctx, "uv", "run", "--native-tls", "--project", t.envPath, "python", scriptPath,
-
 		"--qdrant", qdrantHost,
-
 	)
-
-
-
 	logger.Info("Executing S-Norm cohort refresh command", "args", strings.Join(cmd.Args, " "))
-
-
-
 	output, err := cmd.CombinedOutput()
-
 	if err != nil {
-
 		logger.Error("S-Norm cohort refresh script failed", "output", string(output))
-
 		return fmt.Errorf("s-norm cohort refresh script failed: %w", err)
-
 	}
-
-
-
 	logger.Info("S-Norm cohort refresh successful", "output", string(output))
-
 	return nil
 
 }

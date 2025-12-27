@@ -2,6 +2,7 @@
 """
 TitaNet Speaker Management Script
 """
+
 import argparse
 import json
 import sys
@@ -9,7 +10,7 @@ import logging
 from typing import List, Dict
 
 # Setup logging
-logging.basicConfig(level=logging.ERROR, format='%(message)s')
+logging.basicConfig(level=logging.ERROR, format="%(message)s")
 logger = logging.getLogger(__name__)
 
 try:
@@ -19,8 +20,10 @@ except ImportError as e:
     logger.error(f"Import Error: {e}")
     sys.exit(1)
 
+
 def setup_client(host: str):
     return QdrantClient(host=host, port=6333)
+
 
 def list_speakers(host: str, collection: str):
     client = setup_client(host)
@@ -31,22 +34,25 @@ def list_speakers(host: str, collection: str):
             collection_name=collection,
             limit=1000,
             with_payload=True,
-            with_vectors=False
+            with_vectors=False,
         )
 
         speakers = []
         for p in points:
             payload = p.payload or {}
-            speakers.append({
-                "id": p.id,
-                "name": payload.get("name", "Unknown"),
-                "created_at": float(payload.get("created_at", 0))
-            })
+            speakers.append(
+                {
+                    "id": p.id,
+                    "name": payload.get("name", "Unknown"),
+                    "created_at": float(payload.get("created_at", 0)),
+                }
+            )
 
         print(json.dumps(speakers))
     except Exception as e:
         logger.error(f"Error listing speakers: {e}")
         sys.exit(1)
+
 
 def get_speaker(host: str, collection: str, speaker_id: str):
     client = setup_client(host)
@@ -55,7 +61,7 @@ def get_speaker(host: str, collection: str, speaker_id: str):
             collection_name=collection,
             ids=[speaker_id],
             with_payload=True,
-            with_vectors=False
+            with_vectors=False,
         )
         if not points:
             logger.error("Speaker not found")
@@ -66,21 +72,19 @@ def get_speaker(host: str, collection: str, speaker_id: str):
         speaker = {
             "id": p.id,
             "name": payload.get("name", "Unknown"),
-            "created_at": float(payload.get("created_at", 0))
+            "created_at": float(payload.get("created_at", 0)),
         }
         print(json.dumps(speaker))
     except Exception as e:
         logger.error(f"Error getting speaker: {e}")
         sys.exit(1)
 
+
 def rename_speaker(host: str, collection: str, speaker_id: str, new_name: str):
     client = setup_client(host)
     try:
         # Verify existence
-        points = client.retrieve(
-            collection_name=collection,
-            ids=[speaker_id]
-        )
+        points = client.retrieve(collection_name=collection, ids=[speaker_id])
 
         if not points:
             logger.error("Speaker not found")
@@ -88,26 +92,26 @@ def rename_speaker(host: str, collection: str, speaker_id: str, new_name: str):
 
         # Update payload
         client.set_payload(
-            collection_name=collection,
-            payload={"name": new_name},
-            points=[speaker_id]
+            collection_name=collection, payload={"name": new_name}, points=[speaker_id]
         )
         print(json.dumps({"status": "success", "id": speaker_id, "name": new_name}))
     except Exception as e:
         logger.error(f"Error renaming speaker: {e}")
         sys.exit(1)
 
+
 def delete_speaker(host: str, collection: str, speaker_id: str):
     client = setup_client(host)
     try:
         client.delete(
             collection_name=collection,
-            points_selector=qmodels.PointIdsList(points=[speaker_id])
+            points_selector=qmodels.PointIdsList(points=[speaker_id]),
         )
         print(json.dumps({"status": "success", "id": speaker_id}))
     except Exception as e:
         logger.error(f"Error deleting speaker: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -1,4 +1,5 @@
 """Tests for titanet_identify.py"""
+
 import pytest
 import subprocess
 import json
@@ -8,9 +9,12 @@ from pathlib import Path
 
 # Paths
 SCRIPT_DIR = Path(__file__).parent.parent
-TEST_DATA_DIR = Path(__file__).parent.parent.parent.parent.parent.parent.parent / "tests/data"
+TEST_DATA_DIR = (
+    Path(__file__).parent.parent.parent.parent.parent.parent.parent / "tests/data"
+)
 AUDIO_FILE = TEST_DATA_DIR / "AMI-Corpus-IB4002.Mix-Headset-clip.wav"
 SEGMENTS_FILE = TEST_DATA_DIR / "sf-segments.json"
+
 
 def test_titanet_identification_output():
     """Verify TitaNet identification output matches expected results."""
@@ -32,31 +36,32 @@ def test_titanet_identification_output():
 
     try:
         cmd = [
-            "uv", "run",
-            "--project", str(env_path),
-            "python", str(script_path),
+            "uv",
+            "run",
+            "--project",
+            str(env_path),
+            "python",
+            str(script_path),
             str(AUDIO_FILE),
             str(SEGMENTS_FILE),
             output_file,
-            "--qdrant", "mock"
+            "--qdrant",
+            "mock",
         ]
 
         print(f"Running command: {' '.join(cmd)}")
 
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            cwd=project_root
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=project_root)
 
         if result.returncode != 0:
-            pytest.fail(f"Script failed with error:\n{result.stderr}\nStdout:\n{result.stdout}")
+            pytest.fail(
+                f"Script failed with error:\n{result.stderr}\nStdout:\n{result.stdout}"
+            )
 
         # Verify output file exists and is valid JSON
         assert os.path.exists(output_file), "Output file was not created"
 
-        with open(output_file, 'r') as f:
+        with open(output_file, "r") as f:
             data = json.load(f)
 
         # Assertions
@@ -91,7 +96,9 @@ def test_titanet_identification_output():
             orig = seg["original_speaker"]
             new = seg["speaker"]
             if orig in speaker_map:
-                assert speaker_map[orig] == new, f"Inconsistent mapping for {orig}: {speaker_map[orig]} vs {new}"
+                assert speaker_map[orig] == new, (
+                    f"Inconsistent mapping for {orig}: {speaker_map[orig]} vs {new}"
+                )
             else:
                 speaker_map[orig] = new
 
