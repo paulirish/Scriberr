@@ -17,11 +17,16 @@ logger = logging.getLogger(__name__)
 
 try:
     from nemo.collections.asr.models import EncDecSpeakerLabelModel
-    from qdrant_client import QdrantClient
-    from qdrant_client.http import models as qmodels
 except ImportError as e:
     logger.error(f"Import Error: {e}")
     sys.exit(1)
+
+try:
+    from qdrant_client import QdrantClient
+    from qdrant_client.http import models as qmodels
+except ImportError:
+    QdrantClient = None
+    qmodels = None
 
 def get_embedding(model, audio_file: str, start: float, duration: float) -> np.ndarray:
     """Extract embedding for a specific segment."""
@@ -70,11 +75,35 @@ def get_embedding(model, audio_file: str, start: float, duration: float) -> np.n
         _, embs = model(input_signal=segment.unsqueeze(0), input_signal_length=input_length)
         return embs[0].cpu().numpy()
 
+class MockQdrantClient:
+    def search(self, *args, **kwargs):
+        return []
+
+    def upsert(self, *args, **kwargs):
+        pass
+
+    def get_collections(self):
+        class Collections:
+            collections = []
+        return Collections()
+
+    def create_collection(self, *args, **kwargs):
+        pass
+
 def setup_qdrant(host: str, collection_name: str, vector_size: int = 192):
+    if host == "mock":
+        logger.info("Using mock Qdrant client")
+        return MockQdrantClient()
+
+    if QdrantClient is None:
+        logger.error("qdrant-client library not installed. Cannot connect to real Qdrant host. Use --qdrant mock to skip.")
+        sys.exit(1)
+
     client = QdrantClient(host=host, port=6333)
 
     # Check if collection exists
     collections = client.get_collections().collections
+    logger.debug(f"Existing collections: {[c.name for c in collections]}")
     exists = any(c.name == collection_name for c in collections)
 
     if not exists:
@@ -200,12 +229,15 @@ def identify_speakers(
             centroid = centroid / norm
 
         # 5. Query Qdrant
+        logger.debug(f"searching: collection={collection_name}, threshold={threshold}, centroid={centroid.tolist()}")
         search_result = client.search(
             collection_name=collection_name,
             query_vector=centroid.tolist(),
             limit=1,
             score_threshold=threshold
         )
+
+        logger.debug(f"search result: {search_result}")
 
         if search_result:
             # Match found
@@ -224,15 +256,22 @@ def identify_speakers(
 
             logger.info(f"Enrolling {local_spk} as new speaker {human_name}")
 
-            client.upsert(
-                collection_name=collection_name,
-                points=[
+            points = []
+            if qmodels:
+                points = [
                     qmodels.PointStruct(
                         id=new_id,
                         vector=centroid.tolist(),
                         payload={"name": human_name, "created_at": str(os.path.getctime(audio_path))}
                     )
                 ]
+
+
+            logger.debug(f"Enrolling {local_spk} as new speaker {human_name}")
+            logger.debug(f"Collection Name: {collection_name}.   Points: {points}")
+            client.upsert(
+                collection_name=collection_name,
+                points=points
             )
             global_id = human_name
 
@@ -255,7 +294,7 @@ if __name__ == "__main__":
     parser.add_argument("audio_file")
     parser.add_argument("segments_file", help="JSON file with diarization segments")
     parser.add_argument("output_file")
-    parser.add_argument("--qdrant", default="qdrant")
+    parser.add_argument("--qdrant", default="mock")
     parser.add_argument("--collection", default="speakers")
     parser.add_argument("--threshold", type=float, default=0.5)
 
