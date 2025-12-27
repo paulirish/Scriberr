@@ -42,6 +42,7 @@ export default defineConfig(({ mode }) => ({
       }
     })
   ],
+  clearScreen: false, // Disable clear screen to preserve logs
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
