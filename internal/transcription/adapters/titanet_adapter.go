@@ -89,7 +89,7 @@ func (t *TitanetAdapter) PrepareEnvironment(ctx context.Context) error {
 		return fmt.Errorf("failed to copy identity script: %w", err)
 	}
 
-  if err := t.EnsureManagementScript(); err != nil {
+  if err := t.EnsureManagementScripts(); err != nil {
 		return fmt.Errorf("failed to ensure management script: %w", err)
 	}
 
@@ -132,8 +132,8 @@ func (t *TitanetAdapter) copyIdentifyScript() error {
 	return nil
 }
 
-// EnsureManagementScript copies the python script for managing speakers
-func (t *TitanetAdapter) EnsureManagementScript() error {
+// EnsureManagementScripts copies the python scripts for managing speakers
+func (t *TitanetAdapter) EnsureManagementScripts() error {
   scriptContent, err := nvidiaScripts.ReadFile("py/nvidia/titanet_cohort_manager.py")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded titanet_cohort_manager.py: %w", err)
@@ -141,6 +141,16 @@ func (t *TitanetAdapter) EnsureManagementScript() error {
 
 	scriptPath := filepath.Join(t.envPath, "titanet_cohort_manager.py")
 	if err := os.WriteFile(scriptPath, scriptContent, 0755); err != nil {
+		return fmt.Errorf("failed to write manage script: %w", err)
+	}
+
+  mScriptContent, err := nvidiaScripts.ReadFile("py/nvidia/titanet_manage.py")
+	if err != nil {
+		return fmt.Errorf("failed to read embedded titanet_manage.py: %w", err)
+	}
+
+	mScriptPath := filepath.Join(t.envPath, "titanet_manage.py")
+	if err := os.WriteFile(mScriptPath, mScriptContent, 0755); err != nil {
 		return fmt.Errorf("failed to write manage script: %w", err)
 	}
 
