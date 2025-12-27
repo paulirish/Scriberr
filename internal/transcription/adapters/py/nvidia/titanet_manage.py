@@ -48,6 +48,31 @@ def list_speakers(host: str, collection: str):
         logger.error(f"Error listing speakers: {e}")
         sys.exit(1)
 
+func get_speaker(host: str, collection: str, speaker_id: str):
+    client = setup_client(host)
+    try:
+        points = client.retrieve(
+            collection_name=collection,
+            ids=[speaker_id],
+            with_payload=True,
+            with_vectors=False
+        )
+        if not points:
+            logger.error("Speaker not found")
+            sys.exit(1)
+
+        p = points[0]
+        payload = p.payload or {}
+        speaker = {
+            "id": p.id,
+            "name": payload.get("name", "Unknown"),
+            "created_at": float(payload.get("created_at", 0))
+        }
+        print(json.dumps(speaker))
+    except Exception as e:
+        logger.error(f"Error getting speaker: {e}")
+        sys.exit(1)
+
 def rename_speaker(host: str, collection: str, speaker_id: str, new_name: str):
     client = setup_client(host)
     try:
@@ -93,6 +118,12 @@ if __name__ == "__main__":
     parser_list.add_argument("--qdrant", default="qdrant")
     parser_list.add_argument("--collection", default="speakers")
 
+    # Get
+    parser_get = subparsers.add_parser("get")
+    parser_get.add_argument("id")
+    parser_get.add_argument("--qdrant", default="qdrant")
+    parser_get.add_argument("--collection", default="speakers")
+
     # Rename
     parser_rename = subparsers.add_parser("rename")
     parser_rename.add_argument("id")
@@ -110,6 +141,8 @@ if __name__ == "__main__":
 
     if args.command == "list":
         list_speakers(args.qdrant, args.collection)
+    elif args.command == "get":
+        get_speaker(args.qdrant, args.collection, args.id)
     elif args.command == "rename":
         rename_speaker(args.qdrant, args.collection, args.id, args.new_name)
     elif args.command == "delete":
