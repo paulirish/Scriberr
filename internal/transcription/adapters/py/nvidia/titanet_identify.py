@@ -101,11 +101,30 @@ def identify_speakers(
 
     logger.info(f"Loading TitaNet on {device}")
 
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(script_dir, "titanet-l.nemo")
+    model_filename = "titanet-l.nemo"
+    model_path = None
+
+    # Locate project root: derived from VIRTUAL_ENV, which is set by `uv run` to path/.venv
+    virtual_env = os.environ.get("VIRTUAL_ENV")
+    if not virtual_env:
+        print("Error: VIRTUAL_ENV environment variable not set. Script must be run with 'uv run'.")
+        sys.exit(1)
+
+    project_root = os.path.dirname(virtual_env)
+    model_path = os.path.join(project_root, model_filename)
+
+    try:
+        if not os.path.exists(model_path):
+            print(f"Error: Model file not found: {model_filename} in project root: {project_root}")
+            sys.exit(1)
+    except Exception as e:
+      print(f"Error loading model: {e}")
+      sys.exit(1)
 
     model = EncDecSpeakerLabelModel.restore_from(restore_path=model_path, map_location=device)
     model.eval()
+
+
 
     # 2. Setup Qdrant
     # The vector size for TitaNet Large is 192
@@ -203,7 +222,7 @@ def identify_speakers(
             # In a real app, user might rename "Speaker 1" later.
             human_name = f"Speaker-{new_id[:8]}"
 
-            logger.info(f"Enrolling new speaker {human_name}")
+            logger.info(f"Enrolling {local_spk} as new speaker {human_name}")
 
             client.upsert(
                 collection_name=collection_name,
