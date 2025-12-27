@@ -1,32 +1,83 @@
 """Tests for parakeet_transcribe_buffered.py"""
 import pytest
+import subprocess
+import json
+import os
+import tempfile
 from pathlib import Path
 
+# Paths
+SCRIPT_DIR = Path(__file__).parent.parent
+TEST_DATA_DIR = Path(__file__).parent.parent.parent.parent.parent.parent.parent.parent / "tests/data"
+AUDIO_FILE = TEST_DATA_DIR / "AMI-Corpus-IB4002.Mix-Headset-clip.wav"
 
-def test_parakeet_transcribe_buffered_exists():
-    """Verify parakeet_transcribe_buffered.py exists."""
-    script_path = Path(__file__).parent.parent / "parakeet_transcribe_buffered.py"
-    assert script_path.exists(), "parakeet_transcribe_buffered.py should exist"
+def test_parakeet_buffered_transcription_output():
+    """Verify Parakeet buffered transcription output matches expected results."""
+    
+    if not AUDIO_FILE.exists():
+        pytest.skip(f"Audio file not found: {AUDIO_FILE}")
 
-
-def test_parakeet_transcribe_buffered_is_readable():
-    """Verify parakeet_transcribe_buffered.py is readable."""
-    script_path = Path(__file__).parent.parent / "parakeet_transcribe_buffered.py"
-    content = script_path.read_text()
-    assert len(content) > 0, "parakeet_transcribe_buffered.py should not be empty"
-
-
-def test_parakeet_transcribe_buffered_has_main():
-    """Verify parakeet_transcribe_buffered.py has main execution block."""
-    script_path = Path(__file__).parent.parent / "parakeet_transcribe_buffered.py"
-    content = script_path.read_text()
-    assert "if __name__" in content, "Script should have main execution block"
-
-
-def test_parakeet_transcribe_buffered_imports():
-    """Verify parakeet_transcribe_buffered.py has expected imports."""
-    script_path = Path(__file__).parent.parent / "parakeet_transcribe_buffered.py"
-    content = script_path.read_text()
-    # Check for NeMo imports and buffered inference
-    assert "nemo" in content.lower(), "Script should import NeMo"
-    assert "buffer" in content.lower(), "Script should reference buffering"
+    # Locate project root and paths
+    project_root = Path(__file__).resolve().parents[7] 
+    env_path = project_root / "data/whisperx-env/parakeet" 
+    script_path = SCRIPT_DIR / "parakeet_transcribe_buffered.py"
+    
+    if not env_path.exists():
+        pytest.skip(f"Environment not found at {env_path}")
+        
+    # Create a temporary file for output
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp_file:
+        output_file = tmp_file.name
+        
+    try:
+        # Use a small chunk length to force buffering behavior even on small files if possible, 
+        # though the script might not buffer if file is smaller than chunk.
+        # The file is likely small, so we might not see multiple chunks unless we set chunk-len very small.
+        # Default is 300s. The clip is likely short.
+        # Let's try --chunk-len 10 to see if it splits (if clip is > 10s)
+        
+        cmd = [
+            "uv", "run", 
+            "--project", str(env_path), 
+            "python", str(script_path), 
+            str(AUDIO_FILE), 
+            "--output", output_file, 
+            "--chunk-len", "10" 
+        ]
+        
+        print(f"Running command: {' '.join(cmd)}")
+        
+        result = subprocess.run(
+            cmd, 
+            capture_output=True, 
+            text=True, 
+            cwd=project_root
+        )
+        
+        if result.returncode != 0:
+            pytest.fail(f"Script failed with error:\n{result.stderr}\nStdout:\n{result.stdout}")
+            
+        # Verify output file exists and is valid JSON
+        assert os.path.exists(output_file), "Output file was not created"
+        
+        with open(output_file, 'r') as f:
+            data = json.load(f)
+            
+        # Assertions
+        assert data["language"] == "en"
+        assert data["model"] == "parakeet-tdt-0.6b-v3"
+        assert data.get("buffered") is True
+        assert "transcription" in data
+        assert len(data["transcription"]) > 0
+        
+        # Check that we have timestamps
+        assert "word_timestamps" in data
+        assert len(data["word_timestamps"]) > 0
+        
+        assert "segment_timestamps" in data
+        assert len(data["segment_timestamps"]) > 0
+        
+    finally:
+        # Cleanup
+        if os.path.exists(output_file):
+            os.remove(output_file)
