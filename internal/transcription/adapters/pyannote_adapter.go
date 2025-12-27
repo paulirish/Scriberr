@@ -16,7 +16,7 @@ import (
 	"scriberr/pkg/logger"
 )
 
-//go:embed py/adapters/pyannote/*
+//go:embed py/pyannote/*
 var pyannoteScripts embed.FS
 
 const OutputFormatJSON = "json"
@@ -221,7 +221,7 @@ func (p *PyAnnoteAdapter) setupPyAnnoteEnvironment() error {
 	}
 
 	// Create pyproject.toml for PyAnnote
-	pyprojectContent, err := pyannoteScripts.ReadFile("py/adapters/pyannote/pyproject.toml")
+	pyprojectContent, err := pyannoteScripts.ReadFile("py/pyannote/pyproject.toml")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded pyproject.toml: %w", err)
 	}
@@ -259,7 +259,7 @@ func (p *PyAnnoteAdapter) createDiarizationScript() error {
 		return fmt.Errorf("failed to create pyannote directory: %w", err)
 	}
 
-	scriptContent, err := pyannoteScripts.ReadFile("py/adapters/pyannote/pyannote_diarize.py")
+	scriptContent, err := pyannoteScripts.ReadFile("py/pyannote/pyannote_diarize.py")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded pyannote_diarize.py: %w", err)
 	}

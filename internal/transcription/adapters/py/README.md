@@ -18,10 +18,10 @@ To run the tests, you need `uv` installed and the `parakeet` environment set up 
 
 ```bash
 # Run all NVIDIA adapter tests
-uv run --with pytest --project data/whisperx-env/parakeet pytest internal/transcription/adapters/py/adapters/nvidia/tests
+uv run --with pytest --project data/whisperx-env/parakeet pytest internal/transcription/adapters/py/nvidia/tests
 
 # Run PyAnnote adapter tests
-uv run --with pytest --project data/whisperx-env/pyannote pytest internal/transcription/adapters/py/adapters/pyannote/tests
+uv run --with pytest --project data/whisperx-env/pyannote pytest internal/transcription/adapters/py/pyannote/tests
 ```
 
 ### Troubleshooting

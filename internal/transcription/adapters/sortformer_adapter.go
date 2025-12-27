@@ -196,7 +196,7 @@ func (s *SortformerAdapter) setupSortformerEnvironment() error {
 	}
 
 	// Create pyproject.toml
-	pyprojectContent, err := nvidiaScripts.ReadFile("py/adapters/nvidia/pyproject.toml")
+	pyprojectContent, err := nvidiaScripts.ReadFile("py/nvidia/pyproject.toml")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded pyproject.toml: %w", err)
 	}
@@ -263,7 +263,7 @@ func (s *SortformerAdapter) downloadSortformerModel() error {
 
 // createDiarizationScript creates the Python script for Sortformer diarization
 func (s *SortformerAdapter) createDiarizationScript() error {
-	scriptContent, err := nvidiaScripts.ReadFile("py/adapters/nvidia/sortformer_diarize.py")
+	scriptContent, err := nvidiaScripts.ReadFile("py/nvidia/sortformer_diarize.py")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded sortformer_diarize.py: %w", err)
 	}

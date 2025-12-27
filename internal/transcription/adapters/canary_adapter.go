@@ -16,7 +16,7 @@ import (
 	"scriberr/pkg/logger"
 )
 
-//go:embed py/adapters/nvidia/*
+//go:embed py/nvidia/*
 var nvidiaScripts embed.FS
 
 // CanaryAdapter implements the TranscriptionAdapter interface for NVIDIA Canary
@@ -212,7 +212,7 @@ func (c *CanaryAdapter) setupCanaryEnvironment() error {
 	}
 
 	// Create pyproject.toml
-	pyprojectContent, err := nvidiaScripts.ReadFile("py/adapters/nvidia/pyproject.toml")
+	pyprojectContent, err := nvidiaScripts.ReadFile("py/nvidia/pyproject.toml")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded pyproject.toml: %w", err)
 	}
@@ -279,7 +279,7 @@ func (c *CanaryAdapter) downloadCanaryModel() error {
 
 // createTranscriptionScript creates the Python script for Canary transcription
 func (c *CanaryAdapter) createTranscriptionScript() error {
-	scriptContent, err := nvidiaScripts.ReadFile("py/adapters/nvidia/canary_transcribe.py")
+	scriptContent, err := nvidiaScripts.ReadFile("py/nvidia/canary_transcribe.py")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded canary_transcribe.py: %w", err)
 	}

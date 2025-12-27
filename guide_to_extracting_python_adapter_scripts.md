@@ -5,10 +5,10 @@ This guide explains how to extract inline Python scripts and configuration files
 ## 1. Create a Scripts Directory
 
 Create a directory to hold the scripts corresponding to the adapter.
-Standard location: `internal/transcription/adapters/py/adapters/<adapter_name>`
+Standard location: `internal/transcription/adapters/py/<adapter_name>`
 
 ```bash
-mkdir -p internal/transcription/adapters/py/adapters/<adapter_name>
+mkdir -p internal/transcription/adapters/py/<adapter_name>
 ```
 
 ## 2. Extract Files
@@ -37,7 +37,7 @@ import (
 Add the `//go:embed` directive and a variable to hold the file system. This should be at the package level.
 
 ```go
-//go:embed py/adapters/<adapter_name>/*
+//go:embed py/<adapter_name>/*
 var <adapterName>Scripts embed.FS
 ```
 
@@ -56,7 +56,7 @@ if err := os.WriteFile(scriptPath, []byte(scriptContent), 0755); err != nil { ..
 
 **After:**
 ```go
-scriptContent, err := <adapterName>Scripts.ReadFile("py/adapters/<adapter_name>/transcribe.py")
+scriptContent, err := <adapterName>Scripts.ReadFile("py/<adapter_name>/transcribe.py")
 if err != nil {
     return fmt.Errorf("failed to read embedded transcribe.py: %w", err)
 }
@@ -118,7 +118,7 @@ There is a clear separation between the **Source Code** (where you edit files) a
 #### Source Location (In Git)
 Where you develop and commit changes.
 ```text
-internal/transcription/adapters/py/adapters/
+internal/transcription/adapters/py/
 └── <adapter_name>/
     ├── pyproject.toml       # Dependency definitions
     ├── transcribe.py        # Main logic

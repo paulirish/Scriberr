@@ -180,7 +180,7 @@ func (p *ParakeetAdapter) setupParakeetEnvironment() error {
 	}
 
 	// Create pyproject.toml
-	pyprojectContent, err := nvidiaScripts.ReadFile("py/adapters/nvidia/pyproject.toml")
+	pyprojectContent, err := nvidiaScripts.ReadFile("py/nvidia/pyproject.toml")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded pyproject.toml: %w", err)
 	}
@@ -247,7 +247,7 @@ func (p *ParakeetAdapter) downloadParakeetModel() error {
 
 // createTranscriptionScript creates the Python script for Parakeet transcription
 func (p *ParakeetAdapter) createTranscriptionScript() error {
-	scriptContent, err := nvidiaScripts.ReadFile("py/adapters/nvidia/parakeet_transcribe.py")
+	scriptContent, err := nvidiaScripts.ReadFile("py/nvidia/parakeet_transcribe.py")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded transcribe.py: %w", err)
 	}
@@ -559,7 +559,7 @@ func (p *ParakeetAdapter) parseResult(tempDir string, input interfaces.AudioInpu
 
 // createBufferedScript creates the Python script for NeMo buffered inference
 func (p *ParakeetAdapter) createBufferedScript() error {
-	scriptContent, err := nvidiaScripts.ReadFile("py/adapters/nvidia/parakeet_transcribe_buffered.py")
+	scriptContent, err := nvidiaScripts.ReadFile("py/nvidia/parakeet_transcribe_buffered.py")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded transcribe_buffered.py: %w", err)
 	}
