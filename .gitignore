@@ -26,7 +26,6 @@ vite.config.ts.timestamp-*
 .env
 samples
 scriberr
-!/data/whisperx-env/parakeet/*.py
 /data
 data_bak
 web/landing_bak
@@ -70,3 +69,4 @@ tmp/
 # *.svg
 # *.png
 dhl.txt
+__pycache__/
