@@ -68,22 +68,22 @@ def test_titanet_identification_output():
         first_segment = data["segments"][0]
         assert "start" in first_segment
         assert "end" in first_segment
-        
+
         # titanet_identify adds 'original_speaker' and updates 'speaker'
         assert "speaker" in first_segment
         assert "original_speaker" in first_segment
         assert first_segment["original_speaker"] == "speaker_0"
-        
+
         # In mock mode with no prior collection, it enrolls new speakers
-        # The new speaker name usually starts with "Speaker-" or similar if using the logic in script
-        # The script uses human_name = f"Speaker-{new_id[:8]}"
-        assert str(first_segment["speaker"]).startswith("Speaker-")
+        # The new speaker name usually starts with "Spk-" or similar if using the logic in script
+        # The script uses human_name = f"Spk-{new_id[:8]}"
+        assert str(first_segment["speaker"]).startswith("Spk-")
 
         # Verify that all segments have been processed
         for seg in data["segments"]:
             assert "original_speaker" in seg
-            assert str(seg["speaker"]).startswith("Speaker-")
-        
+            assert str(seg["speaker"]).startswith("Spk-")
+
         # Check that we have a mapping that is consistent
         # i.e. all segments with same original_speaker should have same new speaker
         speaker_map = {}

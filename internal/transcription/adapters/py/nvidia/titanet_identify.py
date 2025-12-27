@@ -251,8 +251,8 @@ def identify_speakers(
             import uuid
             new_id = str(uuid.uuid4())
             # Use a human readable name if possible, else UUID
-            # In a real app, user might rename "Speaker 1" later.
-            human_name = f"Speaker-{new_id[:8]}"
+            # In a real app, user might rename "Spk 1" later.
+            human_name = f"Spk-{new_id[:8]}"
 
             logger.info(f"Enrolling {local_spk} as new speaker {human_name}")
 
