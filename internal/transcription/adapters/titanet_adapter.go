@@ -60,15 +60,15 @@ func NewTitanetAdapter(envPath string) *TitanetAdapter {
 func (t *TitanetAdapter) PrepareEnvironment(ctx context.Context) error {
 	logger.Info("Preparing TitaNet environment", "env_path", t.envPath)
 
+	// Copy identification script
+	if err := t.copyIdentityScript(); err != nil {
+		return fmt.Errorf("failed to copy identity script: %w", err)
+	}
+
 	// Dependency check (qdrant-client) is handled by the shared environment setup in SortformerAdapter
 	// But we should ensure the specific model is downloaded
 	if err := t.downloadTitanetModel(); err != nil {
 		return fmt.Errorf("failed to download TitaNet model: %w", err)
-	}
-
-	// Create identification script
-	if err := t.createIdentityScript(); err != nil {
-		return fmt.Errorf("failed to create identity script: %w", err)
 	}
 
 	t.initialized = true
@@ -93,7 +93,7 @@ func (t *TitanetAdapter) downloadTitanetModel() error {
 	return downloader.DownloadFile(ctx, modelURL, modelPath)
 }
 
-func (t *TitanetAdapter) createIdentityScript() error {
+func (t *TitanetAdapter) copyIdentityScript() error {
 	scriptPath := filepath.Join(t.envPath, "titanet_identify.py")
 	if _, err := os.Stat(scriptPath); err == nil {
 		return nil
@@ -526,7 +526,7 @@ func get_speaker(host: str, collection: str, speaker_id: str):
         if not points:
             logger.error("Speaker not found")
             sys.exit(1)
-        
+
         p = points[0]
         payload = p.payload or {}
         speaker = {
