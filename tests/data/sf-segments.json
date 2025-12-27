@@ -1,0 +1,144 @@
+{
+
+  "// Generated via": "uv run --project data/whisperx-env/parakeet python internal/transcription/adapters/py/nvidia/sortformer_diarize.py tests/data/AMI-Corpus-IB4002.Mix-Headset-clip.wav tests/data/sf-segments.json",
+
+  "audio_file": "tests/data/AMI-Corpus-IB4002.Mix-Headset-clip.wav",
+  "model": "nvidia/diar_streaming_sortformer_4spk-v2",
+  "segments": [
+    {
+      "start": 0.0,
+      "end": 5.76,
+      "speaker": "speaker_0",
+      "duration": 5.76,
+      "confidence": 1.0
+    },
+    {
+      "start": 2.32,
+      "end": 4.0,
+      "speaker": "speaker_1",
+      "duration": 1.6800000000000002,
+      "confidence": 1.0
+    },
+    {
+      "start": 2.48,
+      "end": 3.92,
+      "speaker": "speaker_2",
+      "duration": 1.44,
+      "confidence": 1.0
+    },
+    {
+      "start": 3.04,
+      "end": 3.12,
+      "speaker": "speaker_3",
+      "duration": 0.08000000000000007,
+      "confidence": 1.0
+    },
+    {
+      "start": 3.44,
+      "end": 3.92,
+      "speaker": "speaker_3",
+      "duration": 0.48,
+      "confidence": 1.0
+    },
+    {
+      "start": 4.32,
+      "end": 4.4,
+      "speaker": "speaker_1",
+      "duration": 0.08000000000000007,
+      "confidence": 1.0
+    },
+    {
+      "start": 4.32,
+      "end": 5.28,
+      "speaker": "speaker_3",
+      "duration": 0.96,
+      "confidence": 1.0
+    },
+    {
+      "start": 4.48,
+      "end": 5.6,
+      "speaker": "speaker_1",
+      "duration": 1.1199999999999992,
+      "confidence": 1.0
+    },
+    {
+      "start": 4.56,
+      "end": 6.8,
+      "speaker": "speaker_2",
+      "duration": 2.24,
+      "confidence": 1.0
+    },
+    {
+      "start": 6.16,
+      "end": 6.4,
+      "speaker": "speaker_1",
+      "duration": 0.2400000000000002,
+      "confidence": 1.0
+    },
+    {
+      "start": 6.56,
+      "end": 6.64,
+      "speaker": "speaker_3",
+      "duration": 0.08000000000000007,
+      "confidence": 1.0
+    },
+    {
+      "start": 6.72,
+      "end": 10.56,
+      "speaker": "speaker_0",
+      "duration": 3.8400000000000007,
+      "confidence": 1.0
+    },
+    {
+      "start": 11.28,
+      "end": 11.6,
+      "speaker": "speaker_2",
+      "duration": 0.3200000000000003,
+      "confidence": 1.0
+    },
+    {
+      "start": 12.24,
+      "end": 15.12,
+      "speaker": "speaker_0",
+      "duration": 2.879999999999999,
+      "confidence": 1.0
+    },
+    {
+      "start": 14.48,
+      "end": 18.64,
+      "speaker": "speaker_1",
+      "duration": 4.16,
+      "confidence": 1.0
+    },
+    {
+      "start": 14.48,
+      "end": 15.04,
+      "speaker": "speaker_2",
+      "duration": 0.5599999999999987,
+      "confidence": 1.0
+    },
+    {
+      "start": 14.64,
+      "end": 15.04,
+      "speaker": "speaker_3",
+      "duration": 0.3999999999999986,
+      "confidence": 1.0
+    },
+    {
+      "start": 16.8,
+      "end": 17.2,
+      "speaker": "speaker_0",
+      "duration": 0.3999999999999986,
+      "confidence": 1.0
+    }
+  ],
+  "speakers": [
+    "speaker_0",
+    "speaker_1",
+    "speaker_2",
+    "speaker_3"
+  ],
+  "speaker_count": 4,
+  "total_segments": 18,
+  "total_duration": 18.64
+}
