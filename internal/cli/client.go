@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type transcriptionJob struct {
@@ -80,6 +81,12 @@ func UploadFile(filePath string) error {
 	}
 	defer file.Close()
 
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to stat file: %w", err)
+	}
+	createdAt := getFileCreationTime(fileInfo)
+
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("audio", fileName)
@@ -93,6 +100,11 @@ func UploadFile(filePath string) error {
 	// Add title as filename
 	if err := writer.WriteField("title", fileName); err != nil {
 		return fmt.Errorf("failed to write title field: %w", err)
+	}
+
+	// Add created_at
+	if err := writer.WriteField("created_at", createdAt.Format(time.RFC3339)); err != nil {
+		return fmt.Errorf("failed to write created_at field: %w", err)
 	}
 
 	err = writer.Close()

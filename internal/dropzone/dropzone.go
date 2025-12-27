@@ -259,6 +259,11 @@ func (s *Service) uploadFile(sourcePath, originalFilename string) error {
 		Title:     &originalFilename, // Use original filename as title
 	}
 
+	// Set CreatedAt from original file
+	if info, err := os.Stat(sourcePath); err == nil {
+		job.CreatedAt = getFileCreationTime(info)
+	}
+
 	// Save to database
 	if err := s.jobRepo.Create(context.Background(), &job); err != nil {
 		os.Remove(destPath) // Clean up file on database error
@@ -323,4 +328,8 @@ func (s *Service) copyFile(src, dst string) error {
 	}
 
 	return destFile.Sync()
+}
+
+func getFileCreationTime(info os.FileInfo) time.Time {
+	return getFileCreationTimeOS(info)
 }

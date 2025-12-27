@@ -294,6 +294,12 @@ func (h *Handler) UploadAudio(c *gin.Context) {
 		job.Title = &title
 	}
 
+	if createdAtStr := c.PostForm(paramCreatedAt); createdAtStr != "" {
+		if t, err := time.Parse(time.RFC3339, createdAtStr); err == nil {
+			job.CreatedAt = t
+		}
+	}
+
 	// Save to database using Repository
 	if err := h.jobRepo.Create(c.Request.Context(), &job); err != nil {
 		_ = h.fileService.RemoveFile(filePath) // Clean up file
