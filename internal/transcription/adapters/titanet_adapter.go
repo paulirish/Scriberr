@@ -107,6 +107,19 @@ func (t *TitanetAdapter) copyIdentifyScript() error {
 	return nil
 }
 
+func (t *TitanetAdapter) getQdrantHost() string {
+	if qdrantHost := os.Getenv("QDRANT_HOST"); qdrantHost != "" {
+		return qdrantHost
+	}
+
+	// If QDRANT_HOST is not set, check if we're running in Docker
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		return "qdrant"
+	}
+
+	return "localhost"
+}
+
 // IdentifySpeakers runs the identification process
 func (t *TitanetAdapter) IdentifySpeakers(ctx context.Context, input interfaces.AudioInput, diarizationResult *interfaces.DiarizationResult, params map[string]interface{}, procCtx interfaces.ProcessingContext) (*interfaces.DiarizationResult, error) {
 	// 1. Serialize current diarization result to a temp JSON file
@@ -131,11 +144,7 @@ func (t *TitanetAdapter) IdentifySpeakers(ctx context.Context, input interfaces.
 
 	// 2. Build command
 	scriptPath := filepath.Join(t.envPath, "titanet_identify.py")
-	// Use Qdrant host from env or default
-	qdrantHost := os.Getenv("QDRANT_HOST")
-	if qdrantHost == "" {
-		qdrantHost = "qdrant" // Default in docker-compose
-	}
+	qdrantHost := t.getQdrantHost()
 
 	cmd := exec.CommandContext(ctx, "uv", "run", "--native-tls", "--project", t.envPath, "python", scriptPath,
 		input.FilePath,
@@ -374,10 +383,7 @@ func (t *TitanetAdapter) ListSpeakers(ctx context.Context) ([]SpeakerInfo, error
 		return nil, err
 	}
 
-	qdrantHost := os.Getenv("QDRANT_HOST")
-	if qdrantHost == "" {
-		qdrantHost = "qdrant"
-	}
+	qdrantHost := t.getQdrantHost()
 
 	scriptPath := filepath.Join(t.envPath, "titanet_manage.py")
 	cmd := exec.CommandContext(ctx, "uv", "run", "--native-tls", "--project", t.envPath, "python", scriptPath,
@@ -404,10 +410,7 @@ func (t *TitanetAdapter) GetSpeaker(ctx context.Context, id string) (*SpeakerInf
 		return nil, err
 	}
 
-	qdrantHost := os.Getenv("QDRANT_HOST")
-	if qdrantHost == "" {
-		qdrantHost = "qdrant"
-	}
+	qdrantHost := t.getQdrantHost()
 
 	scriptPath := filepath.Join(t.envPath, "titanet_manage.py")
 	cmd := exec.CommandContext(ctx, "uv", "run", "--native-tls", "--project", t.envPath, "python", scriptPath,
@@ -435,10 +438,7 @@ func (t *TitanetAdapter) RenameSpeaker(ctx context.Context, id, newName string) 
 		return err
 	}
 
-	qdrantHost := os.Getenv("QDRANT_HOST")
-	if qdrantHost == "" {
-		qdrantHost = "qdrant"
-	}
+	qdrantHost := t.getQdrantHost()
 
 	scriptPath := filepath.Join(t.envPath, "titanet_manage.py")
 	cmd := exec.CommandContext(ctx, "uv", "run", "--native-tls", "--project", t.envPath, "python", scriptPath,
@@ -461,10 +461,7 @@ func (t *TitanetAdapter) DeleteSpeaker(ctx context.Context, id string) error {
 		return err
 	}
 
-	qdrantHost := os.Getenv("QDRANT_HOST")
-	if qdrantHost == "" {
-		qdrantHost = "qdrant"
-	}
+	qdrantHost := t.getQdrantHost()
 
 	scriptPath := filepath.Join(t.envPath, "titanet_manage.py")
 	cmd := exec.CommandContext(ctx, "uv", "run", "--native-tls", "--project", t.envPath, "python", scriptPath,
