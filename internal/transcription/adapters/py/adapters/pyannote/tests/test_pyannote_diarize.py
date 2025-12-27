@@ -1,38 +1,48 @@
 """Tests for pyannote_diarize.py"""
 import pytest
+import subprocess
 from pathlib import Path
 
+# Paths
+SCRIPT_DIR = Path(__file__).parent.parent
+SCRIPT_PATH = SCRIPT_DIR / "pyannote_diarize.py"
 
+# TODO: Add proper diarization testing once a dummy HF token or mock pipeline is available.
+# uv run --project data/whisperx-env/pyannote/ python internal/transcription/adapters/py/adapters/pyannote/pyannote_diarize.py --output=/tmp/pyan.json --hf-token $HF_TOKEN tests/data/AMI-Corpus-IB4002.Mix-Headset-clip.wav
 def test_pyannote_diarize_exists():
     """Verify pyannote_diarize.py exists."""
-    script_path = Path(__file__).parent.parent / "pyannote_diarize.py"
-    assert script_path.exists(), "pyannote_diarize.py should exist"
+    assert SCRIPT_PATH.exists(), "pyannote_diarize.py should exist"
 
 
-def test_pyannote_diarize_is_readable():
-    """Verify pyannote_diarize.py is readable."""
-    script_path = Path(__file__).parent.parent / "pyannote_diarize.py"
-    content = script_path.read_text()
-    assert len(content) > 0, "pyannote_diarize.py should not be empty"
+def test_pyannote_diarize_help():
+    """Verify pyannote_diarize.py --help works."""
+
+    # Locate project root (Scriberr directory)
+    # This file is in internal/transcription/adapters/py/adapters/pyannote/tests/
+    project_root = Path(__file__).resolve().parents[7]
+    env_path = project_root / "data/whisperx-env/pyannote"
+
+    if not env_path.exists():
+        pytest.skip(f"Environment not found at {env_path}")
 
 
-def test_pyannote_diarize_has_main():
-    """Verify pyannote_diarize.py has main execution block."""
-    script_path = Path(__file__).parent.parent / "pyannote_diarize.py"
-    content = script_path.read_text()
-    assert "if __name__" in content, "Script should have main execution block"
 
+    cmd = [
+        "uv", "run",
+        "--project", str(env_path),
+        "python", str(SCRIPT_PATH),
+        "--help"
+    ]
 
-def test_pyannote_diarize_imports():
-    """Verify pyannote_diarize.py has expected imports."""
-    script_path = Path(__file__).parent.parent / "pyannote_diarize.py"
-    content = script_path.read_text()
-    # Check for PyAnnote imports
-    assert "pyannote" in content.lower(), "Script should import PyAnnote"
+    print(f"Running command: {' '.join(cmd)}")
+    result = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        cwd=project_root
+    )
 
-
-def test_pyannote_diarize_has_pipeline():
-    """Verify pyannote_diarize.py references Pipeline."""
-    script_path = Path(__file__).parent.parent / "pyannote_diarize.py"
-    content = script_path.read_text()
-    assert "Pipeline" in content, "Script should use PyAnnote Pipeline"
+    assert result.returncode == 0
+    assert "usage: pyannote_diarize.py" in result.stdout
+    assert "--hf-token" in result.stdout
+    assert "--model" in result.stdout
