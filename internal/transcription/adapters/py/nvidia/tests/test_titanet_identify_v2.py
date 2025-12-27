@@ -6,12 +6,7 @@ import json
 import numpy as np
 
 # Add the adapters directory to the Python path
-sys.path.insert(
-    0,
-    os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "../../internal/transcription/adapters")
-    ),
-)
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import titanet_identify_v2 as identifier
 
@@ -225,9 +220,22 @@ class TestIdentifier(unittest.TestCase):
         ]
         mock_sf.read.return_value = (np.zeros(16000 * 5), 16000)
 
-        # Directly set return values for np.mean and np.std for this test's S-Norm calculations
-        mock_np_mean.return_value = 0.1
-        mock_np_std.return_value = 0.2
+        # Use side_effect to return specific values for S-Norm while allowing normal behavior for centroid calculation
+        def mocked_mean(data, axis=None, **kwargs):
+            if axis == 0:
+                # Manually calculate mean for the list of embeddings to avoid recursion
+                return sum(data) / len(data)
+            return 0.1
+
+        def mocked_std(data, axis=None, **kwargs):
+            if axis == 0:
+                # Manually calculate std for the list of embeddings if needed
+                mean = sum(data) / len(data)
+                return (sum((x - mean)**2 for x in data) / len(data))**0.5
+            return 0.2
+
+        mock_np_mean.side_effect = mocked_mean
+        mock_np_std.side_effect = mocked_std
 
         identifier.identify_speakers(
             self.audio_file,
