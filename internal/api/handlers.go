@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -297,6 +298,18 @@ func (h *Handler) UploadAudio(c *gin.Context) {
 	if createdAtStr := c.PostForm(paramCreatedAt); createdAtStr != "" {
 		if t, err := time.Parse(time.RFC3339, createdAtStr); err == nil {
 			job.CreatedAt = t
+		}
+	}
+
+	// Hack: Extract CreatedAt from title if it matches rekt_YYYY_MM_DD_Day_AM/PM_HH_MM_SS
+	// Example: rekt_2025_06_09_Mon_PM_10_15_48-Pixel_7_Pro.aac
+	if job.Title != nil {
+		re := regexp.MustCompile(`rekt_(\d{4}_\d{2}_\d{2}_[A-Za-z]{3}_(?:AM|PM)_\d{2}_\d{2}_\d{2})`)
+		if matches := re.FindStringSubmatch(*job.Title); len(matches) > 1 {
+			layout := "2006_01_02_Mon_PM_03_04_05"
+			if t, err := time.Parse(layout, matches[1]); err == nil {
+				job.CreatedAt = t
+			}
 		}
 	}
 
