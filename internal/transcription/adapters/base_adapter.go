@@ -20,6 +20,13 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
+// Environment readiness cache to avoid repeated expensive UV checks
+var (
+	envCacheMutex sync.RWMutex
+	envCache      = make(map[string]bool)
+	requestGroup  singleflight.Group
+)
+
 // GetPyTorchCUDAVersion returns the PyTorch CUDA wheel version to use.
 // This is configurable via the PYTORCH_CUDA_VERSION environment variable.
 // Defaults to "cu126" for CUDA 12.6 (legacy GPUs: GTX 10-series through RTX 40-series).
@@ -35,13 +42,6 @@ func GetPyTorchCUDAVersion() string {
 func GetPyTorchWheelURL() string {
 	return fmt.Sprintf("https://download.pytorch.org/whl/%s", GetPyTorchCUDAVersion())
 }
-
-// Environment readiness cache to avoid repeated expensive UV checks
-var (
-	envCacheMutex sync.RWMutex
-	envCache      = make(map[string]bool)
-	requestGroup  singleflight.Group
-)
 
 // CheckEnvironmentReady checks if a UV environment is ready with caching and singleflight
 func CheckEnvironmentReady(envPath, importStatement string) bool {

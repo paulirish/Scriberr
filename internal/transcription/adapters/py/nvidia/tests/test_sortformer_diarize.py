@@ -75,6 +75,12 @@ def test_sortformer_diarization_output():
 
         assert data["speaker_count"] == 4
 
+        assert "total_segments" in data
+        assert data["total_segments"] > 15
+
+        assert "total_duration" in data
+        assert data["total_duration"] > 17
+
     finally:
         # Cleanup
         if os.path.exists(output_file):
