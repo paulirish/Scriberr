@@ -16,6 +16,7 @@ The system transitions from a traditional session-based diarization model (where
     *   **Logic**: Implements Open-Set Recognition (Identify vs. Enroll).
 4.  **Long-Term Memory (Qdrant)**: A Vector Database that stores speaker embeddings and metadata (Names, IDs).
 5.  **API & Frontend**: Allows users to manage identities (rename "Speaker-UUID" to "Human Name").
+6.  **Segment Store (SQLite)**: Persists timestamped audio segments linked to speakers for UI playback and verification.
 
 ### Data Flow
 
@@ -33,9 +34,10 @@ graph TD
     G --> I[Transcript Generation]
     H --> I
 
-    I --> J[Frontend UI]
-    J -- "User Renames Speaker" --> K[API Update]
-    K --> L[Update Qdrant Payload]
+    I --> J[Persistence: Save SpeakerSegments to SQLite]
+    J --> K[Frontend UI: Segment Listener]
+    K -- "User Renames Speaker" --> L[API Update]
+    L --> M[Update Qdrant Payload]
 ```
 
 ---
@@ -74,6 +76,12 @@ Users interact with these identities via the Web UI:
     *   The vector is removed from Qdrant.
     *   Future occurrences of this voice will trigger a new Enrollment (new UUID).
 
+### 4. Persistence: The Audio Audit Trail
+To allow users to verify identities, the system saves the raw segments used for identification:
+1.  **Storage**: After transcription, the `UnifiedTranscriptionService` iterates through all segments.
+2.  **Linking**: Each segment (start, end, text) is saved to the `speaker_segments` table, indexed by the Global Speaker ID.
+3.  **Retrieval**: The Frontend fetches these via `GET /api/v1/speakers/{id}/segments` to provide a "Listen to Speaker" UI.
+
 ---
 
 ## Debugging & Troubleshooting
@@ -88,13 +96,21 @@ docker ps | grep qdrant
 curl http://localhost:6333/collections/speakers
 ```
 
-### 2. Inspecting Speaker Vectors
-You can list all enrolled speakers using the Python management script wrapper or direct API calls.
+### 2. Inspecting Speaker Data
+You can list all enrolled speakers and their persisted segments using the API.
 
-**Using the API (if running):**
+**List Speakers:**
 ```bash
-curl -H "Authorization: Bearer <TOKEN>" http://localhost:8080/api/v1/speakers
+curl -H "X-API-Key: $SCRIBERR_API_KEY" http://localhost:8080/api/v1/speakers/
 ```
+
+**Fetch Speaker Segments (Samples):**
+```bash
+curl -H "X-API-Key: $SCRIBERR_API_KEY" http://localhost:8080/api/v1/speakers/{uuid}/segments
+```
+
+**Direct Database Inspection:**
+See [docs/debugging-speakers.md](debugging-speakers.md) for SQLite commands to inspect segments directly.
 
 **Using the Python Script (Directly):**
 If you need to debug the Python environment or Qdrant content directly from the backend container:
