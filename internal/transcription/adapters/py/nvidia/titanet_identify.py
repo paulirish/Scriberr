@@ -198,6 +198,7 @@ def identify_speakers(
 
         for idx in top_indices:
             seg = segments[idx]
+            seg["is_reference"] = True  # Mark as used for identification
             start = seg["start"]
             duration = seg["end"] - start
 

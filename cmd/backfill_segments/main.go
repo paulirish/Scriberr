@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
+	"sort"
 
 	"scriberr/internal/config"
 	"scriberr/internal/database"
@@ -15,6 +17,9 @@ import (
 )
 
 func main() {
+	clearFlag := flag.Bool("clear", false, "Clear existing speaker segments before backfilling")
+	flag.Parse()
+
 	logger.Init("info")
 	cfg := config.Load()
 
@@ -23,6 +28,12 @@ func main() {
 		os.Exit(1)
 	}
 	defer database.Close()
+
+	// Clear existing segments if requested
+	if *clearFlag {
+		fmt.Println("Clearing existing speaker segments...")
+		database.DB.Exec("DELETE FROM speaker_segments")
+	}
 
 	jobRepo := repository.NewJobRepository(database.DB)
 	ctx := context.Background()
@@ -52,29 +63,51 @@ func main() {
 			continue
 		}
 
-		fmt.Printf("Processing job %s (%d segments)...\n", job.ID, len(result.Segments))
-
-		speakerSegments := make([]models.SpeakerSegment, 0, len(result.Segments))
+		// Group segments by speaker
+		speakerSegmentsMap := make(map[string][]interfaces.TranscriptSegment)
 		for _, seg := range result.Segments {
 			speakerID := "Unknown"
 			if seg.Speaker != nil {
 				speakerID = *seg.Speaker
 			}
-			speakerSegments = append(speakerSegments, models.SpeakerSegment{
-				TranscriptionJobID: job.ID,
-				SpeakerID:          speakerID,
-				Start:              seg.Start,
-				End:                seg.End,
-				Text:               seg.Text,
-			})
+			speakerSegmentsMap[speakerID] = append(speakerSegmentsMap[speakerID], seg)
 		}
 
-		if err := jobRepo.SaveSpeakerSegments(ctx, speakerSegments); err != nil {
-			fmt.Printf("Failed to save speaker segments for job %s: %v\n", job.ID, err)
-		} else {
-			totalSegments += len(speakerSegments)
+		fmt.Printf("Processing job %s (%d speakers)...\n", job.ID, len(speakerSegmentsMap))
+
+		for speakerID, segments := range speakerSegmentsMap {
+			// Sort segments by duration (descending)
+			sort.Slice(segments, func(i, j int) bool {
+				durI := segments[i].End - segments[i].Start
+				durJ := segments[j].End - segments[j].Start
+				return durI > durJ
+			})
+
+			// Take top 10 (matching TitaNet identification logic)
+			limit := 10
+			if len(segments) < limit {
+				limit = len(segments)
+			}
+			topSegments := segments[:limit]
+
+			dbSegments := make([]models.SpeakerSegment, 0, len(topSegments))
+			for _, seg := range topSegments {
+				dbSegments = append(dbSegments, models.SpeakerSegment{
+					TranscriptionJobID: job.ID,
+					SpeakerID:          speakerID,
+					Start:              seg.Start,
+					End:                seg.End,
+					Text:               seg.Text,
+				})
+			}
+
+			if err := jobRepo.SaveSpeakerSegments(ctx, dbSegments); err != nil {
+				fmt.Printf("Failed to save speaker segments for speaker %s in job %s: %v\n", speakerID, job.ID, err)
+			} else {
+				totalSegments += len(dbSegments)
+			}
 		}
 	}
 
-	fmt.Printf("Done! Created %d speaker segments.\n", totalSegments)
+	fmt.Printf("Done! Created %d reference speaker segments.\n", totalSegments)
 }

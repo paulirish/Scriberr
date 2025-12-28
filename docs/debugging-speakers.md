@@ -32,9 +32,9 @@ curl -s -L -H "X-API-Key: $SCRIBERR_API_KEY" http://localhost:8080/api/v1/speake
 ```
 
 ## Backfilling Data
-If you need to re-run the backfill (e.g., after deleting the database or adding new legacy transcripts), use the provided tool:
+If you need to re-run the backfill (e.g., after deleting the database or adding new legacy transcripts), use the provided tool. Use the `-clear` flag to remove existing segments first (to avoid duplicates):
 ```bash
-go run cmd/backfill_segments/main.go
+go run cmd/backfill_segments/main.go -clear
 ```
 
 ## Common Issues

@@ -76,11 +76,12 @@ Users interact with these identities via the Web UI:
     *   The vector is removed from Qdrant.
     *   Future occurrences of this voice will trigger a new Enrollment (new UUID).
 
-### 4. Persistence: The Audio Audit Trail
+### 4. Persistence: The Audio Audit Trail (Reference Samples)
 To allow users to verify identities, the system saves the raw segments used for identification:
-1.  **Storage**: After transcription, the `UnifiedTranscriptionService` iterates through all segments.
-2.  **Linking**: Each segment (start, end, text) is saved to the `speaker_segments` table, indexed by the Global Speaker ID.
-3.  **Retrieval**: The Frontend fetches these via `GET /api/v1/speakers/{id}/segments` to provide a "Listen to Speaker" UI.
+1.  **Selection**: The `titanet_identify.py` script selects the top 10 longest audio segments for each speaker to create their voice embedding.
+2.  **Tagging**: These segments are tagged with `is_reference: True`.
+3.  **Storage**: The `UnifiedTranscriptionService` saves only these reference segments (start, end, text) to the `speaker_segments` table in SQLite.
+4.  **Retrieval**: The Frontend fetches these via `GET /api/v1/speakers/{id}/segments` to provide a "Listen to Speaker Samples" UI.
 
 ---
 

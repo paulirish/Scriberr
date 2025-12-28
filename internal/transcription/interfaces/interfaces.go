@@ -57,11 +57,12 @@ type AudioInput struct {
 
 // TranscriptSegment represents a segment of transcribed audio
 type TranscriptSegment struct {
-	Start    float64 `json:"start"`
-	End      float64 `json:"end"`
-	Text     string  `json:"text"`
-	Speaker  *string `json:"speaker,omitempty"`
-	Language *string `json:"language,omitempty"`
+	Start       float64 `json:"start"`
+	End         float64 `json:"end"`
+	Text        string  `json:"text"`
+	Speaker     *string `json:"speaker,omitempty"`
+	Language    *string `json:"language,omitempty"`
+	IsReference bool    `json:"is_reference,omitempty"`
 }
 
 // TranscriptWord represents word-level timing information

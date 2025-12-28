@@ -886,6 +886,11 @@ func (u *UnifiedTranscriptionService) saveTranscriptionResults(jobID string, res
 	if len(result.Segments) > 0 {
 		speakerSegments := make([]models.SpeakerSegment, 0, len(result.Segments))
 		for _, seg := range result.Segments {
+			// Only save segments used for speaker identification (Reference segments)
+			if !seg.IsReference {
+				continue
+			}
+
 			speakerID := "Unknown"
 			if seg.Speaker != nil {
 				speakerID = *seg.Speaker
