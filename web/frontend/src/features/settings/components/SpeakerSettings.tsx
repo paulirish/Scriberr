@@ -3,7 +3,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { speakersApi, type Speaker, type SpeakerSegment } from "@/lib/speakersApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Play, Pause, Trash2, Edit2, Check, X, Volume2 } from "lucide-react";
+import { Play, Trash2, Edit2, Check, X, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 
 export function SpeakerSettings() {
