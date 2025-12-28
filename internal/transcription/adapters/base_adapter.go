@@ -90,6 +90,15 @@ func CheckEnvironmentReady(envPath, importStatement string) bool {
 	return result.(bool)
 }
 
+// EnsureEnvironment ensures an environment is fully set up using singleflight to prevent redundant work
+func EnsureEnvironment(envPath string, setupFn func() error) error {
+	key := "setup:" + envPath
+	_, err, _ := requestGroup.Do(key, func() (interface{}, error) {
+		return nil, setupFn()
+	})
+	return err
+}
+
 // BaseAdapter provides common functionality for all model adapters
 type BaseAdapter struct {
 	modelID      string

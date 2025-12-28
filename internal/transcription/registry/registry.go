@@ -431,51 +431,52 @@ func (r *ModelRegistry) InitializeModels(ctx context.Context) error {
 
 	logger.Info("Initializing registered models in parallel...")
 
-	var wg sync.WaitGroup
-	initErrors := make(chan error, len(r.transcriptionAdapters)+len(r.diarizationAdapters)+len(r.compositeAdapters))
+	go func() {
+		var wg sync.WaitGroup
+		initErrors := make(chan error, len(r.transcriptionAdapters)+len(r.diarizationAdapters)+len(r.compositeAdapters)+len(r.identificationAdapters))
 
-	// Helper function to initialize an adapter
-	initAdapter := func(id string, adapter interface {
-		PrepareEnvironment(context.Context) error
-	}, typeName string) {
-		defer wg.Done()
-		logger.Debug(fmt.Sprintf("Initializing %s model", typeName), "model_id", id)
-		if err := adapter.PrepareEnvironment(ctx); err != nil {
-			logger.Error(fmt.Sprintf("Failed to initialize %s model", typeName),
-				"model_id", id, "error", err)
-			initErrors <- fmt.Errorf("%s model %s: %w", typeName, id, err)
-		} else {
-			logger.Info(fmt.Sprintf("%s model initialized", typeName), "model_id", id)
+		// Helper function to initialize an adapter
+		initAdapter := func(id string, adapter interface {
+			PrepareEnvironment(context.Context) error
+		}, typeName string) {
+			defer wg.Done()
+			logger.Debug(fmt.Sprintf("Initializing %s model", typeName), "model_id", id)
+			if err := adapter.PrepareEnvironment(ctx); err != nil {
+				logger.Error(fmt.Sprintf("Failed to initialize %s model", typeName),
+					"model_id", id, "error", err)
+				initErrors <- fmt.Errorf("%s model %s: %w", typeName, id, err)
+			} else {
+				logger.Info(fmt.Sprintf("%s model initialized", typeName), "model_id", id)
+			}
 		}
-	}
 
-	// Initialize transcription adapters
-	for modelID, adapter := range r.transcriptionAdapters {
-		wg.Add(1)
-		go initAdapter(modelID, adapter, "transcription")
-	}
+		// Initialize transcription adapters
+		for modelID, adapter := range r.transcriptionAdapters {
+			wg.Add(1)
+			go initAdapter(modelID, adapter, "transcription")
+		}
 
-	// Initialize diarization adapters
-	for modelID, adapter := range r.diarizationAdapters {
-		wg.Add(1)
-		go initAdapter(modelID, adapter, "diarization")
-	}
+		// Initialize diarization adapters
+		for modelID, adapter := range r.diarizationAdapters {
+			wg.Add(1)
+			go initAdapter(modelID, adapter, "diarization")
+		}
 
-	// Initialize composite adapters
-	for modelID, adapter := range r.compositeAdapters {
-		wg.Add(1)
-		go initAdapter(modelID, adapter, "composite")
-	}
+		// Initialize composite adapters
+		for modelID, adapter := range r.compositeAdapters {
+			wg.Add(1)
+			go initAdapter(modelID, adapter, "composite")
+		}
 
-	// Initialize identification adapters
-	for modelID, adapter := range r.identificationAdapters {
-		wg.Add(1)
-		go initAdapter(modelID, adapter, "identification")
-	}
+		// Initialize identification adapters
+		for modelID, adapter := range r.identificationAdapters {
+			wg.Add(1)
+			go initAdapter(modelID, adapter, "identification")
+		}
 
-	// Wait for all initializations to complete
-	wg.Wait()
-	close(initErrors)
+		// Wait for all initializations to complete
+		wg.Wait()
+		close(initErrors)
 
 		// Collect any errors (but don't fail completely)
 		var errorList []error
@@ -491,7 +492,7 @@ func (r *ModelRegistry) InitializeModels(ctx context.Context) error {
 		}
 
 		logger.Info("Model initialization completed")
-
+	}()
 
 	return nil
 }

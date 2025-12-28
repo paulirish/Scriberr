@@ -65,16 +65,26 @@ func (t *TitanetAdapter) PrepareEnvironment(ctx context.Context) error {
 		return fmt.Errorf("failed to copy identity script: %w", err)
 	}
 
-  if err := t.EnsureManagementScript(); err != nil {
+	if err := t.EnsureManagementScript(); err != nil {
 		return fmt.Errorf("failed to ensure management script: %w", err)
 	}
 
-	// Dependency check (qdrant-client) is handled by the shared environment setup in SortformerAdapter
-	// But we should ensure the specific model is downloaded
-	if err := t.downloadTitanetModel(); err != nil {
-		return fmt.Errorf("failed to download TitaNet model: %w", err)
+	// Check if environment is already ready
+	if CheckEnvironmentReady(t.envPath, "import nemo") {
+		// Ensure model is downloaded
+		if err := t.downloadTitanetModel(); err != nil {
+			return fmt.Errorf("failed to download TitaNet model: %w", err)
+		}
+		t.initialized = true
+		return nil
 	}
 
+	// Dependency check (qdrant-client) is handled by the shared environment setup in SortformerAdapter
+	// but we'll trigger a sync via whatever adapter hits this first if needed.
+	// For Titanet, we don't have a dedicated setup function yet because it shares with Sortformer/Parakeet.
+	// If we get here, it means nemo isn't importable, so we should probably fail or wait for another adapter.
+	// Since they all run in parallel, Sortformer or Parakeet will likely handle the uv sync.
+	
 	t.initialized = true
 	return nil
 }

@@ -2,6 +2,7 @@ package transcription
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -327,8 +328,9 @@ func TestParakeetPrepareEnvironment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	}
-	reg := registry.GetRegistry()
-	envPath := "data/whisperx-env/parakeet"
+	dir, _ := os.Getwd()
+	t.Logf("Current workisng directory: %s", dir)
+	envPath := "../../data/whisperx-env/parakeet"
 	adapter := adapters.NewParakeetAdapter(envPath)
 	registry.RegisterTranscriptionAdapter("parakeet", adapter)
 
