@@ -81,3 +81,25 @@ func (h *Handler) DeleteSpeaker(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
 }
+
+// GetSpeakerSegments returns all audio segments associated with a speaker
+// @Summary Get speaker segments
+// @Description Get all audio segments and their associated transcription jobs for a speaker
+// @Tags speakers
+// @Produce json
+// @Param id path string true "Speaker ID"
+// @Success 200 {array} models.SpeakerSegment
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/speakers/{id}/segments [get]
+func (h *Handler) GetSpeakerSegments(c *gin.Context) {
+	id := c.Param("id")
+
+	segments, err := h.jobRepo.GetSegmentsBySpeakerID(c.Request.Context(), id)
+	if err != nil {
+		logger.Error("Failed to get speaker segments", "error", err)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, segments)
+}

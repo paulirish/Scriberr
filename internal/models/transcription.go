@@ -356,6 +356,24 @@ func (SpeakerMapping) TableName() string {
 	return "speaker_mappings"
 }
 
+// SpeakerSegment represents a timestamped audio segment associated with a specific speaker
+type SpeakerSegment struct {
+	ID                 uint      `json:"id" gorm:"primaryKey;autoIncrement"`
+	TranscriptionJobID string    `json:"transcription_job_id" gorm:"type:varchar(36);not null;index"`
+	SpeakerID          string    `json:"speaker_id" gorm:"type:varchar(100);not null;index"` // The global speaker ID (UUID) or local name
+	Start              float64   `json:"start" gorm:"type:real;not null"`
+	End                float64   `json:"end" gorm:"type:real;not null"`
+	Text               string    `json:"text" gorm:"type:text"`
+	CreatedAt          time.Time `json:"created_at" gorm:"autoCreateTime"`
+
+	// Relationships
+	TranscriptionJob TranscriptionJob `json:"transcription_job,omitempty" gorm:"foreignKey:TranscriptionJobID;constraint:OnDelete:CASCADE"`
+}
+
+func (SpeakerSegment) TableName() string {
+	return "speaker_segments"
+}
+
 // MultiTrackFile represents an individual audio track in a multi-track recording
 type MultiTrackFile struct {
 	ID                 uint      `json:"id" gorm:"primaryKey;autoIncrement"`

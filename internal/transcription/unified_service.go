@@ -882,6 +882,29 @@ func (u *UnifiedTranscriptionService) saveTranscriptionResults(jobID string, res
 		return fmt.Errorf("failed to update job transcript: %w", err)
 	}
 
+	// Save speaker segments for UI/playback
+	if len(result.Segments) > 0 {
+		speakerSegments := make([]models.SpeakerSegment, 0, len(result.Segments))
+		for _, seg := range result.Segments {
+			speakerID := "Unknown"
+			if seg.Speaker != nil {
+				speakerID = *seg.Speaker
+			}
+			speakerSegments = append(speakerSegments, models.SpeakerSegment{
+				TranscriptionJobID: jobID,
+				SpeakerID:          speakerID,
+				Start:              seg.Start,
+				End:                seg.End,
+				Text:               seg.Text,
+			})
+		}
+
+		if err := u.jobRepo.SaveSpeakerSegments(context.Background(), speakerSegments); err != nil {
+			logger.Warn("Failed to save speaker segments", "job_id", jobID, "error", err)
+			// Don't fail the whole job just because segments couldn't be saved
+		}
+	}
+
 	logger.Info("Saved transcription results", "job_id", jobID, "text_length", len(result.Text))
 	return nil
 }

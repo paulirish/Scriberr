@@ -133,6 +133,16 @@ func (m *MockJobRepository) UpdateSummary(ctx context.Context, jobID string, sum
 	return args.Error(0)
 }
 
+func (m *MockJobRepository) SaveSpeakerSegments(ctx context.Context, segments []models.SpeakerSegment) error {
+	args := m.Called(ctx, segments)
+	return args.Error(0)
+}
+
+func (m *MockJobRepository) GetSegmentsBySpeakerID(ctx context.Context, speakerID string) ([]models.SpeakerSegment, error) {
+	args := m.Called(ctx, speakerID)
+	return args.Get(0).([]models.SpeakerSegment), args.Error(1)
+}
+
 // MockTranscriptionAdapter is a mock implementation of TranscriptionAdapter
 type MockTranscriptionAdapter struct {
 	mock.Mock

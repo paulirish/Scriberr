@@ -41,4 +41,15 @@ export const speakersApi = {
       throw new Error(errorData.error || 'Failed to delete speaker');
     }
   },
+
+  getSegments: async (id: string, getAuthHeaders: () => Record<string, string>): Promise<any[]> => {
+    const response = await fetch(`/api/v1/speakers/${id}/segments`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to fetch speaker segments');
+    }
+    return response.json();
+  },
 };

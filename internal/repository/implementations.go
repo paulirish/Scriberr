@@ -65,6 +65,8 @@ type JobRepository interface {
 	FindByStatus(ctx context.Context, status models.JobStatus) ([]models.TranscriptionJob, error)
 	CountByStatus(ctx context.Context, status models.JobStatus) (int64, error)
 	UpdateSummary(ctx context.Context, jobID string, summary string) error
+	SaveSpeakerSegments(ctx context.Context, segments []models.SpeakerSegment) error
+	GetSegmentsBySpeakerID(ctx context.Context, speakerID string) ([]models.SpeakerSegment, error)
 }
 
 type jobRepository struct {
@@ -208,6 +210,23 @@ func (r *jobRepository) CountByStatus(ctx context.Context, status models.JobStat
 
 func (r *jobRepository) UpdateSummary(ctx context.Context, jobID string, summary string) error {
 	return r.db.WithContext(ctx).Model(&models.TranscriptionJob{}).Where("id = ?", jobID).Update("summary", summary).Error
+}
+
+func (r *jobRepository) SaveSpeakerSegments(ctx context.Context, segments []models.SpeakerSegment) error {
+	if len(segments) == 0 {
+		return nil
+	}
+	return r.db.WithContext(ctx).Create(&segments).Error
+}
+
+func (r *jobRepository) GetSegmentsBySpeakerID(ctx context.Context, speakerID string) ([]models.SpeakerSegment, error) {
+	var segments []models.SpeakerSegment
+	err := r.db.WithContext(ctx).
+		Preload("TranscriptionJob").
+		Where("speaker_id = ?", speakerID).
+		Order("created_at DESC").
+		Find(&segments).Error
+	return segments, err
 }
 
 // APIKeyRepository handles API key operations
