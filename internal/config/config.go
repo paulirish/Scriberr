@@ -56,7 +56,7 @@ func Load() *Config {
 		Port:           getEnv("PORT", "8080"),
 		Host:           getEnv("HOST", "0.0.0.0"),
 		Environment:    getEnv("APP_ENV", "development"),
-		AllowedOrigins: strings.Split(getEnv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8080"), ","),
+		AllowedOrigins: strings.Split(getEnv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8080,https://editor.swagger.io,https://docs.scalar.com"), ","),
 		DatabasePath:   getEnv("DATABASE_PATH", "data/scriberr.db"),
 		JWTSecret:      getJWTSecret(),
 		UploadDir:      getEnv("UPLOAD_DIR", "data/uploads"),
