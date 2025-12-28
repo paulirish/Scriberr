@@ -119,8 +119,8 @@ If you need to debug the Python environment or Qdrant content directly from the 
 # Enter backend container
 docker exec -it scriberr-scriberr-1 bash
 
-# Activate environment (path may vary based on setup)
-cd data/models/nvidia/env
+# Activate environment
+cd data/whisperx-env/parakeet
 
 # Run management script
 uv run python titanet_manage.py list --qdrant qdrant
@@ -141,7 +141,7 @@ Look for:
 
 **"Identified as wrong person"**
 *   **Cause**: Similarity threshold (0.5) might be too low, or audio quality is poor (short segments).
-*   **Fix**: Adjust `similarity_threshold` in `TitanetAdapter` (requires code change currently) or ensure higher quality audio input.
+*   **Fix**: Adjust `similarity_threshold` in the job parameters or via the `TitanetAdapter` configuration.
 
 **"Script failed with ImportError"**
 *   **Cause**: Missing dependencies in the Python environment.

@@ -245,5 +245,9 @@ func registerAdapters(cfg *config.Config) {
 	registry.RegisterDiarizationAdapter("sortformer",
 		adapters.NewSortformerAdapter(nvidiaEnvPath)) // Shares with Parakeet
 
+	// Register speaker identification adapters
+	registry.RegisterIdentificationAdapter("titanet",
+		adapters.NewTitanetAdapter(nvidiaEnvPath)) // Shares with Parakeet
+
 	logger.Info("Adapter registration complete")
 }

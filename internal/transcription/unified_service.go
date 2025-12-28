@@ -13,7 +13,6 @@ import (
 
 	"scriberr/internal/models"
 	"scriberr/internal/repository"
-	"scriberr/internal/transcription/adapters"
 	"scriberr/internal/sse"
 	"scriberr/internal/transcription/interfaces"
 	"scriberr/internal/transcription/pipeline"
@@ -49,7 +48,6 @@ type UnifiedTranscriptionService struct {
 	defaultModelIDs       map[string]string      // Default model IDs for each task type
 	multiTrackTranscriber *MultiTrackTranscriber // For termination support
 	jobRepo               repository.JobRepository
-	titanetAdapter        *adapters.TitanetAdapter // Speaker identification adapter
 	webhookService        *webhook.Service
 	broadcaster           *sse.Broadcaster
 }
@@ -68,8 +66,6 @@ func NewUnifiedTranscriptionService(jobRepo repository.JobRepository) *UnifiedTr
 			"diarization":   ModelPyannote,
 		},
 		jobRepo:        jobRepo,
-		// Assuming shared environment path for now, consistent with SortformerAdapter
-		titanetAdapter: adapters.NewTitanetAdapter("data/whisperx-env/parakeet/"),
 		webhookService: webhook.NewService(),
 	}
 }
@@ -94,12 +90,6 @@ func (u *UnifiedTranscriptionService) Initialize(ctx context.Context) error {
 	// Initialize all registered models
 	if err := u.registry.InitializeModels(ctx); err != nil {
 		return fmt.Errorf("failed to initialize models: %w", err)
-	}
-
-	// Initialize TitaNet adapter
-	if err := u.titanetAdapter.PrepareEnvironment(ctx); err != nil {
-		// Log warning but don't fail, as other models might still work
-		logger.Warn("Failed to initialize TitaNet adapter", "error", err)
 	}
 
 	logger.Info("Unified transcription service initialized successfully")
@@ -335,12 +325,14 @@ func (u *UnifiedTranscriptionService) processSingleTrackJob(ctx context.Context,
 			// Note: We might want a flag to enable/disable this feature
 			// For now, let's assume it's enabled if initialized
 			if diarizationResult != nil && diarizationResult.SpeakerCount > 0 {
-				logger.Info("Running speaker identification")
-				identifiedResult, err := u.titanetAdapter.IdentifySpeakers(ctx, preprocessedInput, diarizationResult, nil, procCtx)
-				if err != nil {
-					logger.Warn("Speaker identification failed, using local speaker IDs", "error", err)
-				} else {
-					diarizationResult = identifiedResult
+				if identificationAdapter, err := u.registry.GetIdentificationAdapter("titanet"); err == nil {
+					logger.Info("Running speaker identification")
+					identifiedResult, err := identificationAdapter.IdentifySpeakers(ctx, preprocessedInput, diarizationResult, nil, procCtx)
+					if err != nil {
+						logger.Warn("Speaker identification failed, using local speaker IDs", "error", err)
+					} else {
+						diarizationResult = identifiedResult
+					}
 				}
 			}
 

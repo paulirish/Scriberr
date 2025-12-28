@@ -229,15 +229,8 @@ func (t *TitanetAdapter) IdentifySpeakers(ctx context.Context, input interfaces.
 	return &newResult, nil
 }
 
-// SpeakerInfo represents a speaker in the vector DB
-type SpeakerInfo struct {
-	ID        string  `json:"id"`
-	Name      string  `json:"name"`
-	CreatedAt float64 `json:"created_at"`
-}
-
 // ListSpeakers retrieves all speakers from the vector DB
-func (t *TitanetAdapter) ListSpeakers(ctx context.Context) ([]SpeakerInfo, error) {
+func (t *TitanetAdapter) ListSpeakers(ctx context.Context) ([]interfaces.SpeakerInfo, error) {
 	qdrantHost := t.getQdrantHost()
 
 	scriptPath := filepath.Join(t.envPath, "titanet_manage.py")
@@ -251,7 +244,7 @@ func (t *TitanetAdapter) ListSpeakers(ctx context.Context) ([]SpeakerInfo, error
 		return nil, fmt.Errorf("failed to list speakers: %w (output: %s)", err, string(output))
 	}
 
-	var speakers []SpeakerInfo
+	var speakers []interfaces.SpeakerInfo
 	if err := json.Unmarshal(output, &speakers); err != nil {
 		return nil, fmt.Errorf("failed to parse speakers list: %w (output: %s)", err, string(output))
 	}
@@ -260,7 +253,7 @@ func (t *TitanetAdapter) ListSpeakers(ctx context.Context) ([]SpeakerInfo, error
 }
 
 // GetSpeaker retrieves a single speaker from the vector DB
-func (t *TitanetAdapter) GetSpeaker(ctx context.Context, id string) (*SpeakerInfo, error) {
+func (t *TitanetAdapter) GetSpeaker(ctx context.Context, id string) (*interfaces.SpeakerInfo, error) {
 	qdrantHost := t.getQdrantHost()
 
 	scriptPath := filepath.Join(t.envPath, "titanet_manage.py")
@@ -275,7 +268,7 @@ func (t *TitanetAdapter) GetSpeaker(ctx context.Context, id string) (*SpeakerInf
 		return nil, fmt.Errorf("failed to get speaker: %w (output: %s)", err, string(output))
 	}
 
-	var speaker SpeakerInfo
+	var speaker interfaces.SpeakerInfo
 	if err := json.Unmarshal(output, &speaker); err != nil {
 		return nil, fmt.Errorf("failed to parse speaker info: %w (output: %s)", err, string(output))
 	}

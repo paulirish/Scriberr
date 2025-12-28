@@ -143,6 +143,14 @@ func (m *MockJobRepository) GetSegmentsBySpeakerID(ctx context.Context, speakerI
 	return args.Get(0).([]models.SpeakerSegment), args.Error(1)
 }
 
+func (m *MockJobRepository) GetSpeakerSegmentByID(ctx context.Context, id uint) (*models.SpeakerSegment, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.SpeakerSegment), args.Error(1)
+}
+
 // MockTranscriptionAdapter is a mock implementation of TranscriptionAdapter
 type MockTranscriptionAdapter struct {
 	mock.Mock
@@ -313,6 +321,24 @@ func TestParakeetAdapter(t *testing.T) {
 	if err := adapter.ValidateParameters(validParams); err != nil {
 		t.Errorf("Valid parameters failed validation: %v", err)
 	}
+}
+
+func TestParakeetPrepareEnvironment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+	reg := registry.GetRegistry()
+	envPath := "data/whisperx-env/parakeet"
+	adapter := adapters.NewParakeetAdapter(envPath)
+	registry.RegisterTranscriptionAdapter("parakeet", adapter)
+
+	ctx := context.Background()
+	start := time.Now()
+	err := adapter.PrepareEnvironment(ctx)
+	if err != nil {
+		t.Fatalf("Failed to prepare environment: %v", err)
+	}
+	t.Logf("PrepareEnvironment took %v", time.Since(start))
 }
 
 func TestCanaryAdapter(t *testing.T) {

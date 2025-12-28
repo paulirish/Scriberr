@@ -5,32 +5,50 @@ import (
 	"encoding/json"
 	"fmt"
 	"scriberr/internal/repository"
-	"scriberr/internal/transcription/adapters"
+	"scriberr/internal/transcription/interfaces"
+	"scriberr/internal/transcription/registry"
 	"scriberr/pkg/logger"
 )
 
 // SpeakerService handles business logic related to speakers.
 type SpeakerService struct {
-	jobRepo        repository.JobRepository
-	titanetAdapter *adapters.TitanetAdapter
+	jobRepo  repository.JobRepository
+	registry *registry.ModelRegistry
 }
 
 // NewSpeakerService creates a new SpeakerService.
 func NewSpeakerService(jobRepo repository.JobRepository) *SpeakerService {
-	// The adapter is instantiated here to be used by the service.
-	// The path might need to be configurable in the future.
-	adapter := adapters.NewTitanetAdapter("data/whisperx-env/parakeet/")
 	return &SpeakerService{
-		jobRepo:        jobRepo,
-		titanetAdapter: adapter,
+		jobRepo:  jobRepo,
+		registry: registry.GetRegistry(),
 	}
+}
+
+// getAdapter retrieves the speaker management adapter from the registry.
+func (s *SpeakerService) getAdapter() (interfaces.SpeakerManagementAdapter, error) {
+	adapter, err := s.registry.GetIdentificationAdapter("titanet")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get speaker identification adapter: %w", err)
+	}
+
+	mgmtAdapter, ok := adapter.(interfaces.SpeakerManagementAdapter)
+	if !ok {
+		return nil, fmt.Errorf("adapter does not support management operations")
+	}
+
+	return mgmtAdapter, nil
 }
 
 // RenameSpeaker updates a speaker's name globally and retroactively in all transcripts.
 func (s *SpeakerService) RenameSpeaker(ctx context.Context, speakerID, newName string) error {
+	adapter, err := s.getAdapter()
+	if err != nil {
+		return err
+	}
+
 	// Step 1: Get the speaker's current name before renaming.
 	logger.Info("Fetching current speaker name", "speakerID", speakerID)
-	speakerInfo, err := s.titanetAdapter.GetSpeaker(ctx, speakerID)
+	speakerInfo, err := adapter.GetSpeaker(ctx, speakerID)
 	if err != nil {
 		return fmt.Errorf("failed to get speaker info for ID %s: %w", speakerID, err)
 	}
@@ -44,7 +62,7 @@ func (s *SpeakerService) RenameSpeaker(ctx context.Context, speakerID, newName s
 
 	// Step 2: Rename the speaker in the central identity store (Qdrant)
 	logger.Info("Renaming speaker in global store", "speakerID", speakerID, "oldName", oldName, "newName", newName)
-	if err := s.titanetAdapter.RenameSpeaker(ctx, speakerID, newName); err != nil {
+	if err := adapter.RenameSpeaker(ctx, speakerID, newName); err != nil {
 		return fmt.Errorf("failed to rename speaker in titanet adapter: %w", err)
 	}
 
@@ -109,22 +127,30 @@ func (s *SpeakerService) RenameSpeaker(ctx context.Context, speakerID, newName s
 }
 
 // GetSpeaker retrieves a single speaker from the vector DB.
-func (s *SpeakerService) GetSpeaker(ctx context.Context, speakerID string) (*adapters.SpeakerInfo, error) {
-	return s.titanetAdapter.GetSpeaker(ctx, speakerID)
+func (s *SpeakerService) GetSpeaker(ctx context.Context, speakerID string) (*interfaces.SpeakerInfo, error) {
+	adapter, err := s.getAdapter()
+	if err != nil {
+		return nil, err
+	}
+	return adapter.GetSpeaker(ctx, speakerID)
 }
 
-// TODO: Add a method to get a speaker by ID from Qdrant to get the old name before renaming.
-// This would involve adding a new command to the `titanet_manage.py` script and a corresponding
-// method in the `TitanetAdapter`.
-
-func (s *SpeakerService) ListSpeakers(ctx context.Context) ([]adapters.SpeakerInfo, error) {
-	return s.titanetAdapter.ListSpeakers(ctx)
+func (s *SpeakerService) ListSpeakers(ctx context.Context) ([]interfaces.SpeakerInfo, error) {
+	adapter, err := s.getAdapter()
+	if err != nil {
+		return nil, err
+	}
+	return adapter.ListSpeakers(ctx)
 }
 
 func (s *SpeakerService) DeleteSpeaker(ctx context.Context, speakerID string) error {
+	adapter, err := s.getAdapter()
+	if err != nil {
+		return err
+	}
 	// Note: Deleting a speaker could also have a retroactive effect (e.g., anonymizing them in old transcripts).
 	// For now, we just delete them from the global store.
-	return s.titanetAdapter.DeleteSpeaker(ctx, speakerID)
+	return adapter.DeleteSpeaker(ctx, speakerID)
 }
 
 
