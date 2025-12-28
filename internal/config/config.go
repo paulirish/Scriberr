@@ -37,9 +37,6 @@ type Config struct {
 	SecureCookies  bool // Explicit control over Secure flag (for HTTPS deployments)
 	// OpenAI configuration
 	OpenAIAPIKey string
-
-	// Feature flags
-	FeatureSpeakerID bool
 }
 
 // Load loads configuration from environment variables and .env file
@@ -67,7 +64,6 @@ func Load() *Config {
 		WhisperXEnv:    getEnv("WHISPERX_ENV", "data/whisperx-env"),
 		SecureCookies:  getEnv("SECURE_COOKIES", defaultSecure) == "true",
 		OpenAIAPIKey:   getEnv("OPENAI_API_KEY", ""),
-		FeatureSpeakerID: getEnv("FEATURE_SPEAKER_ID", "false") == "true",
 	}
 }
 
