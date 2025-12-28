@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 
 	"scriberr/pkg/logger"
 
@@ -16,7 +17,7 @@ import (
 // @Description Get a list of all identified speakers
 // @Tags speakers
 // @Produce json
-// @Success 200 {array} adapters.SpeakerInfo
+// @Success 200 {array} interface{}
 // @Failure 500 {object} ErrorResponse
 // @Router /api/v1/speakers [get]
 func (h *Handler) ListSpeakers(c *gin.Context) {
@@ -97,7 +98,26 @@ func (h *Handler) DeleteSpeaker(c *gin.Context) {
 func (h *Handler) GetSpeakerSegments(c *gin.Context) {
 	id := c.Param("id")
 
-	segments, err := h.jobRepo.GetSegmentsBySpeakerID(c.Request.Context(), id)
+	// Try multiple possible ID formats that might be in the SQLite database
+	ids := []string{id}
+	// TitaNet identify script uses various prefixes with either full or short IDs
+	if len(id) >= 8 {
+		shortID := id[:8]
+		// Add "Speaker-shortID" (Found in current database)
+		ids = append(ids, "Speaker-"+shortID)
+		// Add "Spk-shortID" (Used in some enrollment versions)
+		ids = append(ids, "Spk-"+shortID)
+	}
+
+	// Also add the full ID with prefixes just in case
+	if !strings.HasPrefix(id, "Speaker-") {
+		ids = append(ids, "Speaker-"+id)
+	}
+	if !strings.HasPrefix(id, "Spk-") {
+		ids = append(ids, "Spk-"+id)
+	}
+
+	segments, err := h.jobRepo.GetSegmentsBySpeakerIDs(c.Request.Context(), ids)
 	if err != nil {
 		logger.Error("Failed to get speaker segments", "error", err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})

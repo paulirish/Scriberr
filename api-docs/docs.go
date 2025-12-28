@@ -1614,9 +1614,7 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/adapters.SpeakerInfo"
-                            }
+                            "items": {}
                         }
                     },
                     "500": {
@@ -4058,20 +4056,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "adapters.SpeakerInfo": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "number"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
         "api.APIKeyListResponse": {
             "type": "object",
             "properties": {

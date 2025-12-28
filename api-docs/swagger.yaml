@@ -1,14 +1,5 @@
 basePath: /api/v1
 definitions:
-  adapters.SpeakerInfo:
-    properties:
-      created_at:
-        type: number
-      id:
-        type: string
-      name:
-        type: string
-    type: object
   api.APIKeyListResponse:
     properties:
       created_at:
@@ -1844,8 +1835,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/adapters.SpeakerInfo'
+            items: {}
             type: array
         "500":
           description: Internal Server Error

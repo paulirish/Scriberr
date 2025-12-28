@@ -65,10 +65,13 @@ export function SpeakerSettings() {
           </p>
         </div>
 
-        <div className="space-y-4">
-          {speakers.map((speaker) => (
-            <SpeakerRow
-              key={speaker.id}
+                <div className="space-y-4">
+
+                  {speakers
+                    // .filter(s => s.id === "72e4deac-037e-4f61-b301-efb685d53f89" || s.id === "2d18b992-c7ec-436f-85d7-aa82b1e1267f")
+                    .map((speaker) => (
+                    <SpeakerRow
+                      key={speaker.id}
               speaker={speaker}
               onDelete={() => handleDelete(speaker.id)}
               isEditing={editingId === speaker.id}
@@ -233,7 +236,7 @@ function AudioChip({ segment }: { segment: SpeakerSegment }) {
       className={`
         group flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all
         ${isPlaying
-          ? 'bg-[var(--brand-gradient)] text-white shadow-md'
+          ? 'bg-[var(--brand-gradient)] text-black shadow-md'
           : 'bg-[var(--bg-main)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--brand-primary)]'
         }
       `}

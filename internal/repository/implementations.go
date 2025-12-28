@@ -67,6 +67,7 @@ type JobRepository interface {
 	UpdateSummary(ctx context.Context, jobID string, summary string) error
 	SaveSpeakerSegments(ctx context.Context, segments []models.SpeakerSegment) error
 	GetSegmentsBySpeakerID(ctx context.Context, speakerID string) ([]models.SpeakerSegment, error)
+	GetSegmentsBySpeakerIDs(ctx context.Context, speakerIDs []string) ([]models.SpeakerSegment, error)
 	GetSpeakerSegmentByID(ctx context.Context, segmentID uint) (*models.SpeakerSegment, error)
 }
 
@@ -223,8 +224,16 @@ func (r *jobRepository) SaveSpeakerSegments(ctx context.Context, segments []mode
 func (r *jobRepository) GetSegmentsBySpeakerID(ctx context.Context, speakerID string) ([]models.SpeakerSegment, error) {
 	var segments []models.SpeakerSegment
 	err := r.db.WithContext(ctx).
-		Preload("TranscriptionJob").
 		Where("speaker_id = ?", speakerID).
+		Order("created_at DESC").
+		Find(&segments).Error
+	return segments, err
+}
+
+func (r *jobRepository) GetSegmentsBySpeakerIDs(ctx context.Context, speakerIDs []string) ([]models.SpeakerSegment, error) {
+	var segments []models.SpeakerSegment
+	err := r.db.WithContext(ctx).
+		Where("speaker_id IN ?", speakerIDs).
 		Order("created_at DESC").
 		Find(&segments).Error
 	return segments, err
