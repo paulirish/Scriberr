@@ -65,11 +65,6 @@ func SetupRoutes(handler *Handler, authService *auth.AuthService) *gin.Engine {
 	// Health check endpoint (no auth required)
 	router.GET("/health", handler.HealthCheck)
 
-	// Serve swagger.json for external tools (e.g. editor.swagger.io)
-	router.GET("/api/swagger.json", func(c *gin.Context) {
-		c.File("api-docs/swagger.json")
-	})
-
 	// CLI install script alias (root level for easier access)
 	router.GET("/install.sh", handler.GetInstallScript)
 	router.GET("/install-cli.sh", handler.GetInstallScript)
@@ -114,8 +109,8 @@ func SetupRoutes(handler *Handler, authService *auth.AuthService) *gin.Engine {
 		// API key management restricted to JWT-authenticated users
 		apiKeys.Use(middleware.JWTOnlyMiddleware(authService))
 		{
-			apiKeys.GET("", handler.ListAPIKeys)
-			apiKeys.POST("", handler.CreateAPIKey)
+			apiKeys.GET("/", handler.ListAPIKeys)
+			apiKeys.POST("/", handler.CreateAPIKey)
 			apiKeys.DELETE("/:id", handler.DeleteAPIKey)
 		}
 
@@ -167,8 +162,8 @@ func SetupRoutes(handler *Handler, authService *auth.AuthService) *gin.Engine {
 		profiles := v1.Group("/profiles")
 		profiles.Use(middleware.AuthMiddleware(authService))
 		{
-			profiles.GET("", handler.ListProfiles)
-			profiles.POST("", handler.CreateProfile)
+			profiles.GET("/", handler.ListProfiles)
+			profiles.POST("/", handler.CreateProfile)
 			profiles.GET("/:id", handler.GetProfile)
 			profiles.PUT("/:id", handler.UpdateProfile)
 			profiles.DELETE("/:id", handler.DeleteProfile)
@@ -207,8 +202,8 @@ func SetupRoutes(handler *Handler, authService *auth.AuthService) *gin.Engine {
 		summaries := v1.Group("/summaries")
 		summaries.Use(middleware.AuthMiddleware(authService))
 		{
-			summaries.GET("", handler.ListSummaryTemplates)
-			summaries.POST("", handler.CreateSummaryTemplate)
+			summaries.GET("/", handler.ListSummaryTemplates)
+			summaries.POST("/", handler.CreateSummaryTemplate)
 			summaries.GET("/:id", handler.GetSummaryTemplate)
 			summaries.PUT("/:id", handler.UpdateSummaryTemplate)
 			summaries.DELETE("/:id", handler.DeleteSummaryTemplate)
@@ -243,7 +238,7 @@ func SetupRoutes(handler *Handler, authService *auth.AuthService) *gin.Engine {
 		summarize := v1.Group("/summarize")
 		summarize.Use(middleware.AuthMiddleware(authService))
 		{
-			summarize.POST("", handler.Summarize)
+			summarize.POST("/", handler.Summarize)
 		}
 
 		// Config routes (require authentication)
