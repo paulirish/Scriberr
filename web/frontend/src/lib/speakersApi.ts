@@ -67,9 +67,5 @@ export const speakersApi = {
       throw new Error(errorData.error || 'Failed to fetch speaker segments');
     }
     return response.json();
-  },
-
-  getSegmentAudioUrl: (speakerId: string, segmentId: number): string => {
-    return `/api/v1/speakers/${speakerId}/segments/${segmentId}/audio`;
   }
 };

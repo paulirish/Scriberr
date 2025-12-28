@@ -192,39 +192,41 @@ function SpeakerRow({
 function AudioChip({ segment }: { segment: SpeakerSegment }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUrl = speakersApi.getSegmentAudioUrl(segment.speaker_id, segment.id);
+  const audioUrl = `/api/v1/transcription/${segment.transcription_job_id}/audio`;
 
   const duration = (segment.end - segment.start).toFixed(1);
 
-  const togglePlay = () => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio(audioUrl);
-      audioRef.current.onended = () => setIsPlaying(false);
-    }
-
-    if (isPlaying) {
+  const stopAudio = () => {
+    if (audioRef.current) {
       audioRef.current.pause();
       setIsPlaying(false);
-    } else {
-      audioRef.current.play();
-      setIsPlaying(true);
     }
   };
 
   const handleMouseEnter = () => {
     if (!audioRef.current) {
       audioRef.current = new Audio(audioUrl);
-      audioRef.current.onended = () => setIsPlaying(false);
     }
+
+    const checkTime = () => {
+      if (audioRef.current && audioRef.current.currentTime >= segment.end) {
+        stopAudio();
+        audioRef.current.removeEventListener('timeupdate', checkTime);
+      }
+    };
+
+    audioRef.current.addEventListener('timeupdate', checkTime);
+    audioRef.current.currentTime = segment.start;
     audioRef.current.play().catch(console.error);
     setIsPlaying(true);
   };
 
   const handleMouseLeave = () => {
+    stopAudio();
     if (audioRef.current) {
+      // Remove all listeners to be safe
       audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      setIsPlaying(false);
+      audioRef.current.currentTime = segment.start;
     }
   };
 
@@ -232,7 +234,7 @@ function AudioChip({ segment }: { segment: SpeakerSegment }) {
     <div
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onClick={togglePlay}
+      onClick={handleMouseEnter}
       className={`
         group flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all
         ${isPlaying
