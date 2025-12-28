@@ -75,6 +75,7 @@ func Initialize(dbPath string) error {
 		&models.Note{},
 		&models.RefreshToken{},
 		&models.SpeakerSegment{},
+		&models.SpeakerJobCentroid{},
 	); err != nil {
 		return fmt.Errorf("failed to auto migrate: %v", err)
 	}

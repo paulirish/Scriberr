@@ -57,12 +57,13 @@ type AudioInput struct {
 
 // TranscriptSegment represents a segment of transcribed audio
 type TranscriptSegment struct {
-	Start       float64 `json:"start"`
-	End         float64 `json:"end"`
-	Text        string  `json:"text"`
-	Speaker     *string `json:"speaker,omitempty"`
-	Language    *string `json:"language,omitempty"`
-	IsReference bool    `json:"is_reference,omitempty"`
+	Start       float64   `json:"start"`
+	End         float64   `json:"end"`
+	Text        string    `json:"text"`
+	Speaker     *string   `json:"speaker,omitempty"`
+	Language    *string   `json:"language,omitempty"`
+	IsReference bool      `json:"is_reference,omitempty"`
+	Embedding   []float32 `json:"embedding,omitempty"`
 }
 
 // TranscriptWord represents word-level timing information
@@ -96,12 +97,13 @@ type DiarizationSegment struct {
 
 // DiarizationResult represents the output of speaker diarization
 type DiarizationResult struct {
-	Segments       []DiarizationSegment `json:"segments"`
-	SpeakerCount   int                  `json:"speaker_count"`
-	Speakers       []string             `json:"speakers"`
-	ProcessingTime time.Duration        `json:"processing_time"`
-	ModelUsed      string               `json:"model_used"`
-	Metadata       map[string]string    `json:"metadata"`
+	Segments         []DiarizationSegment `json:"segments"`
+	SpeakerCount     int                  `json:"speaker_count"`
+	Speakers         []string             `json:"speakers"`
+	SpeakerCentroids map[string][]float32 `json:"speaker_centroids,omitempty"`
+	ProcessingTime   time.Duration        `json:"processing_time"`
+	ModelUsed        string               `json:"model_used"`
+	Metadata         map[string]string    `json:"metadata"`
 }
 
 // ProcessingContext contains context information for processing

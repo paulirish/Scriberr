@@ -31,8 +31,9 @@ func main() {
 
 	// Clear existing segments if requested
 	if *clearFlag {
-		fmt.Println("Clearing existing speaker segments...")
+		fmt.Println("Clearing existing speaker segments and centroids...")
 		database.DB.Exec("DELETE FROM speaker_segments")
+		database.DB.Exec("DELETE FROM speaker_job_centroids")
 	}
 
 	jobRepo := repository.NewJobRepository(database.DB)

@@ -364,6 +364,7 @@ type SpeakerSegment struct {
 	Start              float64   `json:"start" gorm:"type:real;not null"`
 	End                float64   `json:"end" gorm:"type:real;not null"`
 	Text               string    `json:"text" gorm:"type:text"`
+	Embedding          []byte    `json:"embedding,omitempty" gorm:"type:blob"` // JSON-serialized float32 array
 	CreatedAt          time.Time `json:"created_at" gorm:"autoCreateTime"`
 
 	// Relationships
@@ -372,6 +373,22 @@ type SpeakerSegment struct {
 
 func (SpeakerSegment) TableName() string {
 	return "speaker_segments"
+}
+
+// SpeakerJobCentroid represents the averaged embedding for a speaker within a specific job
+type SpeakerJobCentroid struct {
+	ID                 uint      `json:"id" gorm:"primaryKey;autoIncrement"`
+	TranscriptionJobID string    `json:"transcription_job_id" gorm:"type:varchar(36);not null;index"`
+	SpeakerID          string    `json:"speaker_id" gorm:"type:varchar(100);not null;index"`
+	Centroid           []byte    `json:"centroid" gorm:"type:blob"` // JSON-serialized float32 array
+	CreatedAt          time.Time `json:"created_at" gorm:"autoCreateTime"`
+
+	// Relationships
+	TranscriptionJob TranscriptionJob `json:"transcription_job,omitempty" gorm:"foreignKey:TranscriptionJobID;constraint:OnDelete:CASCADE"`
+}
+
+func (SpeakerJobCentroid) TableName() string {
+	return "speaker_job_centroids"
 }
 
 // MultiTrackFile represents an individual audio track in a multi-track recording

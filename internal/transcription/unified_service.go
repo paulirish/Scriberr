@@ -343,11 +343,9 @@ func (u *UnifiedTranscriptionService) processSingleTrackJob(ctx context.Context,
 		}
 	}
 
-	// Save results to database
-	if transcriptResult != nil {
-		if err := u.saveTranscriptionResults(job.ID, transcriptResult); err != nil {
-			return fmt.Errorf("failed to save transcription results: %w", err)
-		}
+	// Step 4: Save results to database
+	if err := u.saveTranscriptionResults(ctx, job.ID, transcriptResult, diarizationResult); err != nil {
+		return fmt.Errorf("failed to save transcription results: %w", err)
 	}
 
 	return nil
@@ -862,7 +860,7 @@ func (u *UnifiedTranscriptionService) findBestSpeakerForSegment(start, end float
 }
 
 // saveTranscriptionResults saves the transcription results to the database
-func (u *UnifiedTranscriptionService) saveTranscriptionResults(jobID string, result *interfaces.TranscriptResult) error {
+func (u *UnifiedTranscriptionService) saveTranscriptionResults(ctx context.Context, jobID string, result *interfaces.TranscriptResult, diarizationResult *interfaces.DiarizationResult) error {
 	// Convert result to JSON string for database storage
 	resultJSON, err := u.convertTranscriptResultToJSON(result)
 	if err != nil {
@@ -870,7 +868,7 @@ func (u *UnifiedTranscriptionService) saveTranscriptionResults(jobID string, res
 	}
 
 	// Update the job in the database
-	if err := u.jobRepo.UpdateTranscript(context.Background(), jobID, resultJSON); err != nil {
+	if err := u.jobRepo.UpdateTranscript(ctx, jobID, resultJSON); err != nil {
 		return fmt.Errorf("failed to update job transcript: %w", err)
 	}
 
@@ -887,25 +885,45 @@ func (u *UnifiedTranscriptionService) saveTranscriptionResults(jobID string, res
 			if seg.Speaker != nil {
 				speakerID = *seg.Speaker
 			}
+
+			var embeddingBytes []byte
+			if len(seg.Embedding) > 0 {
+				embeddingBytes, _ = json.Marshal(seg.Embedding)
+			}
+
 			speakerSegments = append(speakerSegments, models.SpeakerSegment{
 				TranscriptionJobID: jobID,
 				SpeakerID:          speakerID,
 				Start:              seg.Start,
 				End:                seg.End,
 				Text:               seg.Text,
+				Embedding:          embeddingBytes,
 			})
 		}
 
-		if err := u.jobRepo.SaveSpeakerSegments(context.Background(), speakerSegments); err != nil {
-			logger.Warn("Failed to save speaker segments", "job_id", jobID, "error", err)
-			// Don't fail the whole job just because segments couldn't be saved
+		if err := u.jobRepo.SaveSpeakerSegments(ctx, speakerSegments); err != nil {
+			logger.Error("Failed to save speaker segments", "job_id", jobID, "error", err)
 		}
 	}
 
-	logger.Info("Saved transcription results", "job_id", jobID, "text_length", len(result.Text))
+	// Save speaker job-level centroids
+	if diarizationResult != nil && len(diarizationResult.SpeakerCentroids) > 0 {
+		centroids := make([]models.SpeakerJobCentroid, 0, len(diarizationResult.SpeakerCentroids))
+		for speakerID, centroid := range diarizationResult.SpeakerCentroids {
+			centroidBytes, _ := json.Marshal(centroid)
+			centroids = append(centroids, models.SpeakerJobCentroid{
+				TranscriptionJobID: jobID,
+				SpeakerID:          speakerID,
+				Centroid:           centroidBytes,
+			})
+		}
+		if err := u.jobRepo.SaveSpeakerJobCentroids(ctx, centroids); err != nil {
+			logger.Error("Failed to save speaker centroids", "job_id", jobID, "error", err)
+		}
+	}
+
 	return nil
 }
-
 // convertTranscriptResultToJSON converts the interface result to JSON format
 func (u *UnifiedTranscriptionService) convertTranscriptResultToJSON(result *interfaces.TranscriptResult) (string, error) {
 	// Now that the struct fields match the JSON field names, we can directly marshal

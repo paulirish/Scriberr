@@ -66,6 +66,7 @@ type JobRepository interface {
 	CountByStatus(ctx context.Context, status models.JobStatus) (int64, error)
 	UpdateSummary(ctx context.Context, jobID string, summary string) error
 	SaveSpeakerSegments(ctx context.Context, segments []models.SpeakerSegment) error
+	SaveSpeakerJobCentroids(ctx context.Context, centroids []models.SpeakerJobCentroid) error
 	GetSegmentsBySpeakerID(ctx context.Context, speakerID string) ([]models.SpeakerSegment, error)
 	GetSegmentsBySpeakerIDs(ctx context.Context, speakerIDs []string) ([]models.SpeakerSegment, error)
 }
@@ -218,6 +219,13 @@ func (r *jobRepository) SaveSpeakerSegments(ctx context.Context, segments []mode
 		return nil
 	}
 	return r.db.WithContext(ctx).Create(&segments).Error
+}
+
+func (r *jobRepository) SaveSpeakerJobCentroids(ctx context.Context, centroids []models.SpeakerJobCentroid) error {
+	if len(centroids) == 0 {
+		return nil
+	}
+	return r.db.WithContext(ctx).Create(&centroids).Error
 }
 
 func (r *jobRepository) GetSegmentsBySpeakerID(ctx context.Context, speakerID string) ([]models.SpeakerSegment, error) {
