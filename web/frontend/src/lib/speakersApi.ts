@@ -9,7 +9,10 @@ export const speakersApi = {
     const response = await fetch('/api/v1/speakers', {
       headers: getAuthHeaders(),
     });
-    if (!response.ok) throw new Error('Failed to fetch speakers');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to fetch speakers');
+    }
     return response.json();
   },
 
@@ -22,7 +25,10 @@ export const speakersApi = {
       },
       body: JSON.stringify({ name }),
     });
-    if (!response.ok) throw new Error('Failed to rename speaker');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to rename speaker');
+    }
   },
 
   delete: async (id: string, getAuthHeaders: () => Record<string, string>): Promise<void> => {
@@ -30,6 +36,9 @@ export const speakersApi = {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
-    if (!response.ok) throw new Error('Failed to delete speaker');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to delete speaker');
+    }
   },
 };

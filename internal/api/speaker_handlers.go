@@ -20,7 +20,7 @@ func (h *Handler) ListSpeakers(c *gin.Context) {
 	speakers, err := h.speakerService.ListSpeakers(c.Request.Context())
 	if err != nil {
 		logger.Error("Failed to list speakers", "error", err)
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to list speakers"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 		return
 	}
 
@@ -54,7 +54,7 @@ func (h *Handler) RenameSpeaker(c *gin.Context) {
 
 	if err := h.speakerService.RenameSpeaker(c.Request.Context(), id, req.Name); err != nil {
 		logger.Error("Failed to rename speaker", "error", err)
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to rename speaker"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 		return
 	}
 
@@ -75,7 +75,7 @@ func (h *Handler) DeleteSpeaker(c *gin.Context) {
 
 	if err := h.speakerService.DeleteSpeaker(c.Request.Context(), id); err != nil {
 		logger.Error("Failed to delete speaker", "error", err)
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to delete speaker"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 		return
 	}
 

@@ -246,14 +246,14 @@ func (t *TitanetAdapter) ListSpeakers(ctx context.Context) ([]SpeakerInfo, error
 		"--qdrant", qdrantHost,
 	)
 
-	output, err := cmd.Output()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("failed to list speakers: %w", err)
+		return nil, fmt.Errorf("failed to list speakers: %w (output: %s)", err, string(output))
 	}
 
 	var speakers []SpeakerInfo
 	if err := json.Unmarshal(output, &speakers); err != nil {
-		return nil, fmt.Errorf("failed to parse speakers list: %w", err)
+		return nil, fmt.Errorf("failed to parse speakers list: %w (output: %s)", err, string(output))
 	}
 
 	return speakers, nil
@@ -272,12 +272,12 @@ func (t *TitanetAdapter) GetSpeaker(ctx context.Context, id string) (*SpeakerInf
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get speaker: %s", string(output))
+		return nil, fmt.Errorf("failed to get speaker: %w (output: %s)", err, string(output))
 	}
 
 	var speaker SpeakerInfo
 	if err := json.Unmarshal(output, &speaker); err != nil {
-		return nil, fmt.Errorf("failed to parse speaker info: %w", err)
+		return nil, fmt.Errorf("failed to parse speaker info: %w (output: %s)", err, string(output))
 	}
 
 	return &speaker, nil
@@ -296,7 +296,7 @@ func (t *TitanetAdapter) RenameSpeaker(ctx context.Context, id, newName string) 
 	)
 
 	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to rename speaker: %s", string(output))
+		return fmt.Errorf("failed to rename speaker: %w (output: %s)", err, string(output))
 	}
 
 	return nil
@@ -314,7 +314,7 @@ func (t *TitanetAdapter) DeleteSpeaker(ctx context.Context, id string) error {
 	)
 
 	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to delete speaker: %s", string(output))
+		return fmt.Errorf("failed to delete speaker: %w (output: %s)", err, string(output))
 	}
 
 	return nil

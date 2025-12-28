@@ -48,7 +48,7 @@ def list_speakers(host: str, collection: str):
         logger.error(f"Error listing speakers: {e}")
         sys.exit(1)
 
-func get_speaker(host: str, collection: str, speaker_id: str):
+def get_speaker(host: str, collection: str, speaker_id: str):
     client = setup_client(host)
     try:
         points = client.retrieve(
