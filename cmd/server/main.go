@@ -60,6 +60,7 @@ var (
 func main() {
 	// Handle version flag
 	var showVersion = flag.Bool("version", false, "Show version information")
+	var featureSpeakerID = flag.Bool("feature-speaker-id", false, "Enable speaker identification feature")
 	flag.Parse()
 
 	if *showVersion {
@@ -76,6 +77,11 @@ func main() {
 	// Load configuration
 	logger.Startup("config", "Loading configuration")
 	cfg := config.Load()
+
+	// Override config with flags if set
+	if *featureSpeakerID {
+		cfg.FeatureSpeakerID = true
+	}
 
 	// Register adapters with config-based paths
 	registerAdapters(cfg)
