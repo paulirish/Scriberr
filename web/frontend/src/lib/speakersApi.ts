@@ -4,9 +4,25 @@ export interface Speaker {
   created_at: number;
 }
 
+export interface Speaker {
+  id: string;
+  name: string;
+  created_at: number;
+}
+
+export interface SpeakerSegment {
+  id: number;
+  transcription_job_id: string;
+  speaker_id: string;
+  start: number;
+  end: number;
+  text: string;
+  created_at: string;
+}
+
 export const speakersApi = {
   list: async (getAuthHeaders: () => Record<string, string>): Promise<Speaker[]> => {
-    const response = await fetch('/api/v1/speakers', {
+    const response = await fetch('/api/v1/speakers/', {
       headers: getAuthHeaders(),
     });
     if (!response.ok) {
@@ -42,7 +58,7 @@ export const speakersApi = {
     }
   },
 
-  getSegments: async (id: string, getAuthHeaders: () => Record<string, string>): Promise<any[]> => {
+  getSegments: async (id: string, getAuthHeaders: () => Record<string, string>): Promise<SpeakerSegment[]> => {
     const response = await fetch(`/api/v1/speakers/${id}/segments`, {
       headers: getAuthHeaders(),
     });
@@ -52,4 +68,8 @@ export const speakersApi = {
     }
     return response.json();
   },
+
+  getSegmentAudioUrl: (speakerId: string, segmentId: number): string => {
+    return `/api/v1/speakers/${speakerId}/segments/${segmentId}/audio`;
+  }
 };

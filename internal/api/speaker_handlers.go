@@ -2,6 +2,9 @@ package api
 
 import (
 	"net/http"
+	"os"
+	"os/exec"
+	"strconv"
 
 	"scriberr/pkg/logger"
 
@@ -102,4 +105,74 @@ func (h *Handler) GetSpeakerSegments(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, segments)
+}
+
+// GetSpeakerSegmentAudio returns the audio for a specific speaker segment
+// @Summary Get speaker segment audio
+// @Description Get the audio for a specific speaker segment, sliced from the original file
+// @Tags speakers
+// @Produce audio/mpeg
+// @Param id path string true "Speaker ID"
+// @Param segment_id path int true "Segment ID"
+// @Success 200 {file} binary
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/speakers/{id}/segments/{segment_id}/audio [get]
+func (h *Handler) GetSpeakerSegmentAudio(c *gin.Context) {
+	segmentIDStr := c.Param("segment_id")
+	segmentID, err := strconv.ParseUint(segmentIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid segment ID"})
+		return
+	}
+
+	segment, err := h.jobRepo.GetSpeakerSegmentByID(c.Request.Context(), uint(segmentID))
+	if err != nil {
+		c.JSON(http.StatusNotFound, ErrorResponse{Error: "Segment not found"})
+		return
+	}
+
+	job := segment.TranscriptionJob
+	audioPath := job.AudioPath
+	if job.IsMultiTrack && job.MergedAudioPath != nil && *job.MergedAudioPath != "" {
+		if _, err := os.Stat(*job.MergedAudioPath); err == nil {
+			audioPath = *job.MergedAudioPath
+		}
+	}
+
+	if _, err := os.Stat(audioPath); os.IsNotExist(err) {
+		c.JSON(http.StatusNotFound, ErrorResponse{Error: "Audio file not found"})
+		return
+	}
+
+	// Use ffmpeg to slice the audio segment
+	// ffmpeg -ss [start] -t [duration] -i [input] -f mp3 -
+	duration := segment.End - segment.Start
+	if duration <= 0 {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid segment duration"})
+		return
+	}
+
+	// Set content type
+	c.Header("Content-Type", "audio/mpeg")
+	c.Header("Transfer-Encoding", "chunked")
+
+	cmd := exec.Command("ffmpeg",
+		"-ss", strconv.FormatFloat(segment.Start, 'f', 3, 64),
+		"-t", strconv.FormatFloat(duration, 'f', 3, 64),
+		"-i", audioPath,
+		"-f", "mp3",
+		"-acodec", "libmp3lame",
+		"-ab", "128k",
+		"pipe:1",
+	)
+
+	cmd.Stdout = c.Writer
+	cmd.Stderr = os.Stderr // Log errors to stderr
+
+	if err := cmd.Run(); err != nil {
+		logger.Error("Failed to slice audio", "error", err)
+		// We can't send a JSON error here because headers are already sent
+		return
+	}
 }

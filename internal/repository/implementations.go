@@ -67,6 +67,7 @@ type JobRepository interface {
 	UpdateSummary(ctx context.Context, jobID string, summary string) error
 	SaveSpeakerSegments(ctx context.Context, segments []models.SpeakerSegment) error
 	GetSegmentsBySpeakerID(ctx context.Context, speakerID string) ([]models.SpeakerSegment, error)
+	GetSpeakerSegmentByID(ctx context.Context, segmentID uint) (*models.SpeakerSegment, error)
 }
 
 type jobRepository struct {
@@ -227,6 +228,18 @@ func (r *jobRepository) GetSegmentsBySpeakerID(ctx context.Context, speakerID st
 		Order("created_at DESC").
 		Find(&segments).Error
 	return segments, err
+}
+
+func (r *jobRepository) GetSpeakerSegmentByID(ctx context.Context, segmentID uint) (*models.SpeakerSegment, error) {
+	var segment models.SpeakerSegment
+	err := r.db.WithContext(ctx).
+		Preload("TranscriptionJob").
+		Where("id = ?", segmentID).
+		First(&segment).Error
+	if err != nil {
+		return nil, err
+	}
+	return &segment, nil
 }
 
 // APIKeyRepository handles API key operations
