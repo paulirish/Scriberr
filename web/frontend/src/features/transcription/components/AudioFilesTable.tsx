@@ -15,11 +15,7 @@ import {
 import { WandAdvancedIcon } from "@/components/icons/WandAdvancedIcon";
 // Checkbox removed
 
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { LazyTooltip } from "@/components/ui/lazy-tooltip";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -619,88 +615,67 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 			const { progress: progressInfo } = progress;
 			const percentage = Math.round(progressInfo.percentage || 0);
 			return (
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<div className="flex items-center gap-1.5 cursor-help text-blue-600">
-							<Loader2 className="h-4 w-4 animate-spin" />
-							<span className="text-xs font-medium tabular-nums">{percentage}%</span>
-						</div>
-					</TooltipTrigger>
-					<TooltipContent>Processing Multi-Track</TooltipContent>
-				</Tooltip>
+				<LazyTooltip content="Processing Multi-Track">
+					<div className="flex items-center gap-1.5 cursor-help text-blue-600">
+						<Loader2 className="h-4 w-4 animate-spin" />
+						<span className="text-xs font-medium tabular-nums">{percentage}%</span>
+					</div>
+				</LazyTooltip>
 			);
 		}
 
 		switch (status) {
 			case "completed":
 				return (
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<div className="cursor-help text-emerald-500">
-								<Check className="h-5 w-5" strokeWidth={2.5} />
-							</div>
-						</TooltipTrigger>
-						<TooltipContent>Completed</TooltipContent>
-					</Tooltip>
+					<LazyTooltip content="Completed">
+						<div className="cursor-help text-emerald-500">
+							<Check className="h-5 w-5" strokeWidth={2.5} />
+						</div>
+					</LazyTooltip>
 				);
 			case "processing":
 				return (
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<div className="cursor-help text-amber-500">
-								<Loader2 className="h-4 w-4 animate-spin" strokeWidth={2.5} />
-							</div>
-						</TooltipTrigger>
-						<TooltipContent>Processing</TooltipContent>
-					</Tooltip>
+					<LazyTooltip content="Processing">
+						<div className="cursor-help text-amber-500">
+							<Loader2 className="h-4 w-4 animate-spin" strokeWidth={2.5} />
+						</div>
+					</LazyTooltip>
 				);
 			case "failed":
 				return (
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<div className="cursor-help text-red-500">
-								<AlertCircle className="h-5 w-5" strokeWidth={2.5} />
-							</div>
-						</TooltipTrigger>
-						<TooltipContent>Failed</TooltipContent>
-					</Tooltip>
+					<LazyTooltip content="Failed">
+						<div className="cursor-help text-red-500">
+							<AlertCircle className="h-5 w-5" strokeWidth={2.5} />
+						</div>
+					</LazyTooltip>
 				);
 			case "pending": {
 				const position = queuePositions[file.id];
 				return (
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<div className="flex items-center gap-1.5 cursor-help">
-								<div className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 text-[10px] font-bold shadow-sm whitespace-nowrap">
-									#{position || "-"}
-								</div>
+					<LazyTooltip content={`Queue Position: #${position}`}>
+						<div className="flex items-center gap-1.5 cursor-help">
+							<div className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 text-[10px] font-bold shadow-sm whitespace-nowrap">
+								#{position || "-"}
 							</div>
-						</TooltipTrigger>
-						<TooltipContent>Queue Position: #{position}</TooltipContent>
-					</Tooltip>
+						</div>
+					</LazyTooltip>
 				);
 			}
 			case "uploaded":
 				return (
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<div className="cursor-help text-gray-300">
-								<Clock className="h-4 w-4" />
-							</div>
-						</TooltipTrigger>
-						<TooltipContent>Uploaded (Ready to Transcribe)</TooltipContent>
-					</Tooltip>
+					<LazyTooltip content="Uploaded (Ready to Transcribe)">
+						<div className="cursor-help text-gray-300">
+							<Clock className="h-4 w-4" />
+						</div>
+					</LazyTooltip>
 				);
 			default:
 				return (
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<div className="cursor-help text-gray-300">
-								<Clock className="h-4 w-4" />
-							</div>
-						</TooltipTrigger>
-						<TooltipContent>Unknown Status</TooltipContent>
-					</Tooltip>
+					<LazyTooltip content="Unknown Status">
+						<div className="cursor-help text-gray-300">
+							<Clock className="h-4 w-4" />
+						</div>
+					</LazyTooltip>
 				);
 		}
 	}, [trackProgress, queuePositions]);
@@ -822,64 +797,52 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 										>
 											{(file.status !== "processing" && file.status !== "pending") && (
 												<>
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<Button
-																variant="ghost"
-																size="icon"
-																onClick={() => handleTranscribeDClick(file.id)}
-																className="h-9 w-9 rounded-lg text-gray-400 hover:text-[var(--brand-solid)] hover:bg-orange-50 cursor-pointer transition-colors"
-															>
-																<Wand2 className="h-5 w-5" strokeWidth={2} />
-															</Button>
-														</TooltipTrigger>
-														<TooltipContent>Transcribe</TooltipContent>
-													</Tooltip>
+													<LazyTooltip content="Transcribe">
+														<Button
+															variant="ghost"
+															size="icon"
+															onClick={() => handleTranscribeDClick(file.id)}
+															className="h-9 w-9 rounded-lg text-gray-400 hover:text-[var(--brand-solid)] hover:bg-orange-50 cursor-pointer transition-colors"
+														>
+															<Wand2 className="h-5 w-5" strokeWidth={2} />
+														</Button>
+													</LazyTooltip>
 
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<Button
-																variant="ghost"
-																size="icon"
-																onClick={() => handleTranscribeClick(file.id)}
-																className="h-9 w-9 rounded-lg text-gray-400 hover:text-[var(--brand-solid)] hover:bg-orange-50 cursor-pointer transition-colors"
-															>
-																<WandAdvancedIcon className="h-5 w-5" strokeWidth={2} />
-															</Button>
-														</TooltipTrigger>
-														<TooltipContent>Transcribe (Advanced)</TooltipContent>
-													</Tooltip>
+													<LazyTooltip content="Transcribe (Advanced)">
+														<Button
+															variant="ghost"
+															size="icon"
+															onClick={() => handleTranscribeClick(file.id)}
+															className="h-9 w-9 rounded-lg text-gray-400 hover:text-[var(--brand-solid)] hover:bg-orange-50 cursor-pointer transition-colors"
+														>
+															<WandAdvancedIcon className="h-5 w-5" strokeWidth={2} />
+														</Button>
+													</LazyTooltip>
 												</>
 											)}
 
 											{(file.status === "processing" || file.status === "pending") ? (
-												<Tooltip>
-													<TooltipTrigger asChild>
-														<Button
-															variant="ghost"
-															size="icon"
-															onClick={() => handleStopClick(file)}
-															className="h-9 w-9 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
-														>
-															<StopCircle className="h-5 w-5" strokeWidth={2} />
-														</Button>
-													</TooltipTrigger>
-													<TooltipContent>Stop Transcription</TooltipContent>
-												</Tooltip>
+												<LazyTooltip content="Stop Transcription">
+													<Button
+														variant="ghost"
+														size="icon"
+														onClick={() => handleStopClick(file)}
+														className="h-9 w-9 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
+													>
+														<StopCircle className="h-5 w-5" strokeWidth={2} />
+													</Button>
+												</LazyTooltip>
 											) : (
-												<Tooltip>
-													<TooltipTrigger asChild>
-														<Button
-															variant="ghost"
-															size="icon"
-															onClick={() => handleDeleteClick(file)}
-															className="h-9 w-9 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
-														>
-															<Trash2 className="h-5 w-5" strokeWidth={2} />
-														</Button>
-													</TooltipTrigger>
-													<TooltipContent>Delete</TooltipContent>
-												</Tooltip>
+												<LazyTooltip content="Delete">
+													<Button
+														variant="ghost"
+														size="icon"
+														onClick={() => handleDeleteClick(file)}
+														className="h-9 w-9 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
+													>
+														<Trash2 className="h-5 w-5" strokeWidth={2} />
+													</Button>
+												</LazyTooltip>
 											)}
 										</div>
 
@@ -909,71 +872,59 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 						<div className="h-4 w-px bg-[var(--border-subtle)] mx-1" />
 
 						{/* Bulk Transcribe */}
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									onClick={() => setTranscribeDDialogOpen(true)}
-									disabled={bulkActionLoading}
-									className="h-9 w-9 rounded-full hover:bg-[var(--brand-light)] hover:text-[var(--brand-solid)] transition-colors"
-								>
-									<Wand2 className="h-4 w-4" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent>Transcribe Selected</TooltipContent>
-						</Tooltip>
+						<LazyTooltip content="Transcribe Selected">
+							<Button
+								variant="ghost"
+								size="icon"
+								onClick={() => setTranscribeDDialogOpen(true)}
+								disabled={bulkActionLoading}
+								className="h-9 w-9 rounded-full hover:bg-[var(--brand-light)] hover:text-[var(--brand-solid)] transition-colors"
+							>
+								<Wand2 className="h-4 w-4" />
+							</Button>
+						</LazyTooltip>
 
 						{/* Bulk Advanced Transcribe */}
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									onClick={() => setConfigDialogOpen(true)}
-									disabled={bulkActionLoading}
-									className="h-9 w-9 rounded-full hover:bg-[var(--brand-light)] hover:text-[var(--brand-solid)] transition-colors"
-								>
-									<WandAdvancedIcon className="h-4 w-4" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent>Transcribe (Advanced)</TooltipContent>
-						</Tooltip>
+						<LazyTooltip content="Transcribe (Advanced)">
+							<Button
+								variant="ghost"
+								size="icon"
+								onClick={() => setConfigDialogOpen(true)}
+								disabled={bulkActionLoading}
+								className="h-9 w-9 rounded-full hover:bg-[var(--brand-light)] hover:text-[var(--brand-solid)] transition-colors"
+							>
+								<WandAdvancedIcon className="h-4 w-4" />
+							</Button>
+						</LazyTooltip>
 
 						<div className="h-4 w-px bg-[var(--border-subtle)] mx-1" />
 
 						{/* Bulk Delete */}
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									onClick={() => setBulkDeleteDialogOpen(true)}
-									disabled={bulkActionLoading}
-									className="h-9 w-9 rounded-full hover:bg-red-50 hover:text-[var(--error)] transition-colors"
-								>
-									<Trash2 className="h-4 w-4" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent>Delete Selected</TooltipContent>
-						</Tooltip>
+						<LazyTooltip content="Delete Selected">
+							<Button
+								variant="ghost"
+								size="icon"
+								onClick={() => setBulkDeleteDialogOpen(true)}
+								disabled={bulkActionLoading}
+								className="h-9 w-9 rounded-full hover:bg-red-50 hover:text-[var(--error)] transition-colors"
+							>
+								<Trash2 className="h-4 w-4" />
+							</Button>
+						</LazyTooltip>
 
 						<div className="h-4 w-px bg-[var(--border-subtle)] mx-1" />
 
 						{/* Clear Selection */}
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									onClick={() => setRowSelection({})}
-									className="h-9 w-9 rounded-full hover:bg-[var(--bg-card)] hover:text-[var(--text-secondary)] transition-colors"
-								>
-									<X className="h-4 w-4" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent>Clear Selection</TooltipContent>
-						</Tooltip>
+						<LazyTooltip content="Clear Selection">
+							<Button
+								variant="ghost"
+								size="icon"
+								onClick={() => setRowSelection({})}
+								className="h-9 w-9 rounded-full hover:bg-[var(--bg-card)] hover:text-[var(--text-secondary)] transition-colors"
+							>
+								<X className="h-4 w-4" />
+							</Button>
+						</LazyTooltip>
 					</div>
 				</div>
 			)}
