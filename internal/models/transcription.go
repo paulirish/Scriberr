@@ -33,6 +33,7 @@ type TranscriptionJob struct {
 
 	// Relationships
 	MultiTrackFiles []MultiTrackFile `json:"multi_track_files,omitempty" gorm:"foreignKey:TranscriptionJobID"`
+	SpeakerMappings []SpeakerMapping `json:"speaker_mappings,omitempty" gorm:"foreignKey:TranscriptionJobID"`
 }
 
 // JobStatus represents the status of a transcription job

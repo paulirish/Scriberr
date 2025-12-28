@@ -578,30 +578,30 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 
 	// Polling handled by useQuery refetchInterval
 	/* const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-	
+
 	useEffect(() => {
 		const activeJobs = data.filter(
 			(job) => job.status === "pending" || job.status === "processing",
 		);
-	
+
 		// Clear any existing polling interval
 		if (pollingIntervalRef.current) {
 			clearInterval(pollingIntervalRef.current);
 			pollingIntervalRef.current = null;
 		}
-	
+
 		// Only poll if there are active jobs
 		if (activeJobs.length > 0) {
 			// Use shorter interval for processing jobs, longer for pending jobs
 			const hasProcessingJobs = activeJobs.some(job => job.status === "processing");
 			const pollingInterval = hasProcessingJobs ? 2000 : 5000; // 2s for processing, 5s for pending
-	
+
 			pollingIntervalRef.current = setInterval(() => {
 				// Keep current pagination when polling, but don't show loading indicators
 				fetchAudioFiles(undefined, undefined, undefined, false, true);
 			}, pollingInterval);
 		}
-	
+
 		return () => {
 			if (pollingIntervalRef.current) {
 				clearInterval(pollingIntervalRef.current);
@@ -801,6 +801,14 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 											</h4>
 											<div className="flex items-center gap-1.5 mt-1 text-sm text-gray-500">
 												{formatDate(file.created_at)}
+												{file.speaker_mappings && file.speaker_mappings.length > 0 && (
+													<>
+														<span className="text-gray-300 mx-0.5">•</span>
+														<span className="truncate max-w-[450px]">
+															{file.speaker_mappings.map(m => m.custom_name || m.original_speaker).join(", ")}
+														</span>
+													</>
+												)}
 											</div>
 										</div>
 									</div>

@@ -57,6 +57,10 @@ export interface AudioFile {
     diarization?: boolean;
     is_multi_track?: boolean;
     multi_track_files?: MultiTrackFile[];
+    speaker_mappings?: Array<{
+        original_speaker: string;
+        custom_name: string;
+    }>;
     merged_audio_path?: string;
     merge_status?: string;
     merge_error?: string;

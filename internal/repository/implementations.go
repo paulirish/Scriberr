@@ -81,6 +81,7 @@ func (r *jobRepository) FindWithAssociations(ctx context.Context, id string) (*m
 	var job models.TranscriptionJob
 	err := r.db.WithContext(ctx).
 		Preload("MultiTrackFiles").
+		Preload("SpeakerMappings").
 		Where("id = ?", id).
 		First(&job).Error
 	if err != nil {
@@ -93,7 +94,7 @@ func (r *jobRepository) ListWithParams(ctx context.Context, offset, limit int, s
 	var jobs []models.TranscriptionJob
 	var count int64
 
-	db := r.db.WithContext(ctx).Model(&models.TranscriptionJob{})
+	db := r.db.WithContext(ctx).Model(&models.TranscriptionJob{}).Preload("SpeakerMappings")
 
 	// Handle delta sync if updatedAfter provided
 	if updatedAfter != nil {
