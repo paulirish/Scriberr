@@ -666,6 +666,89 @@ func (suite *APIHandlerTestSuite) TestLogout() {
 	assert.Equal(suite.T(), 200, w.Code)
 }
 
+func (suite *APIHandlerTestSuite) TestDateExtractionFromFilename() {
+	testCases := []struct {
+		name          string
+		filename      string
+		title         string
+		expectedDate  time.Time
+		shouldExtract bool
+	}{
+		{
+			name:          "Classic rekt prefix",
+			filename:      "rekt_2025_06_09_Mon_PM_10_15_48-Pixel_7_Pro.aac",
+			title:         "rekt_2025_06_09_Mon_PM_10_15_48-Pixel_7_Pro.aac",
+			expectedDate:  time.Date(2025, 6, 9, 22, 15, 48, 0, time.UTC),
+			shouldExtract: true,
+		},
+		{
+			name:          "No prefix with extra info",
+			filename:      "2025_12_26_Fri_PM_12_15_23__11min.mp3",
+			title:         "2025_12_26_Fri_PM_12_15_23__11min",
+			expectedDate:  time.Date(2025, 12, 26, 12, 15, 23, 0, time.UTC),
+			shouldExtract: true,
+		},
+		{
+			name:          "No prefix simple",
+			filename:      "2025_01_01_Wed_AM_09_30_00.wav",
+			title:         "2025_01_01_Wed_AM_09_30_00",
+			expectedDate:  time.Date(2025, 1, 1, 9, 30, 0, 0, time.UTC),
+			shouldExtract: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			// Create a dummy audio file
+			tmpFile, err := os.CreateTemp("", "test_audio_*.mp3")
+			assert.NoError(suite.T(), err)
+			defer os.Remove(tmpFile.Name())
+			tmpFile.WriteString("dummy data")
+			tmpFile.Close()
+
+			// Create multipart form
+			body := &bytes.Buffer{}
+			writer := multipart.NewWriter(body)
+
+			// Add audio file with the specific filename
+			file, err := os.Open(tmpFile.Name())
+			assert.NoError(suite.T(), err)
+			part, err := writer.CreateFormFile("audio", tc.filename)
+			assert.NoError(suite.T(), err)
+			io.Copy(part, file)
+			file.Close()
+
+			// Add title
+			writer.WriteField("title", tc.title)
+			writer.WriteField("model", "base")
+			writer.Close()
+
+			req, _ := http.NewRequest("POST", "/api/v1/transcription/submit", body)
+			req.Header.Set("Content-Type", writer.FormDataContentType())
+			req.Header.Set("X-API-Key", suite.helper.TestAPIKey)
+
+			w := httptest.NewRecorder()
+			suite.router.ServeHTTP(w, req)
+
+			assert.Equal(suite.T(), 200, w.Code)
+
+			var response models.TranscriptionJob
+			err = json.Unmarshal(w.Body.Bytes(), &response)
+			assert.NoError(suite.T(), err)
+
+			if tc.shouldExtract {
+				// Compare parts to avoid timezone issues during local test execution
+				assert.Equal(suite.T(), tc.expectedDate.Year(), response.CreatedAt.Year(), "Year mismatch")
+				assert.Equal(suite.T(), tc.expectedDate.Month(), response.CreatedAt.Month(), "Month mismatch")
+				assert.Equal(suite.T(), tc.expectedDate.Day(), response.CreatedAt.Day(), "Day mismatch")
+				assert.Equal(suite.T(), tc.expectedDate.Hour(), response.CreatedAt.Hour(), "Hour mismatch")
+				assert.Equal(suite.T(), tc.expectedDate.Minute(), response.CreatedAt.Minute(), "Minute mismatch")
+				assert.Equal(suite.T(), tc.expectedDate.Second(), response.CreatedAt.Second(), "Second mismatch")
+			}
+		})
+	}
+}
+
 func TestAPIHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(APIHandlerTestSuite))
 }

@@ -1,11 +1,27 @@
 package models
 
 import (
+	"regexp"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+// ExtractDateFromTitle attempts to extract a date from a title string
+// supporting formats like rekt_2025_06_09_Mon_PM_10_15_48 or 2025_12_26_Fri_PM_12_15_23
+func ExtractDateFromTitle(title string) (*time.Time, bool) {
+	re := regexp.MustCompile(`(?:rekt_)?(\d{4}_\d{2}_\d{2}_[A-Za-z]{3}_(?:AM|PM)_\d{2}_\d{2}_\d{2})`)
+	matches := re.FindStringSubmatch(title)
+	if len(matches) > 1 {
+		layout := "2006_01_02_Mon_PM_03_04_05"
+		if t, err := time.Parse(layout, matches[1]); err == nil {
+			return &t, true
+		}
+	}
+	return nil, false
+}
+
 
 // TranscriptionJob represents a transcription job record
 type TranscriptionJob struct {

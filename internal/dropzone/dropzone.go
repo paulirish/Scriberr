@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -266,12 +265,9 @@ func (s *Service) uploadFile(sourcePath, originalFilename string) error {
 	}
 
 	// Hack: Extract CreatedAt from title if it matches rekt_YYYY_MM_DD_Day_AM/PM_HH_MM_SS
-	re := regexp.MustCompile(`rekt_(\d{4}_\d{2}_\d{2}_[A-Za-z]{3}_(?:AM|PM)_\d{2}_\d{2}_\d{2})`)
-	if matches := re.FindStringSubmatch(originalFilename); len(matches) > 1 {
-		layout := "2006_01_02_Mon_PM_03_04_05"
-		if t, err := time.Parse(layout, matches[1]); err == nil {
-			job.CreatedAt = t
-		}
+	// Example: rekt_2025_06_09_Mon_PM_10_15_48-Pixel_7_Pro.aac or 2025_12_26_Fri_PM_12_15_23__11min
+	if t, ok := models.ExtractDateFromTitle(originalFilename); ok {
+		job.CreatedAt = *t
 	}
 
 	// Save to database
