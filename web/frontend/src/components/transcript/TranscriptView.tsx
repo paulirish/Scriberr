@@ -263,11 +263,11 @@ export const TranscriptView = forwardRef<HTMLDivElement, TranscriptViewProps>(({
         }
 
         return (
-            <div className="space-y-4"> {/* Reduced spacing from space-y-6 */}
+            <div className="space-y-1"> {/* Reduced spacing from space-y-6 */}
                 {expandedData.map((segment, i) => (
-                    <div key={i} className="group flex flex-col sm:flex-row items-start gap-4 p-3 rounded-lg hover:bg-carbon-50 dark:hover:bg-carbon-800/50 transition-colors border border-transparent hover:border-carbon-100 dark:hover:border-carbon-800">
+                    <div key={i} className="group flex flex-col sm:flex-row items-start gap-4 rounded-lg hover:bg-carbon-50 dark:hover:bg-carbon-800/50 transition-colors border border-transparent hover:border-carbon-100 dark:hover:border-carbon-800">
                         {/* Timestamp & Speaker */}
-                        <div className="flex-shrink-0 w-24 sm:w-28 flex flex-col items-start sm:items-end gap-1 text-xs text-carbon-500 dark:text-carbon-400 select-none mt-1">
+                        <div className="flex-shrink-0 w-36 sm:w-40 flex flex-row items-start sm:items-end gap-1 text-xs text-carbon-500 dark:text-carbon-400 select-none mt-1">
                             <span
                                 className="font-mono bg-carbon-100 dark:bg-carbon-800/80 px-1.5 py-0.5 rounded text-[10px] sm:text-xs cursor-pointer hover:bg-carbon-200 dark:hover:bg-carbon-700 transition-colors"
                                 onClick={() => onTimestampClick?.(segment.start)}
