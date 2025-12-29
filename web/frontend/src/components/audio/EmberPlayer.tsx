@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 export interface EmberPlayerRef {
     seekTo: (time: number) => void;
     playPause: () => void;
+    play: () => void;
     isPlaying: () => boolean;
 }
 
@@ -41,6 +42,11 @@ export const EmberPlayer = forwardRef<EmberPlayerRef, EmberPlayerProps>(
                 }
             },
             playPause: () => togglePlay(),
+            play: () => {
+                audioRef.current?.play().catch(e => {
+                    console.error("Playback failed:", e);
+                });
+            },
             isPlaying: () => isPlaying
         }));
 

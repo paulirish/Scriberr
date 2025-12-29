@@ -190,6 +190,7 @@ export function TranscriptSection({
                             isPlaying={isPlaying}
                             notes={notes}
                             onSeek={onSeek}
+                            onTimestampClick={onSeek}
                             highlightedWordRef={highlightedWordRef}
                             speakerMappings={speakerMappings}
                             autoScrollEnabled={autoScrollEnabled}
