@@ -511,6 +511,11 @@ definitions:
     properties:
       created_at:
         type: string
+      embedding:
+        description: JSON-serialized float32 array
+        items:
+          type: integer
+        type: array
       end:
         type: number
       id:
@@ -1929,39 +1934,6 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       summary: Get speaker segments
-      tags:
-      - speakers
-  /api/v1/speakers/{id}/segments/{segment_id}/audio:
-    get:
-      description: Get the audio for a specific speaker segment, sliced from the original
-        file
-      parameters:
-      - description: Speaker ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Segment ID
-        in: path
-        name: segment_id
-        required: true
-        type: integer
-      produces:
-      - audio/mpeg
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: file
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-      summary: Get speaker segment audio
       tags:
       - speakers
   /api/v1/summaries:

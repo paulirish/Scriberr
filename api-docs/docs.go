@@ -1756,54 +1756,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/speakers/{id}/segments/{segment_id}/audio": {
-            "get": {
-                "description": "Get the audio for a specific speaker segment, sliced from the original file",
-                "produces": [
-                    "audio/mpeg"
-                ],
-                "tags": [
-                    "speakers"
-                ],
-                "summary": "Get speaker segment audio",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Speaker ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Segment ID",
-                        "name": "segment_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "file"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/summaries": {
             "get": {
                 "security": [
@@ -4817,6 +4769,13 @@ const docTemplate = `{
             "properties": {
                 "created_at": {
                     "type": "string"
+                },
+                "embedding": {
+                    "description": "JSON-serialized float32 array",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "end": {
                     "type": "number"
