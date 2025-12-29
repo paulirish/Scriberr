@@ -400,6 +400,26 @@ func (m *MockJobRepository) UpdateSummary(ctx context.Context, jobID string, sum
 	return args.Error(0)
 }
 
+func (m *MockJobRepository) SaveSpeakerSegments(ctx context.Context, segments []models.SpeakerSegment) error {
+	args := m.Called(ctx, segments)
+	return args.Error(0)
+}
+
+func (m *MockJobRepository) SaveSpeakerJobCentroids(ctx context.Context, centroids []models.SpeakerJobCentroid) error {
+	args := m.Called(ctx, centroids)
+	return args.Error(0)
+}
+
+func (m *MockJobRepository) GetSegmentsBySpeakerID(ctx context.Context, speakerID string) ([]models.SpeakerSegment, error) {
+	args := m.Called(ctx, speakerID)
+	return args.Get(0).([]models.SpeakerSegment), args.Error(1)
+}
+
+func (m *MockJobRepository) GetSegmentsBySpeakerIDs(ctx context.Context, speakerIDs []string) ([]models.SpeakerSegment, error) {
+	args := m.Called(ctx, speakerIDs)
+	return args.Get(0).([]models.SpeakerSegment), args.Error(1)
+}
+
 // NewMockOpenAIServer creates a new mock OpenAI server for testing
 func NewMockOpenAIServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
