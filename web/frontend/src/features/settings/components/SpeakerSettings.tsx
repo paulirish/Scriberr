@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { speakersApi, type Speaker, type SpeakerSegment } from "@/lib/speakersApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Play, Trash2, Edit2, Check, X, Volume2 } from "lucide-react";
 import { toast } from "sonner";
+import { getSpeakerColorStyles, speakerColorClass } from "@/lib/speakerColors";
+import { cn } from "@/lib/utils";
 
 export function SpeakerSettings() {
   const { getAuthHeaders } = useAuth();
@@ -12,6 +14,50 @@ export function SpeakerSettings() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+
+  // Single Audio Instance for voice samples
+  const audioRef = useRef<HTMLAudioElement>(new Audio());
+  const [activeSegmentId, setActiveSegmentId] = useState<number | null>(null);
+
+  const stopAudio = useCallback(() => {
+    const audio = audioRef.current;
+    audio.pause();
+    audio.ontimeupdate = null;
+    setActiveSegmentId(null);
+  }, []);
+
+  const playSegment = useCallback((url: string, start: number, end: number, segmentId: number) => {
+    const audio = audioRef.current;
+
+    // Stop current if any
+    audio.pause();
+    audio.ontimeupdate = null;
+
+    if (!audio.src.includes(url)) {
+      audio.src = url;
+    }
+
+    audio.currentTime = start;
+    audio.ontimeupdate = () => {
+      if (audio.currentTime >= end) {
+        audio.pause();
+        audio.ontimeupdate = null;
+        setActiveSegmentId(null);
+      }
+    };
+
+    audio.play().catch(console.error);
+    setActiveSegmentId(segmentId);
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      const audio = audioRef.current;
+      audio.pause();
+      audio.src = "";
+    };
+  }, []);
 
   const fetchSpeakers = async () => {
     try {
@@ -65,26 +111,29 @@ export function SpeakerSettings() {
           </p>
         </div>
 
-                <div className="space-y-4">
+        <div className="space-y-4">
 
-                  {speakers
-                    // .filter(s => s.id === "72e4deac-037e-4f61-b301-efb685d53f89" || s.id === "2d18b992-c7ec-436f-85d7-aa82b1e1267f")
-                    .map((speaker) => (
-                    <SpeakerRow
-                      key={speaker.id}
-              speaker={speaker}
-              onDelete={() => handleDelete(speaker.id)}
-              isEditing={editingId === speaker.id}
-              onEditStart={() => {
-                setEditingId(speaker.id);
-                setEditName(speaker.name);
-              }}
-              onEditCancel={() => setEditingId(null)}
-              onEditSave={() => handleRename(speaker.id)}
-              editName={editName}
-              onEditNameChange={setEditName}
-            />
-          ))}
+          {speakers
+            // .filter(s => s.id === "72e4deac-037e-4f61-b301-efb685d53f89" || s.id === "2d18b992-c7ec-436f-85d7-aa82b1e1267f")
+            .map((speaker) => (
+              <SpeakerRow
+                key={speaker.id}
+                speaker={speaker}
+                onDelete={() => handleDelete(speaker.id)}
+                isEditing={editingId === speaker.id}
+                onEditStart={() => {
+                  setEditingId(speaker.id);
+                  setEditName(speaker.name);
+                }}
+                onEditCancel={() => setEditingId(null)}
+                onEditSave={() => handleRename(speaker.id)}
+                editName={editName}
+                onEditNameChange={setEditName}
+                activeSegmentId={activeSegmentId}
+                onPlaySegment={playSegment}
+                onStopAudio={stopAudio}
+              />
+            ))}
           {speakers.length === 0 && (
             <div className="text-center py-8 text-[var(--text-tertiary)]">
               No speakers identified yet. Process some audio with diarization enabled to see them here.
@@ -104,7 +153,10 @@ function SpeakerRow({
   onEditCancel,
   onEditSave,
   editName,
-  onEditNameChange
+  onEditNameChange,
+  activeSegmentId,
+  onPlaySegment,
+  onStopAudio
 }: {
   speaker: Speaker;
   onDelete: () => void;
@@ -114,6 +166,9 @@ function SpeakerRow({
   onEditSave: () => void;
   editName: string;
   onEditNameChange: (val: string) => void;
+  activeSegmentId: number | null;
+  onPlaySegment: (url: string, start: number, end: number, id: number) => void;
+  onStopAudio: () => void;
 }) {
   const { getAuthHeaders } = useAuth();
   const [segments, setSegments] = useState<SpeakerSegment[]>([]);
@@ -156,7 +211,15 @@ function SpeakerRow({
             </div>
           ) : (
             <>
-              <h4 className="font-medium text-[var(--text-primary)]">{speaker.name}</h4>
+              <h4 
+                style={getSpeakerColorStyles(speaker.name)}
+                className={cn(
+                  "font-medium px-2 py-0.5 rounded-full text-sm border",
+                  speakerColorClass
+                )}
+              >
+                {speaker.name}
+              </h4>
               <button
                 onClick={onEditStart}
                 className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
@@ -167,7 +230,7 @@ function SpeakerRow({
           )}
         </div>
         <div className="flex items-center gap-2">
-           <span className="text-xs text-[var(--text-tertiary)] hidden sm:inline">
+          <span className="text-xs text-[var(--text-tertiary)] hidden sm:inline">
             ID: {speaker.id.slice(0, 8)}...
           </span>
           <Button size="icon" variant="ghost" className="h-8 w-8 text-[var(--text-tertiary)] hover:text-red-500" onClick={onDelete}>
@@ -181,7 +244,14 @@ function SpeakerRow({
           <div className="text-xs text-[var(--text-tertiary)] animate-pulse">Loading samples...</div>
         ) : (
           segments.map((seg) => (
-            <AudioChip key={seg.id} segment={seg} />
+            <AudioChip
+              key={seg.id}
+              segment={seg}
+              speakerName={speaker.name}
+              isPlaying={activeSegmentId === seg.id}
+              onPlay={() => onPlaySegment(`/api/v1/transcription/${seg.transcription_job_id}/audio`, seg.start, seg.end, seg.id)}
+              onStop={onStopAudio}
+            />
           ))
         )}
       </div>
@@ -189,59 +259,33 @@ function SpeakerRow({
   );
 }
 
-function AudioChip({ segment }: { segment: SpeakerSegment }) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUrl = `/api/v1/transcription/${segment.transcription_job_id}/audio`;
-
+function AudioChip({
+  segment,
+  speakerName,
+  isPlaying,
+  onPlay,
+  onStop
+}: {
+  segment: SpeakerSegment;
+  speakerName: string;
+  isPlaying: boolean;
+  onPlay: () => void;
+  onStop: () => void;
+}) {
   const duration = (segment.end - segment.start).toFixed(1);
-
-  const stopAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    }
-  };
-
-  const handleMouseEnter = () => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio(audioUrl);
-    }
-
-    const checkTime = () => {
-      if (audioRef.current && audioRef.current.currentTime >= segment.end) {
-        stopAudio();
-        audioRef.current.removeEventListener('timeupdate', checkTime);
-      }
-    };
-
-    audioRef.current.addEventListener('timeupdate', checkTime);
-    audioRef.current.currentTime = segment.start;
-    audioRef.current.play().catch(console.error);
-    setIsPlaying(true);
-  };
-
-  const handleMouseLeave = () => {
-    stopAudio();
-    if (audioRef.current) {
-      // Remove all listeners to be safe
-      audioRef.current.pause();
-      audioRef.current.currentTime = segment.start;
-    }
-  };
 
   return (
     <div
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      onClick={handleMouseEnter}
-      className={`
-        group flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all
-        ${isPlaying
-          ? 'bg-[var(--brand-gradient)] text-black shadow-md'
-          : 'bg-[var(--bg-main)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--brand-primary)]'
-        }
-      `}
+      onMouseEnter={onPlay}
+      onMouseLeave={onStop}
+      onClick={onPlay}
+      style={getSpeakerColorStyles(speakerName)}
+      className={cn(
+        "group flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all",
+        isPlaying
+          ? "bg-[var(--brand-gradient)] text-black shadow-md border-transparent"
+          : cn("bg-[var(--bg-main)] border hover:border-[var(--brand-primary)]", speakerColorClass)
+      )}
       title={segment.text}
     >
       {isPlaying ? <Volume2 className="h-3 w-3 animate-pulse" /> : <Play className="h-3 w-3 opacity-50 group-hover:opacity-100" />}

@@ -3,27 +3,7 @@ import { useKaraokeHighlight, computeWordOffsets, findActiveWordIndex } from '@/
 import { cn } from '@/lib/utils';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
 import type { Note } from '@/types/note';
-
-const speakerColors = [
-    'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300 border border-red-200 dark:border-red-800',
-    'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 border border-green-200 dark:border-green-800',
-    'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800',
-    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800',
-    'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300 border border-purple-200 dark:border-purple-800',
-    'bg-pink-100 text-pink-800 dark:bg-pink-900/50 dark:text-pink-300 border border-pink-200 dark:border-pink-800',
-    'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800',
-    'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300 border border-teal-200 dark:border-teal-800',
-];
-
-const getSpeakerColorClass = (speaker: string): string => {
-    // Simple hash function to get a consistent color for a speaker
-    let hash = 0;
-    for (let i = 0; i < speaker.length; i++) {
-        hash = speaker.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const index = Math.abs(hash % speakerColors.length);
-    return speakerColors[index];
-};
+import { getSpeakerColorStyles, speakerColorClass } from '@/lib/speakerColors';
 
 // Helper for cross-browser caret position
 function getCaretOffsetFromPoint(x: number, y: number) {
@@ -296,9 +276,10 @@ export const TranscriptView = forwardRef<HTMLDivElement, TranscriptViewProps>(({
                             </span>
                             {segment.speaker && (
                                 <span
+                                    style={getSpeakerColorStyles(getDisplaySpeakerName(segment.speaker))}
                                     className={cn(
-                                        "font-medium truncate max-w-full px-2 py-0.5 rounded-full text-xs",
-                                        getSpeakerColorClass(segment.speaker)
+                                        "font-medium truncate max-w-full px-2 py-0.5 rounded-full text-xs border",
+                                        speakerColorClass
                                     )}
                                     title={getDisplaySpeakerName(segment.speaker)}
                                 >

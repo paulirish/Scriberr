@@ -34,6 +34,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAudioListInfinite, type AudioFile } from "@/features/transcription/hooks/useAudioFiles";
 import { useTranscriptionEvents } from "@/features/transcription/hooks/useTranscriptionEvents";
+import { getSpeakerColorStyles, speakerColorClass } from "@/lib/speakerColors";
 
 const JobStatusMonitor = memo(function JobStatusMonitor({ jobId }: { jobId: string }) {
 	useTranscriptionEvents(jobId);
@@ -779,9 +780,23 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 												{file.speaker_mappings && file.speaker_mappings.length > 0 && (
 													<>
 														<span className="text-gray-300 mx-0.5">•</span>
-														<span className="truncate max-w-[450px]">
-															{file.speaker_mappings.map(m => m.custom_name || m.original_speaker).join(", ")}
-														</span>
+														<div className="flex flex-wrap gap-1.5 max-w-[450px]">
+															{file.speaker_mappings.map((m, idx) => {
+																const speakerName = m.custom_name || m.original_speaker;
+																return (
+																	<span
+																		key={idx}
+																		style={getSpeakerColorStyles(speakerName)}
+																		className={cn(
+																			"px-1.5 py-0.5 rounded-full text-[10px] font-medium leading-none border",
+																			speakerColorClass
+																		)}
+																	>
+																		{speakerName}
+																	</span>
+																);
+															})}
+														</div>
 													</>
 												)}
 											</div>
