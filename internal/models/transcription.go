@@ -1,11 +1,27 @@
 package models
 
 import (
+	"regexp"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+// ExtractDateFromTitle attempts to extract a date from a title string
+// supporting formats like rekt_2025_06_09_Mon_PM_10_15_48 or 2025_12_26_Fri_PM_12_15_23
+func ExtractDateFromTitle(title string) (*time.Time, bool) {
+	re := regexp.MustCompile(`(?:rekt_)?(\d{4}_\d{2}_\d{2}_[A-Za-z]{3}_(?:AM|PM)_\d{2}_\d{2}_\d{2})`)
+	matches := re.FindStringSubmatch(title)
+	if len(matches) > 1 {
+		layout := "2006_01_02_Mon_PM_03_04_05"
+		if t, err := time.Parse(layout, matches[1]); err == nil {
+			return &t, true
+		}
+	}
+	return nil, false
+}
+
 
 // TranscriptionJob represents a transcription job record
 type TranscriptionJob struct {
@@ -33,6 +49,7 @@ type TranscriptionJob struct {
 
 	// Relationships
 	MultiTrackFiles []MultiTrackFile `json:"multi_track_files,omitempty" gorm:"foreignKey:TranscriptionJobID"`
+	SpeakerMappings []SpeakerMapping `json:"speaker_mappings,omitempty" gorm:"foreignKey:TranscriptionJobID"`
 }
 
 // JobStatus represents the status of a transcription job
@@ -353,6 +370,41 @@ type SpeakerMapping struct {
 // Ensure unique constraint on job_id + original_speaker combination
 func (SpeakerMapping) TableName() string {
 	return "speaker_mappings"
+}
+
+// SpeakerSegment represents a timestamped audio segment associated with a specific speaker
+type SpeakerSegment struct {
+	ID                 uint      `json:"id" gorm:"primaryKey;autoIncrement"`
+	TranscriptionJobID string    `json:"transcription_job_id" gorm:"type:varchar(36);not null;index"`
+	SpeakerID          string    `json:"speaker_id" gorm:"type:varchar(100);not null;index"` // The global speaker ID (UUID) or local name
+	Start              float64   `json:"start" gorm:"type:real;not null"`
+	End                float64   `json:"end" gorm:"type:real;not null"`
+	Text               string    `json:"text" gorm:"type:text"`
+	Embedding          []byte    `json:"embedding,omitempty" gorm:"type:blob"` // JSON-serialized float32 array
+	CreatedAt          time.Time `json:"created_at" gorm:"autoCreateTime"`
+
+	// Relationships
+	TranscriptionJob TranscriptionJob `json:"transcription_job,omitempty" gorm:"foreignKey:TranscriptionJobID;constraint:OnDelete:CASCADE"`
+}
+
+func (SpeakerSegment) TableName() string {
+	return "speaker_segments"
+}
+
+// SpeakerJobCentroid represents the averaged embedding for a speaker within a specific job
+type SpeakerJobCentroid struct {
+	ID                 uint      `json:"id" gorm:"primaryKey;autoIncrement"`
+	TranscriptionJobID string    `json:"transcription_job_id" gorm:"type:varchar(36);not null;index"`
+	SpeakerID          string    `json:"speaker_id" gorm:"type:varchar(100);not null;index"`
+	Centroid           []byte    `json:"centroid" gorm:"type:blob"` // JSON-serialized float32 array
+	CreatedAt          time.Time `json:"created_at" gorm:"autoCreateTime"`
+
+	// Relationships
+	TranscriptionJob TranscriptionJob `json:"transcription_job,omitempty" gorm:"foreignKey:TranscriptionJobID;constraint:OnDelete:CASCADE"`
+}
+
+func (SpeakerJobCentroid) TableName() string {
+	return "speaker_job_centroids"
 }
 
 // MultiTrackFile represents an individual audio track in a multi-track recording

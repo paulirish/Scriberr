@@ -33,7 +33,7 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
     className = ''
 }, ref) => {
     const { theme } = useTheme();
-    const { token, isInitialized } = useAuth();
+    const { isInitialized, getAuthHeaders } = useAuth();
     const containerRef = useRef<HTMLDivElement>(null);
     const wavesurferRef = useRef<WaveSurfer | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -42,8 +42,6 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
     const [isPlaying, setIsPlaying] = useState(false);
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
-    const [audioUrl, setAudioUrl] = useState<string | null>(null);
-
 
     useImperativeHandle(ref, () => ({
         playPause: () => wavesurferRef.current?.playPause(),
@@ -57,9 +55,7 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
     useEffect(() => {
         if (!isInitialized || !audioId) return;
 
-        let objectUrl: string | null = null;
-
-        const fetchAudio = async () => {
+        const initWaveSurfer = async () => {
             try {
                 setIsLoading(true);
                 setError(null);
@@ -143,11 +139,13 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
             }
         };
 
+        initWaveSurfer();
 
         return () => {
-            subscriptions.forEach(unsub => unsub());
-            ws.destroy();
-            wavesurferRef.current = null;
+            if (wavesurferRef.current) {
+                wavesurferRef.current.destroy();
+                wavesurferRef.current = null;
+            }
         };
     }, [audioId, theme, getAuthHeaders]); // eslint-disable-line react-hooks/exhaustive-deps
 

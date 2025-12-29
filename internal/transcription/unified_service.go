@@ -13,7 +13,6 @@ import (
 
 	"scriberr/internal/models"
 	"scriberr/internal/repository"
-	"scriberr/internal/transcription/adapters"
 	"scriberr/internal/sse"
 	"scriberr/internal/transcription/interfaces"
 	"scriberr/internal/transcription/pipeline"
@@ -49,7 +48,6 @@ type UnifiedTranscriptionService struct {
 	defaultModelIDs       map[string]string      // Default model IDs for each task type
 	multiTrackTranscriber *MultiTrackTranscriber // For termination support
 	jobRepo               repository.JobRepository
-	titanetAdapter        *adapters.TitanetAdapter // Speaker identification adapter
 	webhookService        *webhook.Service
 	broadcaster           *sse.Broadcaster
 }
@@ -68,8 +66,6 @@ func NewUnifiedTranscriptionService(jobRepo repository.JobRepository) *UnifiedTr
 			"diarization":   ModelPyannote,
 		},
 		jobRepo:        jobRepo,
-		// Assuming shared environment path for now, consistent with SortformerAdapter
-		titanetAdapter: adapters.NewTitanetAdapter("data/whisperx-env/parakeet/"),
 		webhookService: webhook.NewService(),
 	}
 }
@@ -94,12 +90,6 @@ func (u *UnifiedTranscriptionService) Initialize(ctx context.Context) error {
 	// Initialize all registered models
 	if err := u.registry.InitializeModels(ctx); err != nil {
 		return fmt.Errorf("failed to initialize models: %w", err)
-	}
-
-	// Initialize TitaNet adapter
-	if err := u.titanetAdapter.PrepareEnvironment(ctx); err != nil {
-		// Log warning but don't fail, as other models might still work
-		logger.Warn("Failed to initialize TitaNet adapter", "error", err)
 	}
 
 	logger.Info("Unified transcription service initialized successfully")
@@ -335,12 +325,14 @@ func (u *UnifiedTranscriptionService) processSingleTrackJob(ctx context.Context,
 			// Note: We might want a flag to enable/disable this feature
 			// For now, let's assume it's enabled if initialized
 			if diarizationResult != nil && diarizationResult.SpeakerCount > 0 {
-				logger.Info("Running speaker identification")
-				identifiedResult, err := u.titanetAdapter.IdentifySpeakers(ctx, preprocessedInput, diarizationResult, nil, procCtx)
-				if err != nil {
-					logger.Warn("Speaker identification failed, using local speaker IDs", "error", err)
-				} else {
-					diarizationResult = identifiedResult
+				if identificationAdapter, err := u.registry.GetIdentificationAdapter("titanet"); err == nil {
+					logger.Info("Running speaker identification")
+					identifiedResult, err := identificationAdapter.IdentifySpeakers(ctx, preprocessedInput, diarizationResult, nil, procCtx)
+					if err != nil {
+						logger.Warn("Speaker identification failed, using local speaker IDs", "error", err)
+					} else {
+						diarizationResult = identifiedResult
+					}
 				}
 			}
 
@@ -351,11 +343,9 @@ func (u *UnifiedTranscriptionService) processSingleTrackJob(ctx context.Context,
 		}
 	}
 
-	// Save results to database
-	if transcriptResult != nil {
-		if err := u.saveTranscriptionResults(job.ID, transcriptResult); err != nil {
-			return fmt.Errorf("failed to save transcription results: %w", err)
-		}
+	// Step 4: Save results to database
+	if err := u.saveTranscriptionResults(ctx, job.ID, transcriptResult, diarizationResult); err != nil {
+		return fmt.Errorf("failed to save transcription results: %w", err)
 	}
 
 	return nil
@@ -870,7 +860,7 @@ func (u *UnifiedTranscriptionService) findBestSpeakerForSegment(start, end float
 }
 
 // saveTranscriptionResults saves the transcription results to the database
-func (u *UnifiedTranscriptionService) saveTranscriptionResults(jobID string, result *interfaces.TranscriptResult) error {
+func (u *UnifiedTranscriptionService) saveTranscriptionResults(ctx context.Context, jobID string, result *interfaces.TranscriptResult, diarizationResult *interfaces.DiarizationResult) error {
 	// Convert result to JSON string for database storage
 	resultJSON, err := u.convertTranscriptResultToJSON(result)
 	if err != nil {
@@ -878,14 +868,62 @@ func (u *UnifiedTranscriptionService) saveTranscriptionResults(jobID string, res
 	}
 
 	// Update the job in the database
-	if err := u.jobRepo.UpdateTranscript(context.Background(), jobID, resultJSON); err != nil {
+	if err := u.jobRepo.UpdateTranscript(ctx, jobID, resultJSON); err != nil {
 		return fmt.Errorf("failed to update job transcript: %w", err)
 	}
 
-	logger.Info("Saved transcription results", "job_id", jobID, "text_length", len(result.Text))
+	// Save speaker segments for UI/playback
+	if len(result.Segments) > 0 {
+		speakerSegments := make([]models.SpeakerSegment, 0, len(result.Segments))
+		for _, seg := range result.Segments {
+			// Only save segments used for speaker identification (Reference segments)
+			if !seg.IsReference {
+				continue
+			}
+
+			speakerID := "Unknown"
+			if seg.Speaker != nil {
+				speakerID = *seg.Speaker
+			}
+
+			var embeddingBytes []byte
+			if len(seg.Embedding) > 0 {
+				embeddingBytes, _ = json.Marshal(seg.Embedding)
+			}
+
+			speakerSegments = append(speakerSegments, models.SpeakerSegment{
+				TranscriptionJobID: jobID,
+				SpeakerID:          speakerID,
+				Start:              seg.Start,
+				End:                seg.End,
+				Text:               seg.Text,
+				Embedding:          embeddingBytes,
+			})
+		}
+
+		if err := u.jobRepo.SaveSpeakerSegments(ctx, speakerSegments); err != nil {
+			logger.Error("Failed to save speaker segments", "job_id", jobID, "error", err)
+		}
+	}
+
+	// Save speaker job-level centroids
+	if diarizationResult != nil && len(diarizationResult.SpeakerCentroids) > 0 {
+		centroids := make([]models.SpeakerJobCentroid, 0, len(diarizationResult.SpeakerCentroids))
+		for speakerID, centroid := range diarizationResult.SpeakerCentroids {
+			centroidBytes, _ := json.Marshal(centroid)
+			centroids = append(centroids, models.SpeakerJobCentroid{
+				TranscriptionJobID: jobID,
+				SpeakerID:          speakerID,
+				Centroid:           centroidBytes,
+			})
+		}
+		if err := u.jobRepo.SaveSpeakerJobCentroids(ctx, centroids); err != nil {
+			logger.Error("Failed to save speaker centroids", "job_id", jobID, "error", err)
+		}
+	}
+
 	return nil
 }
-
 // convertTranscriptResultToJSON converts the interface result to JSON format
 func (u *UnifiedTranscriptionService) convertTranscriptResultToJSON(result *interfaces.TranscriptResult) (string, error) {
 	// Now that the struct fields match the JSON field names, we can directly marshal

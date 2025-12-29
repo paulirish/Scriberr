@@ -2,6 +2,7 @@ package transcription
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -131,6 +132,24 @@ func (m *MockJobRepository) CountByStatus(ctx context.Context, status models.Job
 func (m *MockJobRepository) UpdateSummary(ctx context.Context, jobID string, summary string) error {
 	args := m.Called(ctx, jobID, summary)
 	return args.Error(0)
+}
+
+func (m *MockJobRepository) SaveSpeakerSegments(ctx context.Context, segments []models.SpeakerSegment) error {
+	args := m.Called(ctx, segments)
+	return args.Error(0)
+}
+
+func (m *MockJobRepository) GetSegmentsBySpeakerID(ctx context.Context, speakerID string) ([]models.SpeakerSegment, error) {
+	args := m.Called(ctx, speakerID)
+	return args.Get(0).([]models.SpeakerSegment), args.Error(1)
+}
+
+func (m *MockJobRepository) GetSpeakerSegmentByID(ctx context.Context, id uint) (*models.SpeakerSegment, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.SpeakerSegment), args.Error(1)
 }
 
 // MockTranscriptionAdapter is a mock implementation of TranscriptionAdapter
@@ -303,6 +322,25 @@ func TestParakeetAdapter(t *testing.T) {
 	if err := adapter.ValidateParameters(validParams); err != nil {
 		t.Errorf("Valid parameters failed validation: %v", err)
 	}
+}
+
+func TestParakeetPrepareEnvironment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+	dir, _ := os.Getwd()
+	t.Logf("Current workisng directory: %s", dir)
+	envPath := "../../data/whisperx-env/parakeet"
+	adapter := adapters.NewParakeetAdapter(envPath)
+	registry.RegisterTranscriptionAdapter("parakeet", adapter)
+
+	ctx := context.Background()
+	start := time.Now()
+	err := adapter.PrepareEnvironment(ctx)
+	if err != nil {
+		t.Fatalf("Failed to prepare environment: %v", err)
+	}
+	t.Logf("PrepareEnvironment took %v", time.Since(start))
 }
 
 func TestCanaryAdapter(t *testing.T) {

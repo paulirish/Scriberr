@@ -57,11 +57,13 @@ type AudioInput struct {
 
 // TranscriptSegment represents a segment of transcribed audio
 type TranscriptSegment struct {
-	Start    float64 `json:"start"`
-	End      float64 `json:"end"`
-	Text     string  `json:"text"`
-	Speaker  *string `json:"speaker,omitempty"`
-	Language *string `json:"language,omitempty"`
+	Start       float64   `json:"start"`
+	End         float64   `json:"end"`
+	Text        string    `json:"text"`
+	Speaker     *string   `json:"speaker,omitempty"`
+	Language    *string   `json:"language,omitempty"`
+	IsReference bool      `json:"is_reference,omitempty"`
+	Embedding   []float32 `json:"embedding,omitempty"`
 }
 
 // TranscriptWord represents word-level timing information
@@ -95,12 +97,13 @@ type DiarizationSegment struct {
 
 // DiarizationResult represents the output of speaker diarization
 type DiarizationResult struct {
-	Segments       []DiarizationSegment `json:"segments"`
-	SpeakerCount   int                  `json:"speaker_count"`
-	Speakers       []string             `json:"speakers"`
-	ProcessingTime time.Duration        `json:"processing_time"`
-	ModelUsed      string               `json:"model_used"`
-	Metadata       map[string]string    `json:"metadata"`
+	Segments         []DiarizationSegment `json:"segments"`
+	SpeakerCount     int                  `json:"speaker_count"`
+	Speakers         []string             `json:"speakers"`
+	SpeakerCentroids map[string][]float32 `json:"speaker_centroids,omitempty"`
+	ProcessingTime   time.Duration        `json:"processing_time"`
+	ModelUsed        string               `json:"model_used"`
+	Metadata         map[string]string    `json:"metadata"`
 }
 
 // ProcessingContext contains context information for processing
@@ -168,6 +171,38 @@ type CompositeAdapter interface {
 
 	// ProcessCombined performs both transcription and diarization in an optimized way
 	ProcessCombined(ctx context.Context, input AudioInput, params map[string]interface{}, procCtx ProcessingContext) (*TranscriptResult, *DiarizationResult, error)
+}
+
+// SpeakerIdentificationAdapter handles identifying specific speakers using a vector database
+type SpeakerIdentificationAdapter interface {
+	ModelAdapter
+
+	// IdentifySpeakers runs the identification process on diarization segments
+	IdentifySpeakers(ctx context.Context, input AudioInput, diarizationResult *DiarizationResult, params map[string]interface{}, procCtx ProcessingContext) (*DiarizationResult, error)
+}
+
+// SpeakerInfo represents a speaker in the identity store
+type SpeakerInfo struct {
+	ID        string  `json:"id"`
+	Name      string  `json:"name"`
+	CreatedAt float64 `json:"created_at"`
+}
+
+// SpeakerManagementAdapter handles managing speaker identities in a persistent store
+type SpeakerManagementAdapter interface {
+	SpeakerIdentificationAdapter
+
+	// ListSpeakers retrieves all speakers from the store
+	ListSpeakers(ctx context.Context) ([]SpeakerInfo, error)
+
+	// GetSpeaker retrieves a single speaker from the store
+	GetSpeaker(ctx context.Context, id string) (*SpeakerInfo, error)
+
+	// RenameSpeaker updates a speaker's name
+	RenameSpeaker(ctx context.Context, id, newName string) error
+
+	// DeleteSpeaker removes a speaker from the store
+	DeleteSpeaker(ctx context.Context, id string) error
 }
 
 // ModelRequirements specifies what capabilities are needed for a job

@@ -294,6 +294,20 @@ func (h *Handler) UploadAudio(c *gin.Context) {
 		job.Title = &title
 	}
 
+	if createdAtStr := c.PostForm(paramCreatedAt); createdAtStr != "" {
+		if t, err := time.Parse(time.RFC3339, createdAtStr); err == nil {
+			job.CreatedAt = t
+		}
+	}
+
+	// Hack: Extract CreatedAt from title if it matches rekt_YYYY_MM_DD_Day_AM/PM_HH_MM_SS
+	// Example: rekt_2025_06_09_Mon_PM_10_15_48-Pixel_7_Pro.aac or 2025_12_26_Fri_PM_12_15_23__11min
+	if job.Title != nil {
+		if t, ok := models.ExtractDateFromTitle(*job.Title); ok {
+			job.CreatedAt = *t
+		}
+	}
+
 	// Save to database using Repository
 	if err := h.jobRepo.Create(c.Request.Context(), &job); err != nil {
 		_ = h.fileService.RemoveFile(filePath) // Clean up file
@@ -746,21 +760,28 @@ func (h *Handler) SubmitJob(c *gin.Context) {
 	params.DiarizeModel = diarizeModel
 
 	// Create job
-	job := models.TranscriptionJob{
-		ID:          jobID,
-		AudioPath:   filePath,
-		Status:      models.StatusPending,
-		Diarization: diarize,
-		Parameters:  params,
-	}
-
-	if title := c.PostForm(paramTitle); title != "" {
-		job.Title = &title
-	}
-
-	// Save to database
-	if err := h.jobRepo.Create(c.Request.Context(), &job); err != nil {
-		_ = h.fileService.RemoveFile(filePath)
+	    job := models.TranscriptionJob{
+	        ID:          jobID,
+	        AudioPath:   filePath,
+	        Status:      models.StatusPending,
+	        Diarization: diarize,
+	        Parameters:  params,
+	    }
+	
+	    if title := c.PostForm(paramTitle); title != "" {
+	        job.Title = &title
+	    }
+	
+	    // Hack: Extract CreatedAt from title if it matches rekt_YYYY_MM_DD_Day_AM/PM_HH_MM_SS
+	    // Example: rekt_2025_06_09_Mon_PM_10_15_48-Pixel_7_Pro.aac or 2025_12_26_Fri_PM_12_15_23__11min
+	    if job.Title != nil {
+	        if t, ok := models.ExtractDateFromTitle(*job.Title); ok {
+	            job.CreatedAt = *t
+	        }
+	    }
+	
+	    // Save to database
+	    if err := h.jobRepo.Create(c.Request.Context(), &job); err != nil {		_ = h.fileService.RemoveFile(filePath)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create job"})
 		return
 	}

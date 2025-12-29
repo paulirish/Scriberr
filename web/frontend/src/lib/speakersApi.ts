@@ -4,12 +4,31 @@ export interface Speaker {
   created_at: number;
 }
 
+export interface Speaker {
+  id: string;
+  name: string;
+  created_at: number;
+}
+
+export interface SpeakerSegment {
+  id: number;
+  transcription_job_id: string;
+  speaker_id: string;
+  start: number;
+  end: number;
+  text: string;
+  created_at: string;
+}
+
 export const speakersApi = {
   list: async (getAuthHeaders: () => Record<string, string>): Promise<Speaker[]> => {
-    const response = await fetch('/api/v1/speakers', {
+    const response = await fetch('/api/v1/speakers/', {
       headers: getAuthHeaders(),
     });
-    if (!response.ok) throw new Error('Failed to fetch speakers');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to fetch speakers');
+    }
     return response.json();
   },
 
@@ -22,7 +41,10 @@ export const speakersApi = {
       },
       body: JSON.stringify({ name }),
     });
-    if (!response.ok) throw new Error('Failed to rename speaker');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to rename speaker');
+    }
   },
 
   delete: async (id: string, getAuthHeaders: () => Record<string, string>): Promise<void> => {
@@ -30,6 +52,20 @@ export const speakersApi = {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
-    if (!response.ok) throw new Error('Failed to delete speaker');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to delete speaker');
+    }
   },
+
+  getSegments: async (id: string, getAuthHeaders: () => Record<string, string>): Promise<SpeakerSegment[]> => {
+    const response = await fetch(`/api/v1/speakers/${id}/segments`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to fetch speaker segments');
+    }
+    return response.json();
+  }
 };

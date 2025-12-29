@@ -262,6 +262,7 @@ func SetupRoutes(handler *Handler, authService *auth.AuthService) *gin.Engine {
 			speakers.GET("/", handler.ListSpeakers)
 			speakers.PUT("/:id", handler.RenameSpeaker)
 			speakers.DELETE("/:id", handler.DeleteSpeaker)
+			speakers.GET("/:id/segments", handler.GetSpeakerSegments)
 		}
 	}
 

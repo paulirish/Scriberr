@@ -259,6 +259,17 @@ func (s *Service) uploadFile(sourcePath, originalFilename string) error {
 		Title:     &originalFilename, // Use original filename as title
 	}
 
+	// Set CreatedAt from original file
+	if info, err := os.Stat(sourcePath); err == nil {
+		job.CreatedAt = getFileCreationTime(info)
+	}
+
+	// Hack: Extract CreatedAt from title if it matches rekt_YYYY_MM_DD_Day_AM/PM_HH_MM_SS
+	// Example: rekt_2025_06_09_Mon_PM_10_15_48-Pixel_7_Pro.aac or 2025_12_26_Fri_PM_12_15_23__11min
+	if t, ok := models.ExtractDateFromTitle(originalFilename); ok {
+		job.CreatedAt = *t
+	}
+
 	// Save to database
 	if err := s.jobRepo.Create(context.Background(), &job); err != nil {
 		os.Remove(destPath) // Clean up file on database error
@@ -323,4 +334,8 @@ func (s *Service) copyFile(src, dst string) error {
 	}
 
 	return destFile.Sync()
+}
+
+func getFileCreationTime(info os.FileInfo) time.Time {
+	return getFileCreationTimeOS(info)
 }

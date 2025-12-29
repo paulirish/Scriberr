@@ -135,7 +135,7 @@ func (p *ParakeetAdapter) PrepareEnvironment(ctx context.Context) error {
 	}
 
 	// Check if environment is already ready (using cache to speed up repeated checks)
-	if CheckEnvironmentReady(p.envPath, "import nemo.collections.asr") {
+	if CheckEnvironmentReady(p.envPath, "import nemo") {
 		modelPath := filepath.Join(p.envPath, "parakeet-tdt-0.6b-v3.nemo")
 		scriptPath := filepath.Join(p.envPath, "parakeet_transcribe.py")
 		bufferedScriptPath := filepath.Join(p.envPath, "parakeet_transcribe_buffered.py")
@@ -158,8 +158,8 @@ func (p *ParakeetAdapter) PrepareEnvironment(ctx context.Context) error {
 		logger.Info("Parakeet environment not ready, setting up")
 	}
 
-	// Setup environment
-	if err := p.setupParakeetEnvironment(); err != nil {
+	// Setup environment (shared with other NVIDIA adapters)
+	if err := EnsureEnvironment(p.envPath, p.setupParakeetEnvironment); err != nil {
 		return fmt.Errorf("failed to setup Parakeet environment: %w", err)
 	}
 

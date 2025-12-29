@@ -18,6 +18,7 @@ type ModelRegistry struct {
 	transcriptionAdapters map[string]interfaces.TranscriptionAdapter
 	diarizationAdapters   map[string]interfaces.DiarizationAdapter
 	compositeAdapters     map[string]interfaces.CompositeAdapter
+	identificationAdapters map[string]interfaces.SpeakerIdentificationAdapter
 	capabilities          map[string]interfaces.ModelCapabilities
 	initialized           bool
 }
@@ -30,10 +31,11 @@ var registryOnce sync.Once
 func GetRegistry() *ModelRegistry {
 	registryOnce.Do(func() {
 		globalRegistry = &ModelRegistry{
-			transcriptionAdapters: make(map[string]interfaces.TranscriptionAdapter),
-			diarizationAdapters:   make(map[string]interfaces.DiarizationAdapter),
-			compositeAdapters:     make(map[string]interfaces.CompositeAdapter),
-			capabilities:          make(map[string]interfaces.ModelCapabilities),
+			transcriptionAdapters:  make(map[string]interfaces.TranscriptionAdapter),
+			diarizationAdapters:    make(map[string]interfaces.DiarizationAdapter),
+			compositeAdapters:      make(map[string]interfaces.CompositeAdapter),
+			identificationAdapters: make(map[string]interfaces.SpeakerIdentificationAdapter),
+			capabilities:           make(map[string]interfaces.ModelCapabilities),
 		}
 	})
 	return globalRegistry
@@ -84,6 +86,21 @@ func RegisterCompositeAdapter(modelID string, adapter interfaces.CompositeAdapte
 		"display_name", adapter.GetCapabilities().DisplayName)
 }
 
+// RegisterIdentificationAdapter registers a speaker identification model adapter
+func RegisterIdentificationAdapter(modelID string, adapter interfaces.SpeakerIdentificationAdapter) {
+	registry := GetRegistry()
+	registry.mu.Lock()
+	defer registry.mu.Unlock()
+
+	registry.identificationAdapters[modelID] = adapter
+	registry.capabilities[modelID] = adapter.GetCapabilities()
+
+	logger.Debug("Registered identification adapter",
+		"model_id", modelID,
+		"family", adapter.GetCapabilities().ModelFamily,
+		"display_name", adapter.GetCapabilities().DisplayName)
+}
+
 // GetTranscriptionAdapter retrieves a transcription adapter by ID
 func (r *ModelRegistry) GetTranscriptionAdapter(modelID string) (interfaces.TranscriptionAdapter, error) {
 	r.mu.RLock()
@@ -128,6 +145,18 @@ func (r *ModelRegistry) GetCompositeAdapter(modelID string) (interfaces.Composit
 	}
 
 	return nil, fmt.Errorf("composite adapter not found: %s", modelID)
+}
+
+// GetIdentificationAdapter retrieves a speaker identification adapter by ID
+func (r *ModelRegistry) GetIdentificationAdapter(modelID string) (interfaces.SpeakerIdentificationAdapter, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	if adapter, exists := r.identificationAdapters[modelID]; exists {
+		return adapter, nil
+	}
+
+	return nil, fmt.Errorf("identification adapter not found: %s", modelID)
 }
 
 // GetCapabilities returns the capabilities of a model
@@ -402,45 +431,52 @@ func (r *ModelRegistry) InitializeModels(ctx context.Context) error {
 
 	logger.Info("Initializing registered models in parallel...")
 
-	var wg sync.WaitGroup
-	initErrors := make(chan error, len(r.transcriptionAdapters)+len(r.diarizationAdapters)+len(r.compositeAdapters))
+	go func() {
+		var wg sync.WaitGroup
+		initErrors := make(chan error, len(r.transcriptionAdapters)+len(r.diarizationAdapters)+len(r.compositeAdapters)+len(r.identificationAdapters))
 
-	// Helper function to initialize an adapter
-	initAdapter := func(id string, adapter interface {
-		PrepareEnvironment(context.Context) error
-	}, typeName string) {
-		defer wg.Done()
-		logger.Debug(fmt.Sprintf("Initializing %s model", typeName), "model_id", id)
-		if err := adapter.PrepareEnvironment(ctx); err != nil {
-			logger.Error(fmt.Sprintf("Failed to initialize %s model", typeName),
-				"model_id", id, "error", err)
-			initErrors <- fmt.Errorf("%s model %s: %w", typeName, id, err)
-		} else {
-			logger.Info(fmt.Sprintf("%s model initialized", typeName), "model_id", id)
+		// Helper function to initialize an adapter
+		initAdapter := func(id string, adapter interface {
+			PrepareEnvironment(context.Context) error
+		}, typeName string) {
+			defer wg.Done()
+			logger.Debug(fmt.Sprintf("Initializing %s model", typeName), "model_id", id)
+			if err := adapter.PrepareEnvironment(ctx); err != nil {
+				logger.Error(fmt.Sprintf("Failed to initialize %s model", typeName),
+					"model_id", id, "error", err)
+				initErrors <- fmt.Errorf("%s model %s: %w", typeName, id, err)
+			} else {
+				logger.Info(fmt.Sprintf("%s model initialized", typeName), "model_id", id)
+			}
 		}
-	}
 
-	// Initialize transcription adapters
-	for modelID, adapter := range r.transcriptionAdapters {
-		wg.Add(1)
-		go initAdapter(modelID, adapter, "transcription")
-	}
+		// Initialize transcription adapters
+		for modelID, adapter := range r.transcriptionAdapters {
+			wg.Add(1)
+			go initAdapter(modelID, adapter, "transcription")
+		}
 
-	// Initialize diarization adapters
-	for modelID, adapter := range r.diarizationAdapters {
-		wg.Add(1)
-		go initAdapter(modelID, adapter, "diarization")
-	}
+		// Initialize diarization adapters
+		for modelID, adapter := range r.diarizationAdapters {
+			wg.Add(1)
+			go initAdapter(modelID, adapter, "diarization")
+		}
 
-	// Initialize composite adapters
-	for modelID, adapter := range r.compositeAdapters {
-		wg.Add(1)
-		go initAdapter(modelID, adapter, "composite")
-	}
+		// Initialize composite adapters
+		for modelID, adapter := range r.compositeAdapters {
+			wg.Add(1)
+			go initAdapter(modelID, adapter, "composite")
+		}
 
-	// Wait for all initializations to complete
-	wg.Wait()
-	close(initErrors)
+		// Initialize identification adapters
+		for modelID, adapter := range r.identificationAdapters {
+			wg.Add(1)
+			go initAdapter(modelID, adapter, "identification")
+		}
+
+		// Wait for all initializations to complete
+		wg.Wait()
+		close(initErrors)
 
 		// Collect any errors (but don't fail completely)
 		var errorList []error
@@ -456,7 +492,7 @@ func (r *ModelRegistry) InitializeModels(ctx context.Context) error {
 		}
 
 		logger.Info("Model initialization completed")
-
+	}()
 
 	return nil
 }
@@ -566,6 +602,7 @@ func ClearRegistry() {
 	registry.transcriptionAdapters = make(map[string]interfaces.TranscriptionAdapter)
 	registry.diarizationAdapters = make(map[string]interfaces.DiarizationAdapter)
 	registry.compositeAdapters = make(map[string]interfaces.CompositeAdapter)
+	registry.identificationAdapters = make(map[string]interfaces.SpeakerIdentificationAdapter)
 	registry.capabilities = make(map[string]interfaces.ModelCapabilities)
 	registry.initialized = false
 }
@@ -579,6 +616,20 @@ func GetTranscriptionAdapters() map[string]interfaces.TranscriptionAdapter {
 	// Return a copy to avoid concurrent access issues
 	result := make(map[string]interfaces.TranscriptionAdapter)
 	for id, adapter := range registry.transcriptionAdapters {
+		result[id] = adapter
+	}
+	return result
+}
+
+// GetIdentificationAdapters returns all registered identification adapters (for testing)
+func GetIdentificationAdapters() map[string]interfaces.SpeakerIdentificationAdapter {
+	registry := GetRegistry()
+	registry.mu.RLock()
+	defer registry.mu.RUnlock()
+
+	// Return a copy to avoid concurrent access issues
+	result := make(map[string]interfaces.SpeakerIdentificationAdapter)
+	for id, adapter := range registry.identificationAdapters {
 		result[id] = adapter
 	}
 	return result

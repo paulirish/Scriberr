@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strings"
 
 	"scriberr/pkg/logger"
 
@@ -13,14 +14,14 @@ import (
 // @Description Get a list of all identified speakers
 // @Tags speakers
 // @Produce json
-// @Success 200 {array} adapters.SpeakerInfo
+// @Success 200 {array} interface{}
 // @Failure 500 {object} ErrorResponse
 // @Router /api/v1/speakers [get]
 func (h *Handler) ListSpeakers(c *gin.Context) {
 	speakers, err := h.speakerService.ListSpeakers(c.Request.Context())
 	if err != nil {
 		logger.Error("Failed to list speakers", "error", err)
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to list speakers"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 		return
 	}
 
@@ -54,7 +55,7 @@ func (h *Handler) RenameSpeaker(c *gin.Context) {
 
 	if err := h.speakerService.RenameSpeaker(c.Request.Context(), id, req.Name); err != nil {
 		logger.Error("Failed to rename speaker", "error", err)
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to rename speaker"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 		return
 	}
 
@@ -75,9 +76,50 @@ func (h *Handler) DeleteSpeaker(c *gin.Context) {
 
 	if err := h.speakerService.DeleteSpeaker(c.Request.Context(), id); err != nil {
 		logger.Error("Failed to delete speaker", "error", err)
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to delete speaker"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+// GetSpeakerSegments returns all audio segments associated with a speaker
+// @Summary Get speaker segments
+// @Description Get all audio segments and their associated transcription jobs for a speaker
+// @Tags speakers
+// @Produce json
+// @Param id path string true "Speaker ID"
+// @Success 200 {array} models.SpeakerSegment
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/speakers/{id}/segments [get]
+func (h *Handler) GetSpeakerSegments(c *gin.Context) {
+	id := c.Param("id")
+
+	// Try multiple possible ID formats that might be in the SQLite database
+	ids := []string{id}
+	// TitaNet identify script uses various prefixes with either full or short IDs
+	if len(id) >= 8 {
+		shortID := id[:8]
+		// Add "Speaker-shortID" (Found in current database)
+		ids = append(ids, "Speaker-"+shortID)
+		// Add "Spk-shortID" (Used in some enrollment versions)
+		ids = append(ids, "Spk-"+shortID)
+	}
+
+	// Also add the full ID with prefixes just in case
+	if !strings.HasPrefix(id, "Speaker-") {
+		ids = append(ids, "Speaker-"+id)
+	}
+	if !strings.HasPrefix(id, "Spk-") {
+		ids = append(ids, "Spk-"+id)
+	}
+
+	segments, err := h.jobRepo.GetSegmentsBySpeakerIDs(c.Request.Context(), ids)
+	if err != nil {
+		logger.Error("Failed to get speaker segments", "error", err)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, segments)
 }

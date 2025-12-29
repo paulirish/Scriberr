@@ -158,8 +158,8 @@ func (s *SortformerAdapter) PrepareEnvironment(ctx context.Context) error {
 	}
 
 	// Check if environment is already ready (using cache to speed up repeated checks)
-	if CheckEnvironmentReady(s.envPath, "from nemo.collections.asr.models import SortformerEncLabelModel") {
-		modelPath := filepath.Join(s.envPath, "diar_streaming_sortformer_4spk-v2.nemo")
+	if CheckEnvironmentReady(s.envPath, "import nemo") {
+		modelPath := filepath.Join(s.envPath, "diar_msdd_telephonic.nemo")
 		if stat, err := os.Stat(modelPath); err == nil && stat.Size() > 1024*1024 {
 			scriptPath := filepath.Join(s.envPath, "sortformer_diarize.py")
 			if _, err := os.Stat(scriptPath); err == nil {
@@ -177,6 +177,11 @@ func (s *SortformerAdapter) PrepareEnvironment(ctx context.Context) error {
 		if err := s.setupSortformerEnvironment(); err != nil {
 			return fmt.Errorf("failed to setup Sortformer environment: %w", err)
 		}
+	}
+
+	// Setup environment
+	if err := EnsureEnvironment(s.envPath, s.setupSortformerEnvironment); err != nil {
+		return fmt.Errorf("failed to setup Sortformer environment: %w", err)
 	}
 
 	// Download model

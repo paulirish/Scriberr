@@ -177,6 +177,7 @@ def identify_speakers(
     # Then query/enroll
 
     global_mapping = {} # "speaker_0" -> "Global_ID_XYZ"
+    speaker_centroids = {} # "Global_ID_XYZ" -> [embedding...]
 
     import soundfile as sf
     full_waveform, sample_rate = sf.read(audio_path)
@@ -186,6 +187,7 @@ def identify_speakers(
     full_waveform = full_waveform.unsqueeze(0)
     full_waveform = full_waveform.to(device)
     for local_spk, indices in local_speakers.items():
+        # ... (processing logic remains same until global_id is determined)
         logger.info(f"Processing local speaker {local_spk} ({len(indices)} segments)")
 
         embeddings = []
@@ -198,6 +200,7 @@ def identify_speakers(
 
         for idx in top_indices:
             seg = segments[idx]
+            seg["is_reference"] = True  # Mark as used for identification
             start = seg["start"]
             duration = seg["end"] - start
 
@@ -214,15 +217,13 @@ def identify_speakers(
                 _, embs = model(input_signal=sub_audio, input_signal_length=len_tensor)
                 emb = embs[0].cpu().numpy()
                 embeddings.append(emb)
+                seg["embedding"] = emb.tolist() # Store individual embedding
 
         if not embeddings:
             logger.warning(f"No valid embeddings for {local_spk}")
             continue
 
         # Average embedding (Centroid)
-        # Normalize each first? TitaNet output is usually normalized?
-        # Let's normalize centroid.
-
         centroid = np.mean(embeddings, axis=0)
         norm = np.linalg.norm(centroid)
         if norm > 0:
@@ -276,6 +277,7 @@ def identify_speakers(
             global_id = human_name
 
         global_mapping[local_spk] = global_id
+        speaker_centroids[global_id] = centroid.tolist()
 
     # 6. Update Segments and Save
     for seg in segments:
@@ -283,6 +285,8 @@ def identify_speakers(
         if local in global_mapping:
             seg["speaker"] = global_mapping[local]
             seg["original_speaker"] = local
+
+    data["speaker_centroids"] = speaker_centroids
 
     with open(output_file, 'w') as f:
         json.dump(data, f, indent=2)

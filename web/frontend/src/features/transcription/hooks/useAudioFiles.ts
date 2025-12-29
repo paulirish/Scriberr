@@ -12,6 +12,10 @@ export interface AudioFile {
     error_message?: string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     individual_transcripts?: any;
+    speaker_mappings?: Array<{
+        original_speaker: string;
+        custom_name: string;
+    }>;
     speakers?: number;
     duration?: number;
 }

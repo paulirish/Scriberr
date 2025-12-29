@@ -65,6 +65,10 @@ type JobRepository interface {
 	FindByStatus(ctx context.Context, status models.JobStatus) ([]models.TranscriptionJob, error)
 	CountByStatus(ctx context.Context, status models.JobStatus) (int64, error)
 	UpdateSummary(ctx context.Context, jobID string, summary string) error
+	SaveSpeakerSegments(ctx context.Context, segments []models.SpeakerSegment) error
+	SaveSpeakerJobCentroids(ctx context.Context, centroids []models.SpeakerJobCentroid) error
+	GetSegmentsBySpeakerID(ctx context.Context, speakerID string) ([]models.SpeakerSegment, error)
+	GetSegmentsBySpeakerIDs(ctx context.Context, speakerIDs []string) ([]models.SpeakerSegment, error)
 }
 
 type jobRepository struct {
@@ -81,6 +85,7 @@ func (r *jobRepository) FindWithAssociations(ctx context.Context, id string) (*m
 	var job models.TranscriptionJob
 	err := r.db.WithContext(ctx).
 		Preload("MultiTrackFiles").
+		Preload("SpeakerMappings").
 		Where("id = ?", id).
 		First(&job).Error
 	if err != nil {
@@ -93,7 +98,7 @@ func (r *jobRepository) ListWithParams(ctx context.Context, offset, limit int, s
 	var jobs []models.TranscriptionJob
 	var count int64
 
-	db := r.db.WithContext(ctx).Model(&models.TranscriptionJob{})
+	db := r.db.WithContext(ctx).Model(&models.TranscriptionJob{}).Preload("SpeakerMappings")
 
 	// Handle delta sync if updatedAfter provided
 	if updatedAfter != nil {
@@ -207,6 +212,38 @@ func (r *jobRepository) CountByStatus(ctx context.Context, status models.JobStat
 
 func (r *jobRepository) UpdateSummary(ctx context.Context, jobID string, summary string) error {
 	return r.db.WithContext(ctx).Model(&models.TranscriptionJob{}).Where("id = ?", jobID).Update("summary", summary).Error
+}
+
+func (r *jobRepository) SaveSpeakerSegments(ctx context.Context, segments []models.SpeakerSegment) error {
+	if len(segments) == 0 {
+		return nil
+	}
+	return r.db.WithContext(ctx).Create(&segments).Error
+}
+
+func (r *jobRepository) SaveSpeakerJobCentroids(ctx context.Context, centroids []models.SpeakerJobCentroid) error {
+	if len(centroids) == 0 {
+		return nil
+	}
+	return r.db.WithContext(ctx).Create(&centroids).Error
+}
+
+func (r *jobRepository) GetSegmentsBySpeakerID(ctx context.Context, speakerID string) ([]models.SpeakerSegment, error) {
+	var segments []models.SpeakerSegment
+	err := r.db.WithContext(ctx).
+		Where("speaker_id = ?", speakerID).
+		Order("created_at DESC").
+		Find(&segments).Error
+	return segments, err
+}
+
+func (r *jobRepository) GetSegmentsBySpeakerIDs(ctx context.Context, speakerIDs []string) ([]models.SpeakerSegment, error) {
+	var segments []models.SpeakerSegment
+	err := r.db.WithContext(ctx).
+		Where("speaker_id IN ?", speakerIDs).
+		Order("created_at DESC").
+		Find(&segments).Error
+	return segments, err
 }
 
 // APIKeyRepository handles API key operations
