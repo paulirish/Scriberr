@@ -23,6 +23,11 @@ def test_sortformer_diarization_output():
 
     assert env_path.exists(), f"Environment not found at: {env_path}"
 
+    # Check for model file
+    model_file = env_path / "diar_streaming_sortformer_4spk-v2.nemo"
+    if not model_file.exists():
+        pytest.skip(f"Model file not found at {model_file}. Skipping integration test.")
+
     # Create a temporary file for output
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp_file:
         output_file = tmp_file.name
