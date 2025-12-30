@@ -52,6 +52,15 @@ jobs:
       - name: Run Go Tests
         run: go test -v ./...
 
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Install system dependencies for Python
+        run: sudo apt-get update && sudo apt-get install -y python3-dev build-essential
+
+      - name: Run Python Adapter Tests
+        run: make test-py-adapters
+
     # Project site
       - name: Setup Node.js
         uses: actions/setup-node@v4

@@ -48,3 +48,13 @@ test: ## Run tests using gotestsum (via go tool)
 test-watch: ## Run tests in watch mode using gotestsum (via go tool)
 	@echo "Running tests in watch mode..."
 	go tool gotestsum --watch -- -v ./...
+
+test-py-adapters: ## Run Python adapter tests
+	@echo "Running Python adapter tests..."
+	@mkdir -p data/whisperx-env/parakeet
+	@cp internal/transcription/adapters/py/nvidia/pyproject.toml data/whisperx-env/parakeet/
+	@if [ -f internal/transcription/adapters/py/nvidia/uv.lock ]; then cp internal/transcription/adapters/py/nvidia/uv.lock data/whisperx-env/parakeet/; fi
+	@echo "Setting up environment..."
+	@cd data/whisperx-env/parakeet && uv sync
+	@echo "Running tests..."
+	@uv run --with pytest --project data/whisperx-env/parakeet pytest internal/transcription/adapters/py/nvidia/tests

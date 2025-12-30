@@ -28,6 +28,11 @@ def test_parakeet_transcription_output():
 
     assert env_path.exists(), f"Environment not found at: {env_path}"
 
+    # Check for model file
+    model_file = env_path / "parakeet-tdt-0.6b-v3.nemo"
+    if not model_file.exists():
+        pytest.skip(f"Model file not found at {model_file}. Skipping integration test.")
+
     # Create a temporary file for output
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp_file:
         output_file = tmp_file.name
