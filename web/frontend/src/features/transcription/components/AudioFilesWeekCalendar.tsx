@@ -16,19 +16,6 @@ interface HourSlot {
   gapBefore?: number;
 }
 
-const ZigZag = () => (
-  <svg width="100%" height="16" viewBox="0 0 1200 16" preserveAspectRatio="none" className="absolute -top-8 left-0 right-0 text-[var(--brand-solid)]/30 pointer-events-none overflow-visible">
-    <path
-      d="M0 8 L10 0 L30 16 L50 0 L70 16 L90 0 L110 16 L130 0 L150 16 L170 0 L190 16 L210 0 L230 16 L250 0 L270 16 L290 0 L310 16 L330 0 L350 16 L370 0 L390 16 L410 0 L430 16 L450 0 L470 16 L490 0 L510 16 L530 0 L550 16 L570 0 L590 16 L610 0 L630 16 L650 0 L670 16 L690 0 L710 16 L730 0 L750 16 L770 0 L790 16 L810 0 L830 16 L850 0 L870 16 L890 0 L910 16 L930 0 L950 16 L970 0 L990 16 L1010 0 L1030 16 L1050 0 L1070 16 L1090 0 L1110 16 L1130 0 L1150 16 L1170 0 L1190 16 L1200 8"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
 export const AudioFilesWeekCalendar = ({ data, onFileClick }: AudioFilesWeekCalendarProps) => {
   const [baseDate, setBaseDate] = useState(new Date());
 
@@ -162,38 +149,37 @@ export const AudioFilesWeekCalendar = ({ data, onFileClick }: AudioFilesWeekCale
           </div>
 
           <div className="grid grid-cols-[60px_1fr]" style={{ height: `${totalHeight}px` }}>
-            <div className="border-r border-[var(--border-subtle)] bg-[var(--bg-main)]/50">
-              {slots.map((slot, idx) => {
-                const hour = slot.hour;
-                const isGapBefore = !!slot.gapBefore;
-                return (
-                  <div key={hour} className={cn(
-                    "h-[60px] text-[10px] font-medium text-[var(--text-tertiary)] text-right pr-2 pt-1 border-b border-[var(--border-subtle)]/30 relative",
-                    isGapBefore && "mt-0"
-                  )}>
-                    {isGapBefore && (
-                      <div className="absolute -top-4 left-0 z-20">
-                        <div className="bg-[var(--bg-card)]/90 backdrop-blur-sm px-1 py-0.5 rounded-r-md border border-l-0 border-[var(--border-subtle)] shadow-sm">
-                          <span className="text-[8px] font-bold text-[var(--brand-solid)] uppercase whitespace-nowrap">
-                            {slot.gapBefore}h skipped
-                          </span>
+                        <div className="border-r border-[var(--border-subtle)] bg-[var(--bg-main)]/50">
+                          {slots.map((slot, idx) => {
+                            const hour = slot.hour;
+                            const isGapBefore = !!slot.gapBefore;
+                            return (
+                              <div key={hour} className={cn(
+                                "h-[60px] text-[10px] font-medium text-[var(--text-tertiary)] text-right pr-2 pt-1 border-b border-[var(--border-subtle)]/30 relative",
+                                isGapBefore && "border-t border-t-[var(--brand-solid)]/40"
+                              )}>
+                                {isGapBefore && (
+                                  <div className="absolute -top-3 left-1 z-20">
+                                    <span className="text-[9px] font-bold text-[var(--brand-solid)] uppercase tracking-tight">
+                                      {slot.gapBefore}h
+                                    </span>
+                                  </div>
+                                )}
+                                {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
+                              </div>
+                            );
+                          })}
                         </div>
-                      </div>
-                    )}
-                    {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
-                  </div>
-                );
-              })}
-            </div>
+                        <div className="grid grid-cols-7 relative">
+                          {days.map(day => (
+                            <div key={day.toISOString()} className="relative border-r border-[var(--border-subtle)] last:border-r-0">
+                              {slots.map((slot, idx) => (
+                                <div key={slot.hour} className={cn(
+                                  "h-[60px] border-b border-[var(--border-subtle)]/30 last:border-b-0 relative",
+                                  slot.gapBefore && "border-t border-t-[var(--brand-solid)]/40"
+                                )} />
+                              ))}
 
-            <div className="grid grid-cols-7 relative">
-              {days.map(day => (
-                <div key={day.toISOString()} className="relative border-r border-[var(--border-subtle)] last:border-r-0">
-                  {slots.map((slot, idx) => (
-                    <div key={slot.hour} className="h-[60px] border-b border-[var(--border-subtle)]/30 last:border-b-0 relative">
-                      {slot.gapBefore && <ZigZag />}
-                    </div>
-                  ))}
                   {/* Events for this day */}
                   {weekFiles
                     .filter(f => f.dateTime.toDateString() === day.toDateString())
