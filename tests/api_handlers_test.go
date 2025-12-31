@@ -52,15 +52,16 @@ func (suite *APIHandlerTestSuite) SetupSuite() {
 	chatRepo := repository.NewChatRepository(suite.helper.DB)
 	noteRepo := repository.NewNoteRepository(suite.helper.DB)
 	speakerMappingRepo := repository.NewSpeakerMappingRepository(suite.helper.DB)
+	speakerRepo := repository.NewSpeakerRepository(suite.helper.DB)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(suite.helper.DB)
 
 	// Initialize services
 	userService := service.NewUserService(userRepo, suite.helper.AuthService)
 	fileService := service.NewFileService()
-	speakerService := service.NewSpeakerService(jobRepo)
+	speakerService := service.NewSpeakerService(jobRepo, speakerRepo)
 
 	// Initialize services
-	suite.unifiedProcessor = transcription.NewUnifiedJobProcessor(jobRepo)
+	suite.unifiedProcessor = transcription.NewUnifiedJobProcessor(jobRepo, speakerRepo)
 	var err error
 	suite.quickTranscription, err = transcription.NewQuickTranscriptionService(suite.helper.Config, suite.unifiedProcessor, jobRepo)
 	assert.NoError(suite.T(), err)
@@ -85,6 +86,7 @@ func (suite *APIHandlerTestSuite) SetupSuite() {
 		chatRepo,
 		noteRepo,
 		speakerMappingRepo,
+		speakerRepo,
 		refreshTokenRepo,
 		suite.taskQueue,
 		suite.unifiedProcessor,

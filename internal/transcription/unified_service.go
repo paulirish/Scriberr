@@ -48,12 +48,13 @@ type UnifiedTranscriptionService struct {
 	defaultModelIDs       map[string]string      // Default model IDs for each task type
 	multiTrackTranscriber *MultiTrackTranscriber // For termination support
 	jobRepo               repository.JobRepository
+	speakerRepo           repository.SpeakerRepository
 	webhookService        *webhook.Service
 	broadcaster           *sse.Broadcaster
 }
 
 // NewUnifiedTranscriptionService creates a new unified transcription service
-func NewUnifiedTranscriptionService(jobRepo repository.JobRepository) *UnifiedTranscriptionService {
+func NewUnifiedTranscriptionService(jobRepo repository.JobRepository, speakerRepo repository.SpeakerRepository) *UnifiedTranscriptionService {
 	return &UnifiedTranscriptionService{
 		registry:        registry.GetRegistry(),
 		pipeline:        pipeline.NewProcessingPipeline(),
@@ -66,6 +67,7 @@ func NewUnifiedTranscriptionService(jobRepo repository.JobRepository) *UnifiedTr
 			"diarization":   ModelPyannote,
 		},
 		jobRepo:        jobRepo,
+		speakerRepo:    speakerRepo,
 		webhookService: webhook.NewService(),
 	}
 }
@@ -919,6 +921,26 @@ func (u *UnifiedTranscriptionService) saveTranscriptionResults(ctx context.Conte
 		}
 		if err := u.jobRepo.SaveSpeakerJobCentroids(ctx, centroids); err != nil {
 			logger.Error("Failed to save speaker centroids", "job_id", jobID, "error", err)
+		}
+	}
+
+	// Step 4: Seed global speakers table from metadata
+	if diarizationResult != nil && diarizationResult.Metadata != nil {
+		for key, name := range diarizationResult.Metadata {
+			if strings.HasPrefix(key, "speaker_name:") {
+				speakerID := strings.TrimPrefix(key, "speaker_name:")
+				// Upsert into global speakers table
+				speaker := &models.Speaker{
+					ID:   speakerID,
+					Name: name,
+				}
+				// We use Update to perform an upsert (Save in GORM)
+				if err := u.speakerRepo.Update(ctx, speaker); err != nil {
+					logger.Error("Failed to seed global speaker", "id", speakerID, "name", name, "error", err)
+				} else {
+					logger.Debug("Seeded global speaker", "id", speakerID, "name", name)
+				}
+			}
 		}
 	}
 

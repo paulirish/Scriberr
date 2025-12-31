@@ -71,15 +71,16 @@ func (suite *SecurityTestSuite) SetupSuite() {
 	chatRepo := repository.NewChatRepository(database.DB)
 	noteRepo := repository.NewNoteRepository(database.DB)
 	speakerMappingRepo := repository.NewSpeakerMappingRepository(database.DB)
+	speakerRepo := repository.NewSpeakerRepository(database.DB)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(database.DB)
 
 	// Initialize services
 	userService := service.NewUserService(userRepo, suite.authService)
 	fileService := service.NewFileService()
-	speakerService := service.NewSpeakerService(jobRepo)
+	speakerService := service.NewSpeakerService(jobRepo, speakerRepo)
 
 	// Initialize services
-	suite.unifiedProcessor = transcription.NewUnifiedJobProcessor(jobRepo)
+	suite.unifiedProcessor = transcription.NewUnifiedJobProcessor(jobRepo, speakerRepo)
 	var err error
 	suite.quickTranscriptionService, err = transcription.NewQuickTranscriptionService(suite.config, suite.unifiedProcessor, jobRepo)
 	if err != nil {
@@ -105,6 +106,7 @@ func (suite *SecurityTestSuite) SetupSuite() {
 		chatRepo,
 		noteRepo,
 		speakerMappingRepo,
+		speakerRepo,
 		refreshTokenRepo,
 		suite.taskQueue,
 		suite.unifiedProcessor,

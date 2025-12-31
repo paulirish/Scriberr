@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"scriberr/internal/repository"
 	"scriberr/internal/transcription/interfaces"
 	"scriberr/internal/transcription/registry"
@@ -12,15 +14,17 @@ import (
 
 // SpeakerService handles business logic related to speakers.
 type SpeakerService struct {
-	jobRepo  repository.JobRepository
-	registry *registry.ModelRegistry
+	jobRepo     repository.JobRepository
+	speakerRepo repository.SpeakerRepository
+	registry    *registry.ModelRegistry
 }
 
 // NewSpeakerService creates a new SpeakerService.
-func NewSpeakerService(jobRepo repository.JobRepository) *SpeakerService {
+func NewSpeakerService(jobRepo repository.JobRepository, speakerRepo repository.SpeakerRepository) *SpeakerService {
 	return &SpeakerService{
-		jobRepo:  jobRepo,
-		registry: registry.GetRegistry(),
+		jobRepo:     jobRepo,
+		speakerRepo: speakerRepo,
+		registry:    registry.GetRegistry(),
 	}
 }
 
@@ -39,90 +43,32 @@ func (s *SpeakerService) getAdapter() (interfaces.SpeakerManagementAdapter, erro
 	return mgmtAdapter, nil
 }
 
-// RenameSpeaker updates a speaker's name globally and retroactively in all transcripts.
+// RenameSpeaker updates a speaker's name globally and in the SQLite registry.
 func (s *SpeakerService) RenameSpeaker(ctx context.Context, speakerID, newName string) error {
 	adapter, err := s.getAdapter()
 	if err != nil {
 		return err
 	}
 
-	// Step 1: Get the speaker's current name before renaming.
-	logger.Info("Fetching current speaker name", "speakerID", speakerID)
-	speakerInfo, err := adapter.GetSpeaker(ctx, speakerID)
-	if err != nil {
-		return fmt.Errorf("failed to get speaker info for ID %s: %w", speakerID, err)
-	}
-	oldName := speakerInfo.Name
+	// Ensure the ID is clean (remove global: prefix if present for the adapter call)
+	pureID := strings.TrimPrefix(speakerID, "global:")
 
-	// If the name is already the new name, there's nothing to do.
-	if oldName == newName {
-		logger.Info("Speaker name is already up to date", "speakerID", speakerID, "name", newName)
-		return nil
-	}
-
-	// Step 2: Rename the speaker in the central identity store (Qdrant)
-	logger.Info("Renaming speaker in global store", "speakerID", speakerID, "oldName", oldName, "newName", newName)
-	if err := adapter.RenameSpeaker(ctx, speakerID, newName); err != nil {
+	// Step 1: Rename the speaker in the central identity store (Qdrant)
+	logger.Info("Renaming speaker in global store", "speakerID", pureID, "newName", newName)
+	if err := adapter.RenameSpeaker(ctx, pureID, newName); err != nil {
 		return fmt.Errorf("failed to rename speaker in titanet adapter: %w", err)
 	}
 
-	// Step 3: Find all jobs and update their transcripts retroactively.
-	logger.Info("Starting retroactive update of transcripts for speaker", "speakerID", speakerID)
-	jobs, _, err := s.jobRepo.List(ctx, 0, -1)
-	if err != nil {
-		return fmt.Errorf("failed to get all jobs: %w", err)
+	// Step 2: Update the SQLite registry (Source of Truth for resolution)
+	// We use the prefixed ID for the SQLite table to match resolution logic
+	fullID := "global:" + pureID
+	if err := s.speakerRepo.UpdateName(ctx, fullID, newName); err != nil {
+		logger.Error("Failed to update speaker name in SQLite registry", "id", fullID, "error", err)
+		// We don't fail the whole operation if the SQLite cache update fails,
+		// but it might cause a stale name until the next identification run.
 	}
 
-	updateCount := 0
-	for _, job := range jobs {
-		// Only process completed jobs with a transcript.
-		if job.Status != "completed" || job.Transcript == nil || *job.Transcript == "" {
-			continue
-		}
-
-		// Use a generic map to avoid losing fields, instead of a struct
-		var transcriptData map[string]interface{}
-		if err := json.Unmarshal([]byte(*job.Transcript), &transcriptData); err != nil {
-			logger.Warn("Failed to unmarshal transcript for job", "jobID", job.ID, "error", err)
-			continue
-		}
-
-		segments, ok := transcriptData["segments"].([]interface{})
-		if !ok {
-			continue
-		}
-
-		needsUpdate := false
-		for _, segmentInterface := range segments {
-			segment, ok := segmentInterface.(map[string]interface{})
-			if !ok {
-				continue
-			}
-
-			if speakerName, ok := segment["speaker"].(string); ok && speakerName == oldName {
-				segment["speaker"] = newName
-				needsUpdate = true
-			}
-		}
-
-		if needsUpdate {
-			newTranscriptBytes, err := json.Marshal(transcriptData)
-			if err != nil {
-				logger.Warn("Failed to marshal updated transcript for job", "jobID", job.ID, "error", err)
-				continue
-			}
-			transcriptStr := string(newTranscriptBytes)
-			job.Transcript = &transcriptStr
-			if err := s.jobRepo.Update(ctx, &job); err != nil {
-				logger.Warn("Failed to update job with new transcript", "jobID", job.ID, "error", err)
-				continue
-			}
-			updateCount++
-		}
-	}
-
-	logger.Info("Retroactive transcript update completed", "speakerID", speakerID, "updated_transcripts", updateCount)
-
+	logger.Info("Speaker renamed successfully", "speakerID", fullID, "newName", newName)
 	return nil
 }
 

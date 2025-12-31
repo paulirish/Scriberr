@@ -46,7 +46,9 @@ type Handler struct {
 	chatRepo            repository.ChatRepository
 	noteRepo            repository.NoteRepository
 	speakerMappingRepo  repository.SpeakerMappingRepository
+	speakerRepo         repository.SpeakerRepository
 	speakerService      *service.SpeakerService
+	speakerResolver     *service.SpeakerResolver
 	refreshTokenRepo    repository.RefreshTokenRepository
 	taskQueue           *queue.TaskQueue
 	unifiedProcessor    *transcription.UnifiedJobProcessor
@@ -70,6 +72,7 @@ func NewHandler(
 	chatRepo repository.ChatRepository,
 	noteRepo repository.NoteRepository,
 	speakerMappingRepo repository.SpeakerMappingRepository,
+	speakerRepo repository.SpeakerRepository,
 	refreshTokenRepo repository.RefreshTokenRepository,
 	taskQueue *queue.TaskQueue,
 	unifiedProcessor *transcription.UnifiedJobProcessor,
@@ -92,11 +95,9 @@ func NewHandler(
 		chatRepo:            chatRepo,
 		noteRepo:            noteRepo,
 		speakerMappingRepo:  speakerMappingRepo,
-		refreshTokenRepo:    refreshTokenRepo,
-		taskQueue:           taskQueue,
-		unifiedProcessor:    unifiedProcessor,
-		quickTranscription:  quickTranscription,
+		speakerRepo:         speakerRepo,
 		speakerService:      speakerService,
+		speakerResolver:     service.NewSpeakerResolver(speakerMappingRepo, speakerRepo),
 		multiTrackProcessor: multiTrackProcessor,
 		broadcaster:         broadcaster,
 	}
@@ -875,11 +876,14 @@ func (h *Handler) GetTranscript(c *gin.Context) {
 		return
 	}
 
-	var transcript interface{}
+	var transcript interfaces.TranscriptResult
 	if err := json.Unmarshal([]byte(*job.Transcript), &transcript); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse transcript"})
 		return
 	}
+
+	// Resolve speaker names at read-time
+	h.speakerResolver.ResolveTranscript(c.Request.Context(), job.ID, &transcript)
 
 	c.JSON(http.StatusOK, gin.H{
 		"job_id":     job.ID,
@@ -931,8 +935,28 @@ func (h *Handler) ListTranscriptionJobs(c *gin.Context) {
 		return
 	}
 
+	// Efficiently fetch resolved speaker names for all jobs in the list
+	jobIDs := make([]string, len(jobs))
+	for i, job := range jobs {
+		jobIDs[i] = job.ID
+	}
+	speakerMap, _ := h.jobRepo.GetSpeakersByJobIDs(c.Request.Context(), jobIDs)
+
+	// Transform to response with speakers
+	type JobResponse struct {
+		models.TranscriptionJob
+		Speakers []string `json:"speakers"`
+	}
+	responseJobs := make([]JobResponse, len(jobs))
+	for i, job := range jobs {
+		responseJobs[i] = JobResponse{
+			TranscriptionJob: job,
+			Speakers:         speakerMap[job.ID],
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"jobs": jobs,
+		"jobs": responseJobs,
 		"pagination": gin.H{
 			"page":  page,
 			"limit": limit,

@@ -23,8 +23,9 @@ type SpeakerServiceTestSuite struct {
 func (suite *SpeakerServiceTestSuite) SetupSuite() {
 	suite.helper = NewTestHelper(suite.T(), "speaker_service_test.db")
 	jobRepo := repository.NewJobRepository(suite.helper.DB)
+	speakerRepo := repository.NewSpeakerRepository(suite.helper.DB)
 	suite.jobRepo = jobRepo
-	suite.speakerService = service.NewSpeakerService(jobRepo)
+	suite.speakerService = service.NewSpeakerService(jobRepo, speakerRepo)
 }
 
 func (suite *SpeakerServiceTestSuite) TearDownSuite() {

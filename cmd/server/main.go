@@ -105,19 +105,18 @@ func main() {
 	chatRepo := repository.NewChatRepository(database.DB)
 	noteRepo := repository.NewNoteRepository(database.DB)
 	speakerMappingRepo := repository.NewSpeakerMappingRepository(database.DB)
+	speakerRepo := repository.NewSpeakerRepository(database.DB)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(database.DB)
 
 	// Initialize services
 	logger.Startup("service", "Initializing services")
 	userService := service.NewUserService(userRepo, authService)
 	fileService := service.NewFileService()
-	speakerService := service.NewSpeakerService(jobRepo)
+	speakerService := service.NewSpeakerService(jobRepo, speakerRepo)
 
 	// Initialize unified transcription processor
 	logger.Startup("transcription", "Initializing transcription service")
-	// Initialize unified transcription processor
-	logger.Startup("transcription", "Initializing transcription service")
-	unifiedProcessor := transcription.NewUnifiedJobProcessor(jobRepo)
+	unifiedProcessor := transcription.NewUnifiedJobProcessor(jobRepo, speakerRepo)
 	unifiedProcessor.GetUnifiedService().SetBroadcaster(broadcaster)
 
 	// Bootstrap embedded Python environment (for all adapters)
@@ -159,6 +158,7 @@ func main() {
 		chatRepo,
 		noteRepo,
 		speakerMappingRepo,
+		speakerRepo,
 		refreshTokenRepo,
 		taskQueue,
 		unifiedProcessor,

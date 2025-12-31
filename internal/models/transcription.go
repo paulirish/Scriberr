@@ -372,6 +372,18 @@ func (SpeakerMapping) TableName() string {
 	return "speaker_mappings"
 }
 
+// Speaker represents a global speaker identity
+type Speaker struct {
+	ID        string    `json:"id" gorm:"primaryKey;type:varchar(100)"` // Format: "global:<uuid>"
+	Name      string    `json:"name" gorm:"type:varchar(255);not null"`
+	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime"`
+}
+
+func (Speaker) TableName() string {
+	return "speakers"
+}
+
 // SpeakerSegment represents a timestamped audio segment associated with a specific speaker
 type SpeakerSegment struct {
 	ID                 uint      `json:"id" gorm:"primaryKey;autoIncrement"`

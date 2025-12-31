@@ -176,8 +176,9 @@ def identify_speakers(
     # We aggregate embeddings for a local speaker to get a robust representation
     # Then query/enroll
 
-    global_mapping = {} # "speaker_0" -> "Global_ID_XYZ"
-    speaker_centroids = {} # "Global_ID_XYZ" -> [embedding...]
+    global_mapping = {} # "speaker_0" -> "global:UUID"
+    global_names = {}   # "global:UUID" -> "John Doe"
+    speaker_centroids = {} # "global:UUID" -> [embedding...]
 
     import soundfile as sf
     full_waveform, sample_rate = sf.read(audio_path)
@@ -187,50 +188,33 @@ def identify_speakers(
     full_waveform = full_waveform.unsqueeze(0)
     full_waveform = full_waveform.to(device)
     for local_spk, indices in local_speakers.items():
-        # ... (processing logic remains same until global_id is determined)
         logger.info(f"Processing local speaker {local_spk} ({len(indices)} segments)")
 
         embeddings = []
-
-        # Collect embeddings for this speaker
-        # To save time, maybe just take the longest 5 segments?
-        # Sort indices by duration
         indices.sort(key=lambda i: segments[i].get("end") - segments[i].get("start"), reverse=True)
         top_indices = indices[:10]
 
         for idx in top_indices:
             seg = segments[idx]
-            seg["is_reference"] = True  # Mark as used for identification
+            seg["is_reference"] = True
             start = seg["start"]
-            duration = seg["end"] - start
-
-            # Extract
-            start_frame = int(start * sample_rate)
-            end_frame = int(seg["end"] * sample_rate)
-            if end_frame > full_waveform.shape[1]: end_frame = full_waveform.shape[1]
-
-            sub_audio = full_waveform[:, start_frame:end_frame]
-            if sub_audio.shape[1] < 1600: continue # Skip very short < 0.1s
+            sub_audio = full_waveform[:, int(start * sample_rate):int(seg["end"] * sample_rate)]
+            if sub_audio.shape[1] < 1600: continue
             len_tensor = torch.tensor([sub_audio.shape[1]], device=device)
 
             with torch.no_grad():
                 _, embs = model(input_signal=sub_audio, input_signal_length=len_tensor)
                 emb = embs[0].cpu().numpy()
                 embeddings.append(emb)
-                seg["embedding"] = emb.tolist() # Store individual embedding
+                seg["embedding"] = emb.tolist()
 
         if not embeddings:
-            logger.warning(f"No valid embeddings for {local_spk}")
             continue
 
-        # Average embedding (Centroid)
         centroid = np.mean(embeddings, axis=0)
         norm = np.linalg.norm(centroid)
-        if norm > 0:
-            centroid = centroid / norm
+        if norm > 0: centroid = centroid / norm
 
-        # 5. Query Qdrant
-        logger.debug(f"searching: collection={collection_name}, threshold={threshold}, centroid={centroid.tolist()}")
         search_result = client.search(
             collection_name=collection_name,
             query_vector=centroid.tolist(),
@@ -238,45 +222,30 @@ def identify_speakers(
             score_threshold=threshold
         )
 
-        logger.debug(f"search result: {search_result}")
-
         if search_result:
-            # Match found
             best_match = search_result[0]
-            global_id = best_match.payload.get("name", "Unknown")
-            logger.info(f"Matched {local_spk} to {global_id} (score: {best_match.score})")
-
-            # Optional: Update existing profile (Moving Average) - for now just identify
+            global_id = f"global:{best_match.id}"
+            display_name = best_match.payload.get("name", "Unknown")
+            logger.info(f"Matched {local_spk} to {display_name} ({global_id})")
         else:
-            # No match -> Enroll
             import uuid
             new_id = str(uuid.uuid4())
-            # Use a human readable name if possible, else UUID
-            # In a real app, user might rename "Spk 1" later.
-            human_name = f"Spk-{new_id[:8]}"
-
-            logger.info(f"Enrolling {local_spk} as new speaker {human_name}")
-
-            points = []
+            display_name = f"Spk-{new_id[:8]}"
+            logger.info(f"Enrolling {local_spk} as new speaker {display_name}")
+            
             if qmodels:
-                points = [
-                    qmodels.PointStruct(
+                client.upsert(
+                    collection_name=collection_name,
+                    points=[qmodels.PointStruct(
                         id=new_id,
                         vector=centroid.tolist(),
-                        payload={"name": human_name, "created_at": str(os.path.getctime(audio_path))}
-                    )
-                ]
-
-
-            logger.debug(f"Enrolling {local_spk} as new speaker {human_name}")
-            logger.debug(f"Collection Name: {collection_name}.   Points: {points}")
-            client.upsert(
-                collection_name=collection_name,
-                points=points
-            )
-            global_id = human_name
+                        payload={"name": display_name, "created_at": str(os.path.getctime(audio_path))}
+                    )]
+                )
+            global_id = f"global:{new_id}"
 
         global_mapping[local_spk] = global_id
+        global_names[global_id] = display_name
         speaker_centroids[global_id] = centroid.tolist()
 
     # 6. Update Segments and Save
@@ -285,8 +254,12 @@ def identify_speakers(
         if local in global_mapping:
             seg["speaker"] = global_mapping[local]
             seg["original_speaker"] = local
+        elif local and not local.startswith("local:") and not local.startswith("global:"):
+            seg["speaker"] = f"local:{local}"
 
     data["speaker_centroids"] = speaker_centroids
+    data["speaker_metadata"] = global_names
+
 
     with open(output_file, 'w') as f:
         json.dump(data, f, indent=2)
