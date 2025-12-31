@@ -42,3 +42,42 @@ export const formatAudioFileTitle = (title: string): string => {
 
   return `${duration}m | ${formattedHours}:${formattedMinutes}${ampm}`;
 };
+
+interface SpeakerMapping {
+  original_speaker: string;
+  custom_name: string;
+}
+
+export const getSpeakersFromAudioFile = (file: { 
+  transcript?: string; 
+  speaker_mappings?: SpeakerMapping[] 
+}): string[] => {
+  if (!file.transcript) {
+    return file.speaker_mappings?.map(m => m.custom_name || m.original_speaker) || [];
+  }
+
+  try {
+    const transcript = JSON.parse(file.transcript);
+    const speakerIds = new Set<string>();
+    
+    transcript.segments?.forEach((seg: any) => {
+      if (seg.speaker) {
+        speakerIds.add(seg.speaker);
+      }
+    });
+
+    if (speakerIds.size === 0) {
+      return file.speaker_mappings?.map(m => m.custom_name || m.original_speaker) || [];
+    }
+
+    const mappingMap = new Map<string, string>();
+    file.speaker_mappings?.forEach(m => {
+      mappingMap.set(m.original_speaker, m.custom_name);
+    });
+
+    return Array.from(speakerIds).map(id => mappingMap.get(id) || id).sort();
+  } catch (e) {
+    return file.speaker_mappings?.map(m => m.custom_name || m.original_speaker) || [];
+  }
+};
+

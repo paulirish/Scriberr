@@ -1,8 +1,15 @@
 import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, FileAudio, Clock, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileAudio, Clock, Calendar as CalendarIcon, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatAudioFileTitle, parseTitleForDate, cn } from "@/lib/utils";
+import { formatAudioFileTitle, parseTitleForDate, cn, getSpeakersFromAudioFile } from "@/lib/utils";
 import { type AudioFile } from "@/features/transcription/hooks/useAudioFiles";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider
+} from "@/components/ui/tooltip";
+import { getSpeakerColorStyles, speakerColorClass } from "@/lib/speakerColors";
 
 interface AudioFilesWeekCalendarProps {
   data: AudioFile[];
@@ -191,19 +198,62 @@ export const AudioFilesWeekCalendar = ({ data, onFileClick }: AudioFilesWeekCale
                       const height = (event.duration / 60) * HOUR_HEIGHT;
 
                       return (
-                        <div
-                          key={event.id}
-                          className="absolute left-1 right-1 p-1.5 bg-[#FFFAF0] dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 rounded-lg cursor-pointer hover:border-[var(--brand-solid)] hover:shadow-md transition-all z-10 overflow-hidden group shadow-sm"
-                          style={{ top: `${top}px`, height: `${height}px`, minHeight: '24px' }}
-                          onClick={() => onFileClick(event.id)}
-                        >
-                          <div className="flex items-center gap-1 min-w-0">
-                            <FileAudio className="h-3 w-3 text-[#FF6D20] flex-shrink-0" />
-                            <p className="text-[10px] text-gray-700 dark:text-gray-300 truncate font-semibold group-hover:text-[#FF6D20]">
-                              {event.title ? formatAudioFileTitle(event.title) : `File ${event.id.substring(0, 8)}`}
-                            </p>
-                          </div>
-                        </div>
+                        <Tooltip key={event.id}>
+                          <TooltipTrigger asChild>
+                            <div
+                              className="absolute left-1 right-1 p-1.5 bg-[#FFFAF0] dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 rounded-lg cursor-pointer hover:border-[var(--brand-solid)] hover:shadow-md transition-all z-10 overflow-hidden group shadow-sm"
+                              style={{ top: `${top}px`, height: `${height}px`, minHeight: '24px' }}
+                              onClick={() => onFileClick(event.id)}
+                            >
+                              <div className="flex items-center gap-1 min-w-0">
+                                <FileAudio className="h-3 w-3 text-[#FF6D20] flex-shrink-0" />
+                                <p className="text-[10px] text-gray-700 dark:text-gray-300 truncate font-semibold group-hover:text-[#FF6D20]">
+                                  {event.title ? formatAudioFileTitle(event.title) : `File ${event.id.substring(0, 8)}`}
+                                </p>
+                              </div>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="p-3 min-w-[200px] glass-card bg-[var(--bg-main)]/90 backdrop-blur-xl border-[var(--border-subtle)] shadow-xl z-[100]">
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-subtle)]">
+                                <FileAudio className="h-4 w-4 text-[#FF6D20]" />
+                                <span className="text-sm font-bold text-[var(--text-primary)] truncate">
+                                  {event.title || `Recording ${event.id.substring(0, 8)}`}
+                                </span>
+                              </div>
+
+                              {(() => {
+                                const speakers = getSpeakersFromAudioFile(event);
+                                return speakers.length > 0 ? (
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
+                                      <Users className="h-3 w-3" />
+                                      Speakers
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {speakers.map((speakerName, idx) => (
+                                        <span
+                                          key={idx}
+                                          style={getSpeakerColorStyles(speakerName)}
+                                          className={cn(
+                                            "px-2 py-0.5 rounded-full text-[10px] font-medium border",
+                                            speakerColorClass
+                                          )}
+                                        >
+                                          {speakerName}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="text-xs text-[var(--text-tertiary)] italic">
+                                    No speaker data available
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
                       );
                     })}
                 </div>
@@ -217,30 +267,32 @@ export const AudioFilesWeekCalendar = ({ data, onFileClick }: AudioFilesWeekCale
 
 
   return (
-    <div className="space-y-8 pb-12">
-      <div className="flex justify-between items-center bg-[var(--bg-card)] p-4 rounded-xl border border-[var(--border-subtle)] shadow-sm">
-        <div className="flex flex-col">
-          <span className="text-sm font-medium text-[var(--text-tertiary)] uppercase tracking-wider">Viewing Period</span>
-          <h2 className="text-xl font-bold text-[var(--text-primary)]">
-            Last 4 Weeks
-          </h2>
+    <TooltipProvider>
+      <div className="space-y-8 pb-12">
+        <div className="flex justify-between items-center bg-[var(--bg-card)] p-4 rounded-xl border border-[var(--border-subtle)] shadow-sm">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-[var(--text-tertiary)] uppercase tracking-wider">Viewing Period</span>
+            <h2 className="text-xl font-bold text-[var(--text-primary)]">
+              Last 4 Weeks
+            </h2>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handlePrev4Weeks} className="h-10 border-[var(--border-subtle)] px-4">
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Previous 4 Weeks
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleNext4Weeks} className="h-10 border-[var(--border-subtle)] px-4">
+              Next 4 Weeks
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handlePrev4Weeks} className="h-10 border-[var(--border-subtle)] px-4">
-            <ChevronLeft className="h-4 w-4 mr-2" />
-            Previous 4 Weeks
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleNext4Weeks} className="h-10 border-[var(--border-subtle)] px-4">
-            Next 4 Weeks
-            <ChevronRight className="h-4 w-4 ml-2" />
-          </Button>
-        </div>
-      </div>
 
-      <div className="space-y-0">
-        {weeks.map(weekStart => renderWeek(weekStart))}
+        <div className="space-y-0">
+          {weeks.map(weekStart => renderWeek(weekStart))}
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 };
 

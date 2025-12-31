@@ -33,7 +33,12 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
+import {
+	formatAudioFileTitle,
+	parseTitleForDate,
+	cn,
+	getSpeakersFromAudioFile
+} from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { TranscriptionConfigDialog, type WhisperXParams } from "@/components/TranscriptionConfigDialog";
 import { TranscribeDDialog } from "@/components/TranscribeDDialog";
@@ -71,7 +76,7 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 	const { shouldShowHint, markHintShown } = useSwipeHint();
 
 	// View State
-	const [view, setView] = useState<"list" | "week" | "month">("list");
+	const [view, setView] = useState<"list" | "week" | "month">("week");
 
 	// Table State
 	const sorting = [
@@ -845,13 +850,13 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 													</h4>
 													<div className="flex items-center gap-1.5 mt-1 text-sm text-gray-500">
 														{formatDate(file.created_at)}
-														{file.speaker_mappings && file.speaker_mappings.length > 0 && (
-															<>
-																<span className="text-gray-300 mx-0.5">•</span>
-																<div className="flex flex-wrap gap-1.5 max-w-[450px]">
-																	{file.speaker_mappings.map((m, idx) => {
-																		const speakerName = m.custom_name || m.original_speaker;
-																		return (
+														{(() => {
+															const speakers = getSpeakersFromAudioFile(file);
+															return speakers.length > 0 && (
+																<>
+																	<span className="text-gray-300 mx-0.5">•</span>
+																	<div className="flex flex-wrap gap-1.5 max-w-[450px]">
+																		{speakers.map((speakerName, idx) => (
 																			<span
 																				key={idx}
 																				style={getSpeakerColorStyles(speakerName)}
@@ -862,11 +867,11 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 																			>
 																				{speakerName}
 																			</span>
-																		);
-																	})}
-																</div>
-															</>
-														)}
+																		))}
+																	</div>
+																</>
+															);
+														})()}
 													</div>
 												</div>
 											</div>
