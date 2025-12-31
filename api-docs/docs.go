@@ -132,6 +132,9 @@ const docTemplate = `{
                     }
                 ],
                 "description": "Delete an API key",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "api-keys"
                 ],
@@ -1756,54 +1759,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/speakers/{id}/segments/{segment_id}/audio": {
-            "get": {
-                "description": "Get the audio for a specific speaker segment, sliced from the original file",
-                "produces": [
-                    "audio/mpeg"
-                ],
-                "tags": [
-                    "speakers"
-                ],
-                "summary": "Get speaker segment audio",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Speaker ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Segment ID",
-                        "name": "segment_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "file"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/summaries": {
             "get": {
                 "security": [
@@ -2234,31 +2189,15 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a list of all transcription jobs with optional search and filtering\nGet a list of all transcription jobs with optional search and filtering",
+                "description": "Get a list of all transcription jobs with optional search and filtering",
                 "produces": [
-                    "application/json",
                     "application/json"
                 ],
                 "tags": [
-                    "transcription",
                     "transcription"
                 ],
                 "summary": "List all transcription records",
                 "parameters": [
-                    {
-                        "type": "integer",
-                        "default": 1,
-                        "description": "Page number",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 10,
-                        "description": "Items per page",
-                        "name": "limit",
-                        "in": "query"
-                    },
                     {
                         "type": "integer",
                         "default": 1,
@@ -2909,32 +2848,17 @@ const docTemplate = `{
                     },
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "ApiKeyAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "Delete a transcription job and its associated files\nDelete a transcription job and its associated files",
+                "description": "Delete a transcription job and its associated files",
                 "produces": [
-                    "application/json",
                     "application/json"
                 ],
                 "tags": [
-                    "transcription",
                     "transcription"
                 ],
                 "summary": "Delete transcription job",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Job ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "Job ID",
@@ -4817,6 +4741,13 @@ const docTemplate = `{
             "properties": {
                 "created_at": {
                     "type": "string"
+                },
+                "embedding": {
+                    "description": "JSON-serialized float32 array",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "end": {
                     "type": "number"

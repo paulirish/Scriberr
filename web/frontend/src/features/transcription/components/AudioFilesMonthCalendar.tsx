@@ -1,21 +1,20 @@
 import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileAudio, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatAudioFileTitle, parseTitleForDate } from "@/lib/utils";
-
-interface AudioFile {
-  id: string;
-  title?: string;
-  status: "uploaded" | "pending" | "processing" | "completed" | "failed";
-  created_at: string;
-}
+import { formatAudioFileTitle, parseTitleForDate, cn, getSpeakersFromAudioFile } from "@/lib/utils";
+import { type AudioFile } from "@/features/transcription/hooks/useAudioFiles";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider
+} from "@/components/ui/tooltip";
+import { getSpeakerColorStyles, speakerColorClass } from "@/lib/speakerColors";
 
 interface AudioFilesMonthCalendarProps {
   data: AudioFile[];
   onFileClick: (fileId: string) => void;
 }
-
-
 
 const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -58,7 +57,7 @@ export const AudioFilesMonthCalendar = ({ data, onFileClick }: AudioFilesMonthCa
     const days = [];
     // Add empty cells for days before the start of the month
     for (let i = 0; i < startingDay; i++) {
-      days.push(<div key={`empty-${i}`} className="border border-gray-200 dark:border-gray-700"></div>);
+      days.push(<div key={`empty-${i}`} className="border border-[var(--border-subtle)] bg-[var(--bg-main)]/30"></div>);
     }
 
     // Add cells for each day of the month
@@ -66,19 +65,74 @@ export const AudioFilesMonthCalendar = ({ data, onFileClick }: AudioFilesMonthCa
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
       const dateString = date.toDateString();
       const filesForDay = filesByDate[dateString] || [];
+      const isToday = new Date().toDateString() === dateString;
 
       days.push(
-        <div key={day} className="border border-gray-200 dark:border-gray-700 p-2 flex flex-col">
-          <span className="font-medium text-gray-900 dark:text-gray-100">{day}</span>
+        <div key={day} className={cn(
+          "border border-[var(--border-subtle)] p-2 flex flex-col min-h-[120px] transition-colors",
+          isToday ? "bg-[var(--brand-solid)]/5" : "bg-[var(--bg-card)]"
+        )}>
+          <span className={cn(
+            "text-sm font-medium mb-1",
+            isToday ? "text-[var(--brand-solid)]" : "text-[var(--text-secondary)]"
+          )}>{day}</span>
           <div className="mt-1 space-y-1">
             {filesForDay.map((file) => (
-              <div
-                key={file.id}
-                onClick={() => onFileClick(file.id)}
-                className="bg-blue-100 dark:bg-blue-900/50 p-1 rounded-md cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800/50"
-              >
-                <p className="text-xs text-blue-800 dark:text-blue-200 truncate">{file.title ? formatAudioFileTitle(file.title) : `File ${file.id}`}</p>
-              </div>
+              <Tooltip key={file.id}>
+                <TooltipTrigger asChild>
+                  <div
+                    onClick={() => onFileClick(file.id)}
+                    className="group bg-[#FFFAF0] dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 p-1.5 rounded-lg cursor-pointer hover:border-[var(--brand-solid)] hover:shadow-sm transition-all"
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <FileAudio className="h-3 w-3 text-[#FF6D20] flex-shrink-0" />
+                      <p className="text-[10px] text-gray-700 dark:text-gray-300 truncate font-medium group-hover:text-[#FF6D20]">
+                        {file.title ? formatAudioFileTitle(file.title) : `File ${file.id.substring(0, 8)}`}
+                      </p>
+                    </div>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="p-3 min-w-[200px] glass-card bg-[var(--bg-main)]/90 backdrop-blur-xl border-[var(--border-subtle)] shadow-xl">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-subtle)]">
+                      <FileAudio className="h-4 w-4 text-[#FF6D20]" />
+                      <span className="text-sm font-bold text-[var(--text-primary)] truncate">
+                        {file.title || `Recording ${file.id.substring(0, 8)}`}
+                      </span>
+                    </div>
+
+                    {(() => {
+                      const speakers = getSpeakersFromAudioFile(file);
+                      return speakers.length > 0 ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-1.5 text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
+                            <Users className="h-3 w-3" />
+                            Speakers
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {speakers.map((speakerName, idx) => (
+                              <span
+                                key={idx}
+                                style={getSpeakerColorStyles(speakerName)}
+                                className={cn(
+                                  "px-2 py-0.5 rounded-full text-[10px] font-medium border",
+                                  speakerColorClass
+                                )}
+                              >
+                                {speakerName}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-[var(--text-tertiary)] italic">
+                          No speaker data available
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
             ))}
           </div>
         </div>
@@ -88,30 +142,34 @@ export const AudioFilesMonthCalendar = ({ data, onFileClick }: AudioFilesMonthCa
   };
 
   return (
-    <div className="p-4 bg-white dark:bg-gray-800 rounded-lg">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50">
-          {currentDate.toLocaleString("default", { month: "long", year: "numeric" })}
-        </h2>
-        <div className="flex space-x-2">
-          <Button variant="outline" size="sm" onClick={handlePrevMonth}>
-            <ChevronLeft className="h-4 w-4" />
-            Prev
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleNextMonth}>
-            Next
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+    <TooltipProvider>
+      <div className="glass-card rounded-[var(--radius-card)] overflow-hidden border border-[var(--border-subtle)] shadow-[var(--shadow-float)]">
+        <div className="flex justify-between items-center p-4 border-b border-[var(--border-subtle)] bg-[var(--bg-card)]">
+          <h2 className="text-lg font-bold text-[var(--text-primary)]">
+            {currentDate.toLocaleString("default", { month: "long", year: "numeric" })}
+          </h2>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handlePrevMonth} className="h-8 border-[var(--border-subtle)]">
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Prev
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleNextMonth} className="h-8 border-[var(--border-subtle)]">
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+        <div className="grid grid-cols-7 bg-[var(--border-subtle)]">
+          {daysOfWeek.map((day) => (
+            <div key={day} className="text-center text-xs font-bold text-[var(--text-tertiary)] py-3 bg-[var(--bg-main)] uppercase tracking-wider">
+              {day}
+            </div>
+          ))}
+          {renderDays()}
         </div>
       </div>
-      <div className="grid grid-cols-7 gap-px dark:bg-gray-700">
-        {daysOfWeek.map((day) => (
-          <div key={day} className="text-center font-medium text-gray-600 dark:text-gray-300 py-2 bg-gray-50 dark:bg-gray-700/50">
-            {day}
-          </div>
-        ))}
-        {renderDays()}
-      </div>
-    </div>
+    </TooltipProvider>
   );
 };
+
+

@@ -233,7 +233,9 @@ func (t *TitanetAdapter) IdentifySpeakers(ctx context.Context, input interfaces.
 	}
 
 	var resultWrapper struct {
-		Segments []interfaces.DiarizationSegment `json:"segments"`
+		Segments         []interfaces.DiarizationSegment `json:"segments"`
+		SpeakerMetadata  map[string]string               `json:"speaker_metadata"`
+		SpeakerCentroids map[string][]float32            `json:"speaker_centroids"`
 	}
 	if err := json.Unmarshal(resultData, &resultWrapper); err != nil {
 		return nil, fmt.Errorf("failed to parse identity output: %w", err)
@@ -241,7 +243,17 @@ func (t *TitanetAdapter) IdentifySpeakers(ctx context.Context, input interfaces.
 
 	newResult := *diarizationResult
 	newResult.Segments = resultWrapper.Segments
+	newResult.SpeakerCentroids = resultWrapper.SpeakerCentroids
 
+	// Pass metadata back so UnifiedService can seed the database
+	if newResult.Metadata == nil {
+		newResult.Metadata = make(map[string]string)
+	}
+	for id, name := range resultWrapper.SpeakerMetadata {
+		newResult.Metadata["speaker_name:"+id] = name
+	}
+
+	// Re-calculate unique speakers for the result object
 	speakerSet := make(map[string]bool)
 	for _, seg := range newResult.Segments {
 		speakerSet[seg.Speaker] = true

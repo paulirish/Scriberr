@@ -49,10 +49,8 @@ def transcribe_audio(
     device_type = "cpu"
     if torch.cuda.is_available():
         device_type = "cuda"
-    elif torch.backends.mps.is_available():
-        device_type = "mps"
-        # Not all operations are implemented on MPS yet, enable fallback to CPU
-        os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+    # Note: MPS is disabled because Canary 1b v2 contains float64 tensors
+    # which are not supported by the MPS framework as of late 2024.
 
     device = torch.device(device_type)
     print(f"Using device: {device_type.upper()}")
@@ -258,8 +256,9 @@ def main():
             profile=args.profile,
             profile_output=args.profile_output,
         )
-    except Exception as e:
-        print(f"Error during transcription: {e}")
+    except Exception:
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 

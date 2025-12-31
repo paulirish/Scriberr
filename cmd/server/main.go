@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -21,7 +20,6 @@ import (
 	"scriberr/internal/service"
 	"scriberr/internal/sse"
 	"scriberr/internal/transcription"
-	"scriberr/internal/transcription/adapters"
 	"scriberr/internal/transcription/registry"
 	"scriberr/pkg/logger"
 )
@@ -78,7 +76,7 @@ func main() {
 	cfg := config.Load()
 
 	// Register adapters with config-based paths
-	registerAdapters(cfg)
+	registry.RegisterStandardAdapters(cfg)
 
 	// Initialize database
 	logger.Startup("database", "Connecting to database")
@@ -107,19 +105,18 @@ func main() {
 	chatRepo := repository.NewChatRepository(database.DB)
 	noteRepo := repository.NewNoteRepository(database.DB)
 	speakerMappingRepo := repository.NewSpeakerMappingRepository(database.DB)
+	speakerRepo := repository.NewSpeakerRepository(database.DB)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(database.DB)
 
 	// Initialize services
 	logger.Startup("service", "Initializing services")
 	userService := service.NewUserService(userRepo, authService)
 	fileService := service.NewFileService()
-	speakerService := service.NewSpeakerService(jobRepo)
+	speakerService := service.NewSpeakerService(jobRepo, speakerRepo)
 
 	// Initialize unified transcription processor
 	logger.Startup("transcription", "Initializing transcription service")
-	// Initialize unified transcription processor
-	logger.Startup("transcription", "Initializing transcription service")
-	unifiedProcessor := transcription.NewUnifiedJobProcessor(jobRepo)
+	unifiedProcessor := transcription.NewUnifiedJobProcessor(jobRepo, speakerRepo)
 	unifiedProcessor.GetUnifiedService().SetBroadcaster(broadcaster)
 
 	// Bootstrap embedded Python environment (for all adapters)
@@ -161,6 +158,7 @@ func main() {
 		chatRepo,
 		noteRepo,
 		speakerMappingRepo,
+		speakerRepo,
 		refreshTokenRepo,
 		taskQueue,
 		unifiedProcessor,
@@ -217,37 +215,4 @@ func main() {
 	}
 
 	logger.Info("Server stopped")
-}
-
-// registerAdapters registers all transcription and diarization adapters with config-based paths
-func registerAdapters(cfg *config.Config) {
-	// Shared environment path for NVIDIA models (NeMo-based)
-	nvidiaEnvPath := filepath.Join(cfg.WhisperXEnv, "parakeet")
-	logger.Info("Registering adapters with environment path", nvidiaEnvPath)
-
-
-	// Dedicated environment path for PyAnnote (to avoid dependency conflicts)
-	// pyannoteEnvPath := filepath.Join(cfg.WhisperXEnv, "pyannote")
-
-	// Register transcription adapters
-	// registry.RegisterTranscriptionAdapter("whisperx",
-	// 	adapters.NewWhisperXAdapter(cfg.WhisperXEnv))
-	registry.RegisterTranscriptionAdapter("parakeet",
-		adapters.NewParakeetAdapter(nvidiaEnvPath))
-	registry.RegisterTranscriptionAdapter("canary",
-		adapters.NewCanaryAdapter(nvidiaEnvPath)) // Shares with Parakeet
-	registry.RegisterTranscriptionAdapter("openai_whisper",
-		adapters.NewOpenAIAdapter(cfg.OpenAIAPIKey))
-
-	// Register diarization adapters
-	// registry.RegisterDiarizationAdapter("pyannote",
-	// 	adapters.NewPyAnnoteAdapter(pyannoteEnvPath)) // Dedicated environment
-	registry.RegisterDiarizationAdapter("sortformer",
-		adapters.NewSortformerAdapter(nvidiaEnvPath)) // Shares with Parakeet
-
-	// Register speaker identification adapters
-	registry.RegisterIdentificationAdapter("titanet",
-		adapters.NewTitanetAdapter(nvidiaEnvPath)) // Shares with Parakeet
-
-	logger.Info("Adapter registration complete")
 }

@@ -69,6 +69,7 @@ type JobRepository interface {
 	SaveSpeakerJobCentroids(ctx context.Context, centroids []models.SpeakerJobCentroid) error
 	GetSegmentsBySpeakerID(ctx context.Context, speakerID string) ([]models.SpeakerSegment, error)
 	GetSegmentsBySpeakerIDs(ctx context.Context, speakerIDs []string) ([]models.SpeakerSegment, error)
+	GetSpeakersByJobIDs(ctx context.Context, jobIDs []string) (map[string][]string, error)
 }
 
 type jobRepository struct {
@@ -244,6 +245,71 @@ func (r *jobRepository) GetSegmentsBySpeakerIDs(ctx context.Context, speakerIDs 
 		Order("created_at DESC").
 		Find(&segments).Error
 	return segments, err
+}
+
+func (r *jobRepository) GetSpeakersByJobIDs(ctx context.Context, jobIDs []string) (map[string][]string, error) {
+	if len(jobIDs) == 0 {
+		return make(map[string][]string), nil
+	}
+
+	// This query gets all unique speaker IDs for the given jobs
+	// and joins them with global speaker names and local job overrides.
+	// We use a complex query to handle the hierarchy: Override > Global Name > ID
+	type ResolvedSpeaker struct {
+		JobID string `gorm:"column:job_id"`
+		Name  string `gorm:"column:resolved_name"`
+	}
+
+	var results []ResolvedSpeaker
+
+	// Query breakdown:
+	// 1. Get unique speaker_ids from speaker_segments for these jobs
+	// 2. Left join with speakers table for global names
+	// 3. Left join with speaker_mappings for local overrides
+	// 4. COALESCE to pick the best name
+	query := `
+		SELECT DISTINCT 
+			ss.transcription_job_id as job_id,
+			COALESCE(sm.custom_name, s.name, ss.speaker_id) as resolved_name
+		FROM speaker_segments ss
+		LEFT JOIN speakers s ON ss.speaker_id = s.id
+		LEFT JOIN speaker_mappings sm ON ss.transcription_job_id = sm.transcription_job_id 
+			AND ss.speaker_id = sm.original_speaker
+		WHERE ss.transcription_job_id IN ?
+	`
+
+	if err := r.db.WithContext(ctx).Raw(query, jobIDs).Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	// Also handle multi-track files (which act as speakers in that mode)
+	var multiTrackResults []ResolvedSpeaker
+	multiTrackQuery := `
+		SELECT transcription_job_id as job_id, file_name as resolved_name
+		FROM multi_track_files
+		WHERE transcription_job_id IN ?
+	`
+	if err := r.db.WithContext(ctx).Raw(multiTrackQuery, jobIDs).Scan(&multiTrackResults).Error; err == nil {
+		results = append(results, multiTrackResults...)
+	}
+
+	// Group results by JobID
+	resolvedMap := make(map[string][]string)
+	for _, res := range results {
+		// Avoid duplicates within a job (might happen if a speaker has multiple segments)
+		exists := false
+		for _, existingName := range resolvedMap[res.JobID] {
+			if existingName == res.Name {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			resolvedMap[res.JobID] = append(resolvedMap[res.JobID], res.Name)
+		}
+	}
+
+	return resolvedMap, nil
 }
 
 // APIKeyRepository handles API key operations
@@ -622,6 +688,33 @@ func (r *speakerMappingRepository) UpdateMappings(ctx context.Context, jobID str
 		}
 		return nil
 	})
+}
+
+// SpeakerRepository handles global speaker identities
+type SpeakerRepository interface {
+	Repository[models.Speaker]
+	UpdateName(ctx context.Context, id string, name string) error
+	FindAll(ctx context.Context) ([]models.Speaker, error)
+}
+
+type speakerRepository struct {
+	*BaseRepository[models.Speaker]
+}
+
+func NewSpeakerRepository(db *gorm.DB) SpeakerRepository {
+	return &speakerRepository{
+		BaseRepository: NewBaseRepository[models.Speaker](db),
+	}
+}
+
+func (r *speakerRepository) UpdateName(ctx context.Context, id string, name string) error {
+	return r.db.WithContext(ctx).Model(&models.Speaker{}).Where("id = ?", id).Update("name", name).Error
+}
+
+func (r *speakerRepository) FindAll(ctx context.Context) ([]models.Speaker, error) {
+	var speakers []models.Speaker
+	err := r.db.WithContext(ctx).Order("name ASC").Find(&speakers).Error
+	return speakers, err
 }
 
 // RefreshTokenRepository handles refresh token operations
