@@ -1,4 +1,4 @@
-import type { Transcript } from "@/features/transcription/hooks/useAudioDetail";
+import type { Transcript } from "@/types/transcription";
 
 export function useTranscriptDownload() {
 

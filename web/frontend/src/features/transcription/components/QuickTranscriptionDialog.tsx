@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Upload, Clock, CheckCircle, XCircle, FileAudio, Zap } from "lucide-react";
 import { useTranscriptionProfiles, useQuickTranscription } from "@/features/transcription/hooks/useAudioFiles";
-import type { Profile } from "@/features/transcription/hooks/useAudioFiles";
+import type { TranscriptionProfile } from "@/types/transcription";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 
 
@@ -63,7 +63,7 @@ export function QuickTranscriptionDialog({ isOpen, onClose }: QuickTranscription
   // Set default profile when profiles load
   useEffect(() => {
     if (profiles.length > 0 && !selectedProfile) {
-      const defaultProfile = profiles.find((p: Profile) => p.is_default);
+      const defaultProfile = profiles.find((p: TranscriptionProfile) => p.is_default);
       if (defaultProfile) {
         setSelectedProfile(defaultProfile.name);
       }

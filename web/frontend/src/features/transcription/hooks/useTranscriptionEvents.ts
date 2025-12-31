@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
-import type { AudioFile } from '@/features/transcription/hooks/useAudioFiles';
+import type { AudioFile } from '@/types/transcription';
 
 interface JobUpdateEvent {
     type: string;

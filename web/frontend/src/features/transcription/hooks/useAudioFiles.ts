@@ -1,21 +1,8 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import type { AudioFile, TranscriptionProfile } from '@/types/transcription';
 
-export interface AudioFile {
-    id: string;
-    title?: string;
-    status: "uploaded" | "pending" | "processing" | "completed" | "failed";
-    created_at: string;
-    audio_path: string;
-    diarization?: boolean;
-    is_multi_track?: boolean;
-    error_message?: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    individual_transcripts?: any;
-    speakers?: number;
-    duration?: number;
-}
-
+// AudioFilesResponse is specific to the list response wrapper
 export interface AudioFilesResponse {
     jobs: AudioFile[];
     pagination: {
@@ -196,13 +183,6 @@ export function useYouTubeDownload() {
     });
 }
 
-export interface Profile {
-    id: string;
-    name: string;
-    description?: string;
-    is_default: boolean;
-}
-
 export function useTranscriptionProfiles() {
     const { getAuthHeaders } = useAuth();
     return useQuery({
@@ -212,7 +192,7 @@ export function useTranscriptionProfiles() {
                 headers: getAuthHeaders(),
             });
             if (!response.ok) throw new Error('Failed to load profiles');
-            return response.json() as Promise<Profile[]>;
+            return response.json() as Promise<TranscriptionProfile[]>;
         }
     });
 }

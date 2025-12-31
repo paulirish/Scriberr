@@ -1,11 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-
-export interface SpeakerMapping {
-    id?: number;
-    original_speaker: string;
-    custom_name: string;
-}
+import type { SpeakerMapping } from "@/types/transcription";
 
 export function useSpeakerMappings(audioId: string, enabled: boolean) {
     const { getAuthHeaders } = useAuth();

@@ -12,7 +12,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { X, StickyNote } from "lucide-react";
 import { computeWordOffsets } from "@/features/transcription/hooks/useKaraokeHighlight";
-import type { Transcript } from "@/features/transcription/hooks/useAudioDetail";
+import type { Transcript } from "@/types/transcription";
 import { cn } from "@/lib/utils";
 
 interface TranscriptSectionProps {

@@ -32,11 +32,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { TranscriptionConfigDialog, type WhisperXParams } from "@/components/TranscriptionConfigDialog";
+import { TranscriptionConfigDialog } from "@/components/TranscriptionConfigDialog";
+import type { WhisperXParams } from "@/types/transcription";
 import { TranscribeDDialog } from "@/components/TranscribeDDialog";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { useAudioListInfinite, type AudioFile } from "@/features/transcription/hooks/useAudioFiles";
+import { useAudioListInfinite } from "@/features/transcription/hooks/useAudioFiles";
+import type { AudioFile } from "@/types/transcription";
 import { useTranscriptionEvents } from "@/features/transcription/hooks/useTranscriptionEvents";
 
 const JobStatusMonitor = memo(function JobStatusMonitor({ jobId }: { jobId: string }) {
@@ -310,7 +312,7 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 	}, []);
 
 	// Handle actual transcription start with parameters
-	const handleStartTranscription = useCallback(async (params: WhisperXParams) => {
+	const handleStartTranscription = useCallback(async (params: WhisperXParams & { profileName?: string; profileDescription?: string }) => {
 		if (!selectedJobId) return;
 
 		// Validate multi-track compatibility
@@ -541,7 +543,7 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 	}, [rowSelection, getAuthHeaders, refetch]);
 
 	// Modified handlers to support bulk actions
-	const onStartTranscribe = (params: WhisperXParams) => {
+	const onStartTranscribe = (params: WhisperXParams & { profileName?: string; profileDescription?: string }) => {
 		if (Object.keys(rowSelection).length > 0) {
 			handleBulkTranscribe(params);
 		} else {

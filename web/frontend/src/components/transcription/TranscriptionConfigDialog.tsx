@@ -28,63 +28,11 @@ import {
 import { Loader2, Check, XCircle } from "lucide-react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { FormField, Section, InfoBanner } from "@/components/transcription/FormHelpers";
+import type { WhisperXParams } from "@/types/transcription";
 
 // ============================================================================
 // Types & Constants
 // ============================================================================
-
-export interface WhisperXParams {
-    model_family: string;
-    model: string;
-    model_cache_only: boolean;
-    model_dir?: string;
-    device: string;
-    device_index: number;
-    batch_size: number;
-    compute_type: string;
-    threads: number;
-    output_format: string;
-    verbose: boolean;
-    task: string;
-    language?: string;
-    align_model?: string;
-    interpolate_method: string;
-    no_align: boolean;
-    return_char_alignments: boolean;
-    vad_method: string;
-    vad_onset: number;
-    vad_offset: number;
-    chunk_size: number;
-    diarize: boolean;
-    min_speakers?: number;
-    max_speakers?: number;
-    diarize_model: string;
-    speaker_embeddings: boolean;
-    temperature: number;
-    best_of: number;
-    beam_size: number;
-    patience: number;
-    length_penalty: number;
-    suppress_tokens?: string;
-    suppress_numerals: boolean;
-    initial_prompt?: string;
-    condition_on_previous_text: boolean;
-    fp16: boolean;
-    temperature_increment_on_fallback: number;
-    compression_ratio_threshold: number;
-    logprob_threshold: number;
-    no_speech_threshold: number;
-    max_line_width?: number;
-    max_line_count?: number;
-    highlight_words: boolean;
-    segment_resolution: string;
-    hf_token?: string;
-    print_progress: boolean;
-    attention_context_left: number;
-    attention_context_right: number;
-    is_multi_track_enabled: boolean;
-    api_key?: string;
-}
 
 interface TranscriptionConfigDialogProps {
     open: boolean;
@@ -706,7 +654,7 @@ function ParakeetConfig({ params, updateParam, isMultiTrack }: ConfigProps) {
                     <div className="space-y-3">
                         <FormField label="Left Context">
                             <Slider
-                                value={[params.attention_context_left]}
+                                value={[params.attention_context_left || 256]}
                                 onValueChange={(v) => updateParam('attention_context_left', v[0])}
                                 max={512}
                                 min={64}
@@ -715,7 +663,7 @@ function ParakeetConfig({ params, updateParam, isMultiTrack }: ConfigProps) {
                             />
                             <div className="flex justify-between text-xs text-[var(--text-tertiary)]">
                                 <span>64</span>
-                                <span className="font-medium text-[var(--text-primary)]">{params.attention_context_left}</span>
+                                <span className="font-medium text-[var(--text-primary)]">{params.attention_context_left || 256}</span>
                                 <span>512</span>
                             </div>
                         </FormField>
@@ -724,7 +672,7 @@ function ParakeetConfig({ params, updateParam, isMultiTrack }: ConfigProps) {
                     <div className="space-y-3">
                         <FormField label="Right Context">
                             <Slider
-                                value={[params.attention_context_right]}
+                                value={[params.attention_context_right || 256]}
                                 onValueChange={(v) => updateParam('attention_context_right', v[0])}
                                 max={512}
                                 min={64}
@@ -733,7 +681,7 @@ function ParakeetConfig({ params, updateParam, isMultiTrack }: ConfigProps) {
                             />
                             <div className="flex justify-between text-xs text-[var(--text-tertiary)]">
                                 <span>64</span>
-                                <span className="font-medium text-[var(--text-primary)]">{params.attention_context_right}</span>
+                                <span className="font-medium text-[var(--text-primary)]">{params.attention_context_right || 256}</span>
                                 <span>512</span>
                             </div>
                         </FormField>
