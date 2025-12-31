@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -21,7 +20,6 @@ import (
 	"scriberr/internal/service"
 	"scriberr/internal/sse"
 	"scriberr/internal/transcription"
-	"scriberr/internal/transcription/adapters"
 	"scriberr/internal/transcription/registry"
 	"scriberr/pkg/logger"
 )
@@ -78,7 +76,7 @@ func main() {
 	cfg := config.Load()
 
 	// Register adapters with config-based paths
-	registerAdapters(cfg)
+	registry.RegisterStandardAdapters(cfg)
 
 	// Initialize database
 	logger.Startup("database", "Connecting to database")
@@ -217,37 +215,4 @@ func main() {
 	}
 
 	logger.Info("Server stopped")
-}
-
-// registerAdapters registers all transcription and diarization adapters with config-based paths
-func registerAdapters(cfg *config.Config) {
-	// Shared environment path for NVIDIA models (NeMo-based)
-	nvidiaEnvPath := filepath.Join(cfg.WhisperXEnv, "parakeet")
-	logger.Info("Registering adapters with environment path", nvidiaEnvPath)
-
-
-	// Dedicated environment path for PyAnnote (to avoid dependency conflicts)
-	// pyannoteEnvPath := filepath.Join(cfg.WhisperXEnv, "pyannote")
-
-	// Register transcription adapters
-	// registry.RegisterTranscriptionAdapter("whisperx",
-	// 	adapters.NewWhisperXAdapter(cfg.WhisperXEnv))
-	registry.RegisterTranscriptionAdapter("parakeet",
-		adapters.NewParakeetAdapter(nvidiaEnvPath))
-	registry.RegisterTranscriptionAdapter("canary",
-		adapters.NewCanaryAdapter(nvidiaEnvPath)) // Shares with Parakeet
-	registry.RegisterTranscriptionAdapter("openai_whisper",
-		adapters.NewOpenAIAdapter(cfg.OpenAIAPIKey))
-
-	// Register diarization adapters
-	// registry.RegisterDiarizationAdapter("pyannote",
-	// 	adapters.NewPyAnnoteAdapter(pyannoteEnvPath)) // Dedicated environment
-	registry.RegisterDiarizationAdapter("sortformer",
-		adapters.NewSortformerAdapter(nvidiaEnvPath)) // Shares with Parakeet
-
-	// Register speaker identification adapters
-	registry.RegisterIdentificationAdapter("titanet",
-		adapters.NewTitanetAdapter(nvidiaEnvPath)) // Shares with Parakeet
-
-	logger.Info("Adapter registration complete")
 }

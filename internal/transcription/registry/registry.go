@@ -425,75 +425,84 @@ func (r *ModelRegistry) InitializeModels(ctx context.Context) error {
 		return nil
 	}
 	// Mark as initialized to prevent re-entry.
-	// This changes the meaning of 'initialized' to 'initialization started'.
 	r.initialized = true
 	r.mu.Unlock()
 
 	logger.Info("Initializing registered models in parallel...")
 
 	go func() {
-		var wg sync.WaitGroup
-		initErrors := make(chan error, len(r.transcriptionAdapters)+len(r.diarizationAdapters)+len(r.compositeAdapters)+len(r.identificationAdapters))
-
-		// Helper function to initialize an adapter
-		initAdapter := func(id string, adapter interface {
-			PrepareEnvironment(context.Context) error
-		}, typeName string) {
-			defer wg.Done()
-			logger.Debug(fmt.Sprintf("Initializing %s model", typeName), "model_id", id)
-			if err := adapter.PrepareEnvironment(ctx); err != nil {
-				logger.Error(fmt.Sprintf("Failed to initialize %s model", typeName),
-					"model_id", id, "error", err)
-				initErrors <- fmt.Errorf("%s model %s: %w", typeName, id, err)
-			} else {
-				logger.Info(fmt.Sprintf("%s model initialized", typeName), "model_id", id)
-			}
-		}
-
-		// Initialize transcription adapters
-		for modelID, adapter := range r.transcriptionAdapters {
-			wg.Add(1)
-			go initAdapter(modelID, adapter, "transcription")
-		}
-
-		// Initialize diarization adapters
-		for modelID, adapter := range r.diarizationAdapters {
-			wg.Add(1)
-			go initAdapter(modelID, adapter, "diarization")
-		}
-
-		// Initialize composite adapters
-		for modelID, adapter := range r.compositeAdapters {
-			wg.Add(1)
-			go initAdapter(modelID, adapter, "composite")
-		}
-
-		// Initialize identification adapters
-		for modelID, adapter := range r.identificationAdapters {
-			wg.Add(1)
-			go initAdapter(modelID, adapter, "identification")
-		}
-
-		// Wait for all initializations to complete
-		wg.Wait()
-		close(initErrors)
-
-		// Collect any errors (but don't fail completely)
-		var errorList []error
-		for err := range initErrors {
-			errorList = append(errorList, err)
-		}
-
-		if len(errorList) > 0 {
-			logger.Warn("Some models failed to initialize", "error_count", len(errorList))
-			for _, err := range errorList {
-				logger.Warn("Model initialization error", "error", err)
-			}
-		}
-
-		logger.Info("Model initialization completed")
+		_ = r.runInitialization(ctx)
 	}()
 
+	return nil
+}
+
+// InitializeModelsSync ensures all registered models are ready to use and waits for completion
+func (r *ModelRegistry) InitializeModelsSync(ctx context.Context) error {
+	r.mu.Lock()
+	if r.initialized {
+		r.mu.Unlock()
+		return nil
+	}
+	r.initialized = true
+	r.mu.Unlock()
+
+	logger.Info("Initializing registered models (synchronous)...")
+	return r.runInitialization(ctx)
+}
+
+// runInitialization performs the actual initialization of all registered adapters
+func (r *ModelRegistry) runInitialization(ctx context.Context) error {
+	var wg sync.WaitGroup
+	initErrors := make(chan error, len(r.transcriptionAdapters)+len(r.diarizationAdapters)+len(r.compositeAdapters)+len(r.identificationAdapters))
+
+	// Helper function to initialize an adapter
+	initAdapter := func(id string, adapter interface {
+		PrepareEnvironment(context.Context) error
+	}, typeName string) {
+		defer wg.Done()
+		logger.Debug(fmt.Sprintf("Initializing %s model", typeName), "model_id", id)
+		if err := adapter.PrepareEnvironment(ctx); err != nil {
+			logger.Error(fmt.Sprintf("Failed to initialize %s model", typeName),
+				"model_id", id, "error", err)
+			initErrors <- fmt.Errorf("%s model %s: %w", typeName, id, err)
+		} else {
+			logger.Info(fmt.Sprintf("%s model initialized", typeName), "model_id", id)
+		}
+	}
+
+	// Initialize all adapters in parallel
+	for modelID, adapter := range r.transcriptionAdapters {
+		wg.Add(1)
+		go initAdapter(modelID, adapter, "transcription")
+	}
+	for modelID, adapter := range r.diarizationAdapters {
+		wg.Add(1)
+		go initAdapter(modelID, adapter, "diarization")
+	}
+	for modelID, adapter := range r.compositeAdapters {
+		wg.Add(1)
+		go initAdapter(modelID, adapter, "composite")
+	}
+	for modelID, adapter := range r.identificationAdapters {
+		wg.Add(1)
+		go initAdapter(modelID, adapter, "identification")
+	}
+
+	wg.Wait()
+	close(initErrors)
+
+	var errorList []error
+	for err := range initErrors {
+		errorList = append(errorList, err)
+	}
+
+	if len(errorList) > 0 {
+		logger.Warn("Some models failed to initialize", "error_count", len(errorList))
+		return fmt.Errorf("multiple models failed to initialize: %v", errorList)
+	}
+
+	logger.Info("Model initialization completed")
 	return nil
 }
 
