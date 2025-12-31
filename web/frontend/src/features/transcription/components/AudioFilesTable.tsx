@@ -10,7 +10,10 @@ import {
 	Check,
 	AlertCircle,
 	Clock,
-	X
+	X,
+	LayoutGrid,
+	CalendarDays,
+	CalendarRange
 } from "lucide-react";
 import { WandAdvancedIcon } from "@/components/icons/WandAdvancedIcon";
 // Checkbox removed
@@ -39,6 +42,9 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAudioListInfinite, type AudioFile } from "@/features/transcription/hooks/useAudioFiles";
 import { useTranscriptionEvents } from "@/features/transcription/hooks/useTranscriptionEvents";
 import { getSpeakerColorStyles, speakerColorClass } from "@/lib/speakerColors";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AudioFilesWeekCalendar } from "./AudioFilesWeekCalendar";
+import { AudioFilesMonthCalendar } from "./AudioFilesMonthCalendar";
 
 const JobStatusMonitor = memo(function JobStatusMonitor({ jobId }: { jobId: string }) {
 	useTranscriptionEvents(jobId);
@@ -63,6 +69,9 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 	const navigate = useNavigate();
 	const { getAuthHeaders } = useAuth();
 	const { shouldShowHint, markHintShown } = useSwipeHint();
+
+	// View State
+	const [view, setView] = useState<"list" | "week" | "month">("list");
 
 	// Table State
 	const sorting = [
@@ -733,18 +742,50 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 	return (
 		<div className="space-y-6">
 			{/* Toolbar */}
-			<div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-				<DebouncedSearchInput
-					placeholder="Search recordings..."
-					value={globalFilter ?? ""}
-					onChange={(value) => setGlobalFilter(String(value))}
-					className="w-full sm:w-80 shadow-sm border-transparent focus:border-[var(--brand-solid)] bg-white dark:bg-zinc-900"
-				/>
+			<div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+				<div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+					<Tabs
+						value={view}
+						onValueChange={(v) => setView(v as any)}
+						className="w-full sm:w-auto"
+					>
+						<TabsList className="grid w-full grid-cols-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] p-1 h-11">
+							<TabsTrigger
+								value="list"
+								className="data-[state=active]:bg-[var(--brand-solid)] data-[state=active]:text-white transition-all gap-2"
+							>
+								<LayoutGrid className="h-4 w-4" />
+								<span className="hidden sm:inline">List</span>
+							</TabsTrigger>
+							<TabsTrigger
+								value="week"
+								className="data-[state=active]:bg-[var(--brand-solid)] data-[state=active]:text-white transition-all gap-2"
+							>
+								<CalendarRange className="h-4 w-4" />
+								<span className="hidden sm:inline">Week</span>
+							</TabsTrigger>
+							<TabsTrigger
+								value="month"
+								className="data-[state=active]:bg-[var(--brand-solid)] data-[state=active]:text-white transition-all gap-2"
+							>
+								<CalendarDays className="h-4 w-4" />
+								<span className="hidden sm:inline">Month</span>
+							</TabsTrigger>
+						</TabsList>
+					</Tabs>
+
+					<DebouncedSearchInput
+						placeholder="Search recordings..."
+						value={globalFilter ?? ""}
+						onChange={(value) => setGlobalFilter(String(value))}
+						className="w-full sm:w-80 shadow-sm border-transparent focus:border-[var(--brand-solid)] bg-white dark:bg-zinc-900 h-11"
+					/>
+				</div>
 			</div>
 
 			{/* List Container */}
 			<div className="space-y-3 min-h-[300px] pb-24">
-				{loading ? (
+				{queryLoading ? (
 					// Skeleton Loaders
 					Array.from({ length: 5 }).map((_, i) => (
 						<div key={i} className="h-20 w-full bg-[var(--bg-card)] rounded-xl animate-pulse" />
@@ -760,153 +801,171 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 						</p>
 					</div>
 				) : (
-					<div className="space-y-3">
-						{data.map((file, index) => (
-							<SwipeableItem
-								key={file.id}
-								onTranscribe={() => handleTranscribeDClick(file.id)}
-								onTranscribeAdvanced={() => handleTranscribeClick(file.id)}
-								onDelete={() => handleDeleteClick(file)}
-								onStop={() => handleStopClick(file)}
-								isProcessing={file.status === "processing" || file.status === "pending"}
-								isSelectionMode={Object.keys(rowSelection).length > 0}
-								shouldShowHint={shouldShowHint && index === 0}
-								onHintComplete={markHintShown}
-								onSwipeStateChange={handleSwipeStateChange}
-							>
-								<div
-									className={cn(
-										"group relative flex justify-between items-center p-4",
-										"bg-[var(--bg-card)] rounded-xl border border-[var(--border-subtle)]",
-										"shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer select-none",
-										rowSelection[file.id as keyof typeof rowSelection] && "border-[var(--brand-solid)] ring-1 ring-[var(--brand-solid)]/10 bg-orange-50 dark:bg-orange-950"
-									)}
-									onClick={(e) => handleRowClick(file, e)}
-									onMouseDown={(e) => startLongPress(file.id, e)}
-									onMouseUp={clearLongPress}
-									onMouseLeave={clearLongPress}
-									onTouchStart={(e) => startLongPress(file.id, e)}
-									onTouchMove={handleTouchMove}
-									onTouchEnd={clearLongPress}
-								>
-									<div className="flex items-center gap-4 min-w-0 transition-[padding] duration-200">
-										{/* Icon (Tinted Pastel Square) - Lighter Shade */}
-										<div className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-xl bg-[#FFFAF0] text-[#FF6D20] transition-opacity duration-200">
-											<FileAudio className="h-6 w-6" strokeWidth={2} />
-										</div>
+					<>
+						{view === "list" && (
+							<div className="space-y-3">
+								{data.map((file, index) => (
+									<SwipeableItem
+										key={file.id}
+										onTranscribe={() => handleTranscribeDClick(file.id)}
+										onTranscribeAdvanced={() => handleTranscribeClick(file.id)}
+										onDelete={() => handleDeleteClick(file)}
+										onStop={() => handleStopClick(file)}
+										isProcessing={file.status === "processing" || file.status === "pending"}
+										isSelectionMode={Object.keys(rowSelection).length > 0}
+										shouldShowHint={shouldShowHint && index === 0}
+										onHintComplete={markHintShown}
+										onSwipeStateChange={handleSwipeStateChange}
+									>
+										<div
+											className={cn(
+												"group relative flex justify-between items-center p-4",
+												"bg-[var(--bg-card)] rounded-xl border border-[var(--border-subtle)]",
+												"shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer select-none",
+												rowSelection[file.id as keyof typeof rowSelection] && "border-[var(--brand-solid)] ring-1 ring-[var(--brand-solid)]/10 bg-orange-50 dark:bg-orange-950"
+											)}
+											onClick={(e) => handleRowClick(file, e)}
+											onMouseDown={(e) => startLongPress(file.id, e)}
+											onMouseUp={clearLongPress}
+											onMouseLeave={clearLongPress}
+											onTouchStart={(e) => startLongPress(file.id, e)}
+											onTouchMove={handleTouchMove}
+											onTouchEnd={clearLongPress}
+										>
+											<div className="flex items-center gap-4 min-w-0 transition-[padding] duration-200">
+												{/* Icon (Tinted Pastel Square) - Lighter Shade */}
+												<div className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-xl bg-[#FFFAF0] text-[#FF6D20] transition-opacity duration-200">
+													<FileAudio className="h-6 w-6" strokeWidth={2} />
+												</div>
 
-										{/* Text */}
-										<div className="min-w-0">
-											<h4 className="font-normal text-gray-900 dark:text-gray-100 truncate text-lg leading-tight group-hover:text-[#FF6D20] transition-colors">
-												{file.title || getFileName(file.audio_path)}
-											</h4>
-											<div className="flex items-center gap-1.5 mt-1 text-sm text-gray-500">
-												{formatDate(file.created_at)}
-												{file.speaker_mappings && file.speaker_mappings.length > 0 && (
-													<>
-														<span className="text-gray-300 mx-0.5">•</span>
-														<div className="flex flex-wrap gap-1.5 max-w-[450px]">
-															{file.speaker_mappings.map((m, idx) => {
-																const speakerName = m.custom_name || m.original_speaker;
-																return (
-																	<span
-																		key={idx}
-																		style={getSpeakerColorStyles(speakerName)}
-																		className={cn(
-																			"px-1.5 py-0.5 rounded-full text-[10px] font-medium leading-none border",
-																			speakerColorClass
-																		)}
+												{/* Text */}
+												<div className="min-w-0">
+													<h4 className="font-normal text-gray-900 dark:text-gray-100 truncate text-lg leading-tight group-hover:text-[#FF6D20] transition-colors">
+														{file.title || getFileName(file.audio_path)}
+													</h4>
+													<div className="flex items-center gap-1.5 mt-1 text-sm text-gray-500">
+														{formatDate(file.created_at)}
+														{file.speaker_mappings && file.speaker_mappings.length > 0 && (
+															<>
+																<span className="text-gray-300 mx-0.5">•</span>
+																<div className="flex flex-wrap gap-1.5 max-w-[450px]">
+																	{file.speaker_mappings.map((m, idx) => {
+																		const speakerName = m.custom_name || m.original_speaker;
+																		return (
+																			<span
+																				key={idx}
+																				style={getSpeakerColorStyles(speakerName)}
+																				className={cn(
+																					"px-1.5 py-0.5 rounded-full text-[10px] font-medium leading-none border",
+																					speakerColorClass
+																				)}
+																			>
+																				{speakerName}
+																			</span>
+																		);
+																	})}
+																</div>
+															</>
+														)}
+													</div>
+												</div>
+											</div>
+
+											{/* Right: Cluster (Actions • Status) */}
+											<div className="flex items-center gap-6">
+												{/* Desktop Actions (Hover) - Hidden on mobile */}
+												<div
+													className="hidden md:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+													onClick={(e) => e.stopPropagation()}
+												>
+													{(file.status !== "processing" && file.status !== "pending") && (
+														<>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Button
+																		variant="ghost"
+																		size="icon"
+																		onClick={() => handleTranscribeDClick(file.id)}
+																		className="h-9 w-9 rounded-lg text-gray-400 hover:text-[var(--brand-solid)] hover:bg-orange-50 cursor-pointer transition-colors"
 																	>
-																		{speakerName}
-																	</span>
-																);
-															})}
-														</div>
-													</>
-												)}
+																		<Wand2 className="h-5 w-5" strokeWidth={2} />
+																	</Button>
+																</TooltipTrigger>
+																<TooltipContent>Transcribe</TooltipContent>
+															</Tooltip>
+
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Button
+																		variant="ghost"
+																		size="icon"
+																		onClick={() => handleTranscribeClick(file.id)}
+																		className="h-9 w-9 rounded-lg text-gray-400 hover:text-[var(--brand-solid)] hover:bg-orange-50 cursor-pointer transition-colors"
+																	>
+																		<WandAdvancedIcon className="h-5 w-5" strokeWidth={2} />
+																	</Button>
+																</TooltipTrigger>
+																<TooltipContent>Transcribe (Advanced)</TooltipContent>
+															</Tooltip>
+														</>
+													)}
+
+													{(file.status === "processing" || file.status === "pending") ? (
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<Button
+																	variant="ghost"
+																	size="icon"
+																	onClick={() => handleStopClick(file)}
+																	className="h-9 w-9 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
+																>
+																	<StopCircle className="h-5 w-5" strokeWidth={2} />
+																</Button>
+															</TooltipTrigger>
+															<TooltipContent>Stop Transcription</TooltipContent>
+														</Tooltip>
+													) : (
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<Button
+																	variant="ghost"
+																	size="icon"
+																	onClick={() => handleDeleteClick(file)}
+																	className="h-9 w-9 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
+																>
+																	<Trash2 className="h-5 w-5" strokeWidth={2} />
+																</Button>
+															</TooltipTrigger>
+															<TooltipContent>Delete</TooltipContent>
+														</Tooltip>
+													)}
+												</div>
+
+												{/* Status Icon */}
+												<div className="flex items-center justify-center w-6">
+													{getStatusIcon(file)}
+												</div>
 											</div>
 										</div>
-									</div>
+									</SwipeableItem>
+								))}
+							</div>
+						)}
 
-									{/* Right: Cluster (Actions • Status) */}
-									<div className="flex items-center gap-6">
-										{/* Desktop Actions (Hover) - Hidden on mobile */}
-										<div
-											className="hidden md:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-											onClick={(e) => e.stopPropagation()}
-										>
-											{(file.status !== "processing" && file.status !== "pending") && (
-												<>
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<Button
-																variant="ghost"
-																size="icon"
-																onClick={() => handleTranscribeDClick(file.id)}
-																className="h-9 w-9 rounded-lg text-gray-400 hover:text-[var(--brand-solid)] hover:bg-orange-50 cursor-pointer transition-colors"
-															>
-																<Wand2 className="h-5 w-5" strokeWidth={2} />
-															</Button>
-														</TooltipTrigger>
-														<TooltipContent>Transcribe</TooltipContent>
-													</Tooltip>
+						{view === "week" && (
+							<AudioFilesWeekCalendar
+								data={data}
+								onFileClick={(fileId) => navigate(`/audio/${fileId}`)}
+							/>
+						)}
 
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<Button
-																variant="ghost"
-																size="icon"
-																onClick={() => handleTranscribeClick(file.id)}
-																className="h-9 w-9 rounded-lg text-gray-400 hover:text-[var(--brand-solid)] hover:bg-orange-50 cursor-pointer transition-colors"
-															>
-																<WandAdvancedIcon className="h-5 w-5" strokeWidth={2} />
-															</Button>
-														</TooltipTrigger>
-														<TooltipContent>Transcribe (Advanced)</TooltipContent>
-													</Tooltip>
-												</>
-											)}
-
-											{(file.status === "processing" || file.status === "pending") ? (
-												<Tooltip>
-													<TooltipTrigger asChild>
-														<Button
-															variant="ghost"
-															size="icon"
-															onClick={() => handleStopClick(file)}
-															className="h-9 w-9 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
-														>
-															<StopCircle className="h-5 w-5" strokeWidth={2} />
-														</Button>
-													</TooltipTrigger>
-													<TooltipContent>Stop Transcription</TooltipContent>
-												</Tooltip>
-											) : (
-												<Tooltip>
-													<TooltipTrigger asChild>
-														<Button
-															variant="ghost"
-															size="icon"
-															onClick={() => handleDeleteClick(file)}
-															className="h-9 w-9 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
-														>
-															<Trash2 className="h-5 w-5" strokeWidth={2} />
-														</Button>
-													</TooltipTrigger>
-													<TooltipContent>Delete</TooltipContent>
-												</Tooltip>
-											)}
-										</div>
-
-										{/* Status Icon */}
-										<div className="flex items-center justify-center w-6">
-											{getStatusIcon(file)}
-										</div>
-									</div>
-								</div>
-							</SwipeableItem>
-						))}
-					</div>
+						{view === "month" && (
+							<AudioFilesMonthCalendar
+								data={data}
+								onFileClick={(fileId) => navigate(`/audio/${fileId}`)}
+							/>
+						)}
+					</>
 				)}
 			</div>
 
