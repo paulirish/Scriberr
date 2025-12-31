@@ -5,10 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"scriberr/internal/config"
-	"scriberr/internal/transcription/adapters"
 	"scriberr/internal/transcription/registry"
 	"scriberr/pkg/logger"
 )

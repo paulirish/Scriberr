@@ -5,9 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"log"
-	"os"
 	"regexp"
 	"strings"
 
@@ -20,10 +18,7 @@ import (
 
 func main() {
 	// 1. Load Config and Database
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
-	}
+	cfg := config.Load()
 
 	if err := database.Initialize(cfg.DatabasePath); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)

@@ -24,6 +24,7 @@ import (
 	"scriberr/internal/service"
 	"scriberr/internal/sse"
 	"scriberr/internal/transcription"
+	"scriberr/internal/transcription/interfaces"
 	"scriberr/pkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -98,6 +99,10 @@ func NewHandler(
 		speakerRepo:         speakerRepo,
 		speakerService:      speakerService,
 		speakerResolver:     service.NewSpeakerResolver(speakerMappingRepo, speakerRepo),
+		refreshTokenRepo:    refreshTokenRepo,
+		taskQueue:           taskQueue,
+		unifiedProcessor:    unifiedProcessor,
+		quickTranscription:  quickTranscription,
 		multiTrackProcessor: multiTrackProcessor,
 		broadcaster:         broadcaster,
 	}

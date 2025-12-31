@@ -98,14 +98,6 @@ func (m *MockJobRepository) FindActiveTrackJobs(ctx context.Context, parentJobID
 	return args.Get(0).([]models.TranscriptionJob), args.Error(1)
 }
 
-func (m *MockJobRepository) FindLatestCompletedExecution(ctx context.Context, jobID string) (*models.TranscriptionJobExecution, error) {
-	args := m.Called(ctx, jobID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.TranscriptionJobExecution), args.Error(1)
-}
-
 func (m *MockJobRepository) UpdateStatus(ctx context.Context, jobID string, status models.JobStatus) error {
 	args := m.Called(ctx, jobID, status)
 	return args.Error(0)
@@ -118,9 +110,6 @@ func (m *MockJobRepository) UpdateError(ctx context.Context, jobID string, error
 
 func (m *MockJobRepository) FindByStatus(ctx context.Context, status models.JobStatus) ([]models.TranscriptionJob, error) {
 	args := m.Called(ctx, status)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
 	return args.Get(0).([]models.TranscriptionJob), args.Error(1)
 }
 
@@ -154,12 +143,60 @@ func (m *MockJobRepository) GetSegmentsBySpeakerIDs(ctx context.Context, speaker
 	return args.Get(0).([]models.SpeakerSegment), args.Error(1)
 }
 
-func (m *MockJobRepository) GetSpeakerSegmentByID(ctx context.Context, id uint) (*models.SpeakerSegment, error) {
+func (m *MockJobRepository) GetSpeakersByJobIDs(ctx context.Context, jobIDs []string) (map[string][]string, error) {
+	args := m.Called(ctx, jobIDs)
+	return args.Get(0).(map[string][]string), args.Error(1)
+}
+
+func (m *MockJobRepository) FindLatestCompletedExecution(ctx context.Context, jobID string) (*models.TranscriptionJobExecution, error) {
+	args := m.Called(ctx, jobID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.TranscriptionJobExecution), args.Error(1)
+}
+
+// MockSpeakerRepository is a mock implementation of SpeakerRepository
+type MockSpeakerRepository struct {
+	mock.Mock
+}
+
+func (m *MockSpeakerRepository) Create(ctx context.Context, entity *models.Speaker) error {
+	args := m.Called(ctx, entity)
+	return args.Error(0)
+}
+
+func (m *MockSpeakerRepository) FindByID(ctx context.Context, id interface{}) (*models.Speaker, error) {
 	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.SpeakerSegment), args.Error(1)
+	return args.Get(0).(*models.Speaker), args.Error(1)
+}
+
+func (m *MockSpeakerRepository) Update(ctx context.Context, entity *models.Speaker) error {
+	args := m.Called(ctx, entity)
+	return args.Error(0)
+}
+
+func (m *MockSpeakerRepository) Delete(ctx context.Context, id interface{}) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockSpeakerRepository) List(ctx context.Context, offset, limit int) ([]models.Speaker, int64, error) {
+	args := m.Called(ctx, offset, limit)
+	return args.Get(0).([]models.Speaker), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockSpeakerRepository) UpdateName(ctx context.Context, id string, name string) error {
+	args := m.Called(ctx, id, name)
+	return args.Error(0)
+}
+
+func (m *MockSpeakerRepository) FindAll(ctx context.Context) ([]models.Speaker, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]models.Speaker), args.Error(1)
 }
 
 // MockTranscriptionAdapter is a mock implementation of TranscriptionAdapter
@@ -514,7 +551,8 @@ func TestUnifiedTranscriptionService(t *testing.T) {
 
 	// Create unified service with mock repo
 	mockRepo := new(MockJobRepository)
-	service := NewUnifiedTranscriptionService(mockRepo)
+	mockSpeakerRepo := new(MockSpeakerRepository)
+	service := NewUnifiedTranscriptionService(mockRepo, mockSpeakerRepo)
 
 	// Test model discovery
 	models := service.GetSupportedModels()
@@ -534,7 +572,8 @@ func TestUnifiedTranscriptionService(t *testing.T) {
 
 func TestAudioInputCreation(t *testing.T) {
 	mockRepo := new(MockJobRepository)
-	service := NewUnifiedTranscriptionService(mockRepo)
+	mockSpeakerRepo := new(MockSpeakerRepository)
+	service := NewUnifiedTranscriptionService(mockRepo, mockSpeakerRepo)
 
 	// Test creating audio input from a hypothetical file
 	audioPath := "/tmp/test.wav"
@@ -548,7 +587,8 @@ func TestAudioInputCreation(t *testing.T) {
 
 func TestParameterConversion(t *testing.T) {
 	mockRepo := new(MockJobRepository)
-	service := NewUnifiedTranscriptionService(mockRepo)
+	mockSpeakerRepo := new(MockSpeakerRepository)
+	service := NewUnifiedTranscriptionService(mockRepo, mockSpeakerRepo)
 
 	// Test converting WhisperX parameters to generic map
 	params := models.WhisperXParams{
