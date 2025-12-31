@@ -256,8 +256,9 @@ def main():
             profile=args.profile,
             profile_output=args.profile_output,
         )
-    except Exception as e:
-        print(f"Error during transcription: {e}")
+    except Exception:
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 
