@@ -112,7 +112,10 @@ def identify_speakers(
         local_speakers[spk].append(idx)
 
     # 4. Process each local speaker
-    global_mapping = {}
+    global_mapping = {}  # "speaker_0" -> "global:UUID"
+    global_names = {}    # "global:UUID" -> "John Doe"
+    speaker_centroids = {} # "global:UUID" -> [embedding...]
+
     full_waveform, sample_rate = sf.read(audio_path)
     full_waveform = torch.from_numpy(full_waveform).float()
     if full_waveform.ndim > 1:
@@ -151,7 +154,7 @@ def identify_speakers(
             logger.warning(f"No valid embeddings for {local_spk}")
             continue
 
-        centroid = np.mean(embeddings, axis=0)
+        centroid = np.mean([e.cpu().numpy() for e in embeddings], axis=0)
         norm = np.linalg.norm(centroid)
         if norm > 0:
             centroid = centroid / norm
@@ -193,16 +196,17 @@ def identify_speakers(
         if decision_metric >= decision_threshold:
             # High confidence match
             best_match = search_result[0]
-            global_id = best_match.payload.get("name", "Unknown")
+            display_name = best_match.payload.get("name", "Unknown")
+            global_id = f"global:{best_match.id}"
             logger.info(
-                f"Matched {local_spk} to {global_id} (score: {final_score:.4f})"
+                f"Matched {local_spk} to {display_name} ({global_id}, score: {final_score:.4f})"
             )
 
             existing_centroid = np.array(best_match.vector)
             wt = min(alpha_max, total_duration / min_duration_full_weight)
 
             logger.info(
-                f"Updating speaker {global_id} with weight {wt:.4f} from {total_duration:.2f}s of audio"
+                f"Updating speaker {display_name} with weight {wt:.4f} from {total_duration:.2f}s of audio"
             )
             updated_centroid = ((1 - wt) * existing_centroid) + (wt * centroid)
 
@@ -221,13 +225,16 @@ def identify_speakers(
                 ],
             )
             global_mapping[local_spk] = global_id
+            global_names[global_id] = display_name
+            speaker_centroids[global_id] = updated_centroid.tolist()
 
         elif best_match_score < threshold_new:
             # Confirmed non-match -> Enroll new speaker and collect imposter embedding
             new_id = str(uuid.uuid4())
-            human_name = f"Speaker-{new_id[:8]}"
+            display_name = f"Spk-{new_id[:8]}"
+            global_id = f"global:{new_id}"
             logger.info(
-                f"Enrolling {local_spk} as new speaker {human_name} (raw score: {best_match_score:.4f} < {threshold_new})"
+                f"Enrolling {local_spk} as new speaker {display_name} (raw score: {best_match_score:.4f} < {threshold_new})"
             )
             client.upsert(
                 collection_name=collection_name,
@@ -236,13 +243,15 @@ def identify_speakers(
                         id=new_id,
                         vector=centroid.tolist(),
                         payload={
-                            "name": human_name,
+                            "name": display_name,
                             "created_at": str(os.path.getctime(audio_path)),
                         },
                     )
                 ],
             )
-            global_mapping[local_spk] = human_name
+            global_mapping[local_spk] = global_id
+            global_names[global_id] = display_name
+            speaker_centroids[global_id] = centroid.tolist()
 
             # Also add to imposter candidates
             client.upsert(
@@ -257,7 +266,8 @@ def identify_speakers(
                 f"Ambiguous match for {local_spk} (raw score: {best_match_score:.4f}). Enrolling as new temporary speaker."
             )
             new_id = str(uuid.uuid4())
-            human_name = f"Speaker-{new_id[:8]}"
+            display_name = f"Spk-{new_id[:8]}"
+            global_id = f"global:{new_id}"
             client.upsert(
                 collection_name=collection_name,
                 points=[
@@ -265,21 +275,34 @@ def identify_speakers(
                         id=new_id,
                         vector=centroid.tolist(),
                         payload={
-                            "name": human_name,
+                            "name": display_name,
                             "created_at": str(os.path.getctime(audio_path)),
                         },
                     )
                 ],
             )
-            global_mapping[local_spk] = human_name
+            global_mapping[local_spk] = global_id
+            global_names[global_id] = display_name
+            speaker_centroids[global_id] = centroid.tolist()
 
     # 6. Update Segments and Save
     for seg in segments:
         local = seg.get("speaker")
         if local in global_mapping:
             seg["speaker"] = global_mapping[local]
+            seg["original_speaker"] = local
+        elif local and not local.startswith("local:") and not local.startswith("global:"):
+            seg["speaker"] = f"local:{local}"
 
-    output_data = {"segments": segments}
+    output_data = {
+        "segments": segments,
+        "speaker_metadata": global_names,
+        "speaker_centroids": speaker_centroids
+    }
+    with open(output_file, "w") as f:
+        json.dump(output_data, f, indent=2)
+
+    logger.info(f"Identification complete. Saved to {output_file}")
     with open(output_file, "w") as f:
         json.dump(output_data, f, indent=2)
 
