@@ -81,6 +81,20 @@ def transcribe_audio(
         word_timestamps = result_data.timestamp.get("word", [])
         segment_timestamps = result_data.timestamp.get("segment", [])
 
+        # Calculate confidence for segments based on word scores if available
+        # TDT models usually provide confidence in result_data.words
+        for seg in segment_timestamps:
+            seg_start, seg_end = seg["start"], seg["end"]
+            relevant_words = [w for w in word_timestamps if w["start"] >= seg_start and w["end"] <= seg_end]
+            
+            if relevant_words:
+                # Average the confidence of words in this segment
+                # If word confidence is missing, default to 1.0
+                scores = [w.get("confidence", 1.0) for w in relevant_words]
+                seg["confidence"] = sum(scores) / len(scores)
+            else:
+                seg["confidence"] = 1.0
+
         print(f"Transcription: {text}")
 
         # Prepare output data

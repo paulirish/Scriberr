@@ -518,6 +518,7 @@ func (p *ParakeetAdapter) parseResult(tempDir string, input interfaces.AudioInpu
 			EndOffset   int     `json:"end_offset"`
 			Start       float64 `json:"start"`
 			End         float64 `json:"end"`
+			Confidence  float64 `json:"confidence"`
 		} `json:"segment_timestamps"`
 		Confidence interface{} `json:"confidence,omitempty"`
 	}
@@ -538,9 +539,10 @@ func (p *ParakeetAdapter) parseResult(tempDir string, input interfaces.AudioInpu
 	// Convert segments
 	for i, seg := range parakeetResult.SegmentTimestamps {
 		result.Segments[i] = interfaces.TranscriptSegment{
-			Start: seg.Start,
-			End:   seg.End,
-			Text:  seg.Segment,
+			Start:      seg.Start,
+			End:        seg.End,
+			Text:       seg.Segment,
+			Confidence: seg.Confidence,
 		}
 	}
 

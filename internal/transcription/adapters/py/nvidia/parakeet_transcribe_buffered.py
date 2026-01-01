@@ -122,6 +122,15 @@ def transcribe_buffered(
                     seg_copy = dict(segment)
                     seg_copy['start'] += chunk_info['start_time']
                     seg_copy['end'] += chunk_info['start_time']
+                    
+                    # Calculate segment confidence from words
+                    relevant_words = [w for w in chunk_words if w["start"] >= segment["start"] and w["end"] <= segment["end"]]
+                    if relevant_words:
+                        scores = [w.get("confidence", 1.0) for w in relevant_words]
+                        seg_copy["confidence"] = sum(scores) / len(scores)
+                    else:
+                        seg_copy["confidence"] = 1.0
+                        
                     all_segments.append(seg_copy)
 
             print(f"Chunk {i+1} complete: {len(chunk_text)} characters")

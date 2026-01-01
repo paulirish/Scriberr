@@ -150,12 +150,16 @@ def save_json_format(segments, output_file: str, audio_path: str):
                     continue
             elif hasattr(segment, 'start') and hasattr(segment, 'end') and hasattr(segment, 'label'):
                 # Standard pyannote-like format
+                confidence = getattr(segment, 'confidence', 1.0)
+                # If it's a tensor or list, take the max probability
+                if hasattr(confidence, 'item'): confidence = confidence.item()
+                
                 segment_data = {
                     "start": float(segment.start),
                     "end": float(segment.end),
                     "speaker": str(segment.label),
                     "duration": float(segment.end - segment.start),
-                    "confidence": getattr(segment, 'confidence', 1.0),
+                    "confidence": float(confidence),
                 }
             elif isinstance(segment, (list, tuple)) and len(segment) >= 3:
                 # List/tuple format: [start, end, speaker]

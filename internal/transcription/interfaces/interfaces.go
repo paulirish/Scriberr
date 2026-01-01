@@ -61,6 +61,7 @@ type TranscriptSegment struct {
 	End         float64   `json:"end"`
 	Text        string    `json:"text"`
 	Speaker     *string   `json:"speaker,omitempty"`
+	Confidence  float64   `json:"confidence,omitempty"`
 	Language    *string   `json:"language,omitempty"`
 	IsReference bool      `json:"is_reference,omitempty"`
 	Embedding   []float32 `json:"embedding,omitempty"`
