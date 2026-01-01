@@ -165,7 +165,7 @@ def identify_speakers(
             query_vector=centroid.tolist(),
             limit=1,
             score_threshold=threshold_new,  # Use lower bound for initial query
-            with_vector=True,
+            with_vectors=True,
         )
 
         best_match_score = search_result[0].score if search_result else 0.0
