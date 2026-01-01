@@ -42,7 +42,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { TranscriptionConfigDialog, type WhisperXParams } from "@/components/TranscriptionConfigDialog";
 import { TranscribeDDialog } from "@/components/TranscribeDDialog";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAudioListInfinite, type AudioFile } from "@/features/transcription/hooks/useAudioFiles";
 import { useTranscriptionEvents } from "@/features/transcription/hooks/useTranscriptionEvents";
@@ -72,11 +72,34 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 	onTranscribe,
 }: AudioFilesTableProps) {
 	const navigate = useNavigate();
+	const location = useLocation();
 	const { getAuthHeaders } = useAuth();
 	const { shouldShowHint, markHintShown } = useSwipeHint();
 
-	// View State
-	const [view, setView] = useState<"list" | "week" | "month">("week");
+	// View State - sync with URL hash
+	const [view, setView] = useState<"list" | "week" | "month">(() => {
+		const hash = window.location.hash.slice(1);
+		if (hash === "list" || hash === "week" || hash === "month") {
+			return hash as "list" | "week" | "month";
+		}
+		return "week";
+	});
+
+	// Sync view with hash changes (e.g. browser back/forward)
+	useEffect(() => {
+		const hash = location.hash.slice(1);
+		if (hash === "list" || hash === "week" || hash === "month") {
+			if (hash !== view) setView(hash as any);
+		} else if (!hash && view !== "week") {
+			// Default view when hash is removed
+			setView("week");
+		}
+	}, [location.hash, view]);
+
+	const handleViewChange = useCallback((newView: "list" | "week" | "month") => {
+		setView(newView);
+		navigate(`#${newView}`);
+	}, [navigate]);
 
 	// Table State
 	const sorting = [
@@ -751,7 +774,7 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 				<div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
 					<Tabs
 						value={view}
-						onValueChange={(v) => setView(v as any)}
+						onValueChange={(v) => handleViewChange(v as any)}
 						className="w-full sm:w-auto"
 					>
 						<TabsList className="grid w-full grid-cols-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] p-1 h-11">
