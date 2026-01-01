@@ -67,13 +67,13 @@ fi
 echo "🚀 Starting development environment..."
 
 # Start Backend
-if [ "$USE_GO_RUN" = true ]; then
+# if [ "$USE_GO_RUN" = true ]; then
     echo "🔧 Starting Go backend (standard run)..."
     go run cmd/server/main.go &
-else
-    echo "🔥 Starting Go backend (with Air live reload)..."
-    air &
-fi
+# else
+#     echo "🔥 Starting Go backend (with Air live reload)..."
+#     air &
+# fi
 
 # Start Frontend
 echo "⚛️  Starting React frontend (Vite)..."
