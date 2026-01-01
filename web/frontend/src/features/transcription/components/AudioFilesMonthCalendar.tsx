@@ -14,11 +14,18 @@ import { getSpeakerColorStyles, speakerColorClass } from "@/lib/speakerColors";
 interface AudioFilesMonthCalendarProps {
   data: AudioFile[];
   onFileClick: (fileId: string) => void;
+  onFileHoverStart?: (fileId: string) => void;
+  onFileHoverEnd?: () => void;
 }
 
 const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export const AudioFilesMonthCalendar = ({ data, onFileClick }: AudioFilesMonthCalendarProps) => {
+export const AudioFilesMonthCalendar = ({ 
+  data, 
+  onFileClick,
+  onFileHoverStart,
+  onFileHoverEnd
+}: AudioFilesMonthCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
@@ -82,6 +89,8 @@ export const AudioFilesMonthCalendar = ({ data, onFileClick }: AudioFilesMonthCa
                 <TooltipTrigger asChild>
                   <div
                     onClick={() => onFileClick(file.id)}
+                    onMouseEnter={() => onFileHoverStart?.(file.id)}
+                    onMouseLeave={() => onFileHoverEnd?.()}
                     className="group bg-[#FFFAF0] dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 p-1.5 rounded-lg cursor-pointer hover:border-[var(--brand-solid)] hover:shadow-sm transition-all"
                   >
                     <div className="flex items-center gap-1.5 min-w-0">

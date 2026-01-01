@@ -42,7 +42,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { TranscriptionConfigDialog, type WhisperXParams } from "@/components/TranscriptionConfigDialog";
 import { TranscribeDDialog } from "@/components/TranscribeDDialog";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAudioListInfinite, type AudioFile } from "@/features/transcription/hooks/useAudioFiles";
 import { useTranscriptionEvents } from "@/features/transcription/hooks/useTranscriptionEvents";
@@ -72,11 +72,34 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 	onTranscribe,
 }: AudioFilesTableProps) {
 	const navigate = useNavigate();
+	const location = useLocation();
 	const { getAuthHeaders } = useAuth();
 	const { shouldShowHint, markHintShown } = useSwipeHint();
 
-	// View State
-	const [view, setView] = useState<"list" | "week" | "month">("week");
+	// View State - sync with URL hash
+	const [view, setView] = useState<"list" | "week" | "month">(() => {
+		const hash = window.location.hash.slice(1);
+		if (hash === "list" || hash === "week" || hash === "month") {
+			return hash as "list" | "week" | "month";
+		}
+		return "week";
+	});
+
+	// Sync view with hash changes (e.g. browser back/forward)
+	useEffect(() => {
+		const hash = location.hash.slice(1);
+		if (hash === "list" || hash === "week" || hash === "month") {
+			if (hash !== view) setView(hash as any);
+		} else if (!hash && view !== "week") {
+			// Default view when hash is removed
+			setView("week");
+		}
+	}, [location.hash, view]);
+
+	const handleViewChange = useCallback((newView: "list" | "week" | "month") => {
+		setView(newView);
+		navigate(`#${newView}`);
+	}, [navigate]);
 
 	// Table State
 	const sorting = [
@@ -139,6 +162,42 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 	const touchStartPos = useRef<{ x: number; y: number } | null>(null);
 	const isSwipingRef = useRef(false);
 	const suppressClickUntil = useRef(0);
+
+	// Shared Audio Instance for previews
+	const previewAudioRef = useRef<HTMLAudioElement>(new Audio());
+
+	useEffect(() => {
+		const audio = previewAudioRef.current;
+		audio.crossOrigin = "use-credentials";
+		return () => {
+			audio.pause();
+			audio.src = "";
+		};
+	}, []);
+
+	const handleFileHoverStart = useCallback((fileId: string) => {
+		const audio = previewAudioRef.current;
+		const url = `/api/v1/transcription/${fileId}/audio`;
+		
+		// If already playing this file, do nothing
+		if (audio.src.includes(url) && !audio.paused) return;
+
+		audio.pause();
+		audio.src = url;
+		audio.load();
+		audio.play().catch(err => {
+			// Ignore abort errors from rapid hovering
+			if (err.name !== 'AbortError') console.error("Preview play error:", err);
+		});
+	}, []);
+
+	const handleFileHoverEnd = useCallback(() => {
+		const audio = previewAudioRef.current;
+		audio.pause();
+		// We don't necessarily need to clear src immediately to allow quick resume, 
+		// but clearing it ensures we don't keep a connection open.
+		audio.src = "";
+	}, []);
 
 	// Threshold to cancel long-press (in pixels)
 	const LONG_PRESS_CANCEL_THRESHOLD = 10;
@@ -751,7 +810,7 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 				<div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
 					<Tabs
 						value={view}
-						onValueChange={(v) => setView(v as any)}
+						onValueChange={(v) => handleViewChange(v as any)}
 						className="w-full sm:w-auto"
 					>
 						<TabsList className="grid w-full grid-cols-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] p-1 h-11">
@@ -961,6 +1020,8 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 							<AudioFilesWeekCalendar
 								data={data}
 								onFileClick={(fileId) => navigate(`/audio/${fileId}`)}
+								onFileHoverStart={handleFileHoverStart}
+								onFileHoverEnd={handleFileHoverEnd}
 							/>
 						)}
 
@@ -968,6 +1029,8 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 							<AudioFilesMonthCalendar
 								data={data}
 								onFileClick={(fileId) => navigate(`/audio/${fileId}`)}
+								onFileHoverStart={handleFileHoverStart}
+								onFileHoverEnd={handleFileHoverEnd}
 							/>
 						)}
 					</>
