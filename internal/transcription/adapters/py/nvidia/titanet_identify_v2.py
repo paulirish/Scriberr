@@ -125,10 +125,17 @@ def identify_speakers(
     for local_spk, indices in local_speakers.items():
         logger.info(f"Processing local speaker {local_spk} ({len(indices)} segments)")
         embeddings = []
-        indices.sort(
-            key=lambda i: segments[i].get("end") - segments[i].get("start"),
-            reverse=True,
-        )
+        
+        # Confidence-Aware Selection: 
+        # Sort by (duration * confidence) to prioritize high-quality, long audio segments.
+        # Fallback to duration if confidence is missing or zero.
+        def selection_score(i):
+            seg = segments[i]
+            duration = seg.get("end", 0) - seg.get("start", 0)
+            confidence = seg.get("confidence", 1.0) # Default to 1.0 if not provided
+            return duration * confidence
+
+        indices.sort(key=selection_score, reverse=True)
         top_indices = indices[:10]
 
         total_duration = 0
