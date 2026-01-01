@@ -163,6 +163,42 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 	const isSwipingRef = useRef(false);
 	const suppressClickUntil = useRef(0);
 
+	// Shared Audio Instance for previews
+	const previewAudioRef = useRef<HTMLAudioElement>(new Audio());
+
+	useEffect(() => {
+		const audio = previewAudioRef.current;
+		audio.crossOrigin = "use-credentials";
+		return () => {
+			audio.pause();
+			audio.src = "";
+		};
+	}, []);
+
+	const handleFileHoverStart = useCallback((fileId: string) => {
+		const audio = previewAudioRef.current;
+		const url = `/api/v1/transcription/${fileId}/audio`;
+		
+		// If already playing this file, do nothing
+		if (audio.src.includes(url) && !audio.paused) return;
+
+		audio.pause();
+		audio.src = url;
+		audio.load();
+		audio.play().catch(err => {
+			// Ignore abort errors from rapid hovering
+			if (err.name !== 'AbortError') console.error("Preview play error:", err);
+		});
+	}, []);
+
+	const handleFileHoverEnd = useCallback(() => {
+		const audio = previewAudioRef.current;
+		audio.pause();
+		// We don't necessarily need to clear src immediately to allow quick resume, 
+		// but clearing it ensures we don't keep a connection open.
+		audio.src = "";
+	}, []);
+
 	// Threshold to cancel long-press (in pixels)
 	const LONG_PRESS_CANCEL_THRESHOLD = 10;
 
@@ -984,6 +1020,8 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 							<AudioFilesWeekCalendar
 								data={data}
 								onFileClick={(fileId) => navigate(`/audio/${fileId}`)}
+								onFileHoverStart={handleFileHoverStart}
+								onFileHoverEnd={handleFileHoverEnd}
 							/>
 						)}
 
@@ -991,6 +1029,8 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 							<AudioFilesMonthCalendar
 								data={data}
 								onFileClick={(fileId) => navigate(`/audio/${fileId}`)}
+								onFileHoverStart={handleFileHoverStart}
+								onFileHoverEnd={handleFileHoverEnd}
 							/>
 						)}
 					</>

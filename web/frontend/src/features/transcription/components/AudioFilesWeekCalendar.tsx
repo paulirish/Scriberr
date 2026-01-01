@@ -14,6 +14,8 @@ import { getSpeakerColorStyles, speakerColorClass } from "@/lib/speakerColors";
 interface AudioFilesWeekCalendarProps {
   data: AudioFile[];
   onFileClick: (fileId: string) => void;
+  onFileHoverStart?: (fileId: string) => void;
+  onFileHoverEnd?: () => void;
 }
 
 const HOUR_HEIGHT = 60;
@@ -23,7 +25,12 @@ interface HourSlot {
   gapBefore?: number;
 }
 
-export const AudioFilesWeekCalendar = ({ data, onFileClick }: AudioFilesWeekCalendarProps) => {
+export const AudioFilesWeekCalendar = ({ 
+  data, 
+  onFileClick,
+  onFileHoverStart,
+  onFileHoverEnd
+}: AudioFilesWeekCalendarProps) => {
   const [baseDate, setBaseDate] = useState(new Date());
 
   const weeks = useMemo(() => {
@@ -204,6 +211,8 @@ export const AudioFilesWeekCalendar = ({ data, onFileClick }: AudioFilesWeekCale
                               className="absolute left-1 right-1 p-1.5 bg-[#FFFAF0] dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 rounded-lg cursor-pointer hover:border-[var(--brand-solid)] hover:shadow-md transition-all z-10 overflow-hidden group shadow-sm"
                               style={{ top: `${top}px`, height: `${height}px`, minHeight: '24px' }}
                               onClick={() => onFileClick(event.id)}
+                              onMouseEnter={() => onFileHoverStart?.(event.id)}
+                              onMouseLeave={() => onFileHoverEnd?.()}
                             >
                               <div className="flex items-center gap-1 min-w-0">
                                 <FileAudio className="h-3 w-3 text-[#FF6D20] flex-shrink-0" />
