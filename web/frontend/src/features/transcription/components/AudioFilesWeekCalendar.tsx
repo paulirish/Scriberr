@@ -240,16 +240,17 @@ export const AudioFilesWeekCalendar = ({
                                       Speakers
                                     </div>
                                     <div className="flex flex-wrap gap-1.5">
-                                      {speakers.map((speakerName, idx) => (
+                                      {speakers.map((speaker, idx) => (
                                         <span
                                           key={idx}
-                                          style={getSpeakerColorStyles(speakerName)}
+                                          style={getSpeakerColorStyles(speaker.name)}
+                                          title={speaker.id}
                                           className={cn(
                                             "px-2 py-0.5 rounded-full text-[10px] font-medium border",
                                             speakerColorClass
                                           )}
                                         >
-                                          {speakerName}
+                                          {speaker.name}
                                         </span>
                                       ))}
                                     </div>

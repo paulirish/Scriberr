@@ -57,6 +57,10 @@ export interface AudioFile {
     diarization?: boolean;
     is_multi_track?: boolean;
     multi_track_files?: MultiTrackFile[];
+    speakers?: Array<{
+        id: string;
+        name: string;
+    }>;
     speaker_mappings?: Array<{
         original_speaker: string;
         custom_name: string;
@@ -77,6 +81,7 @@ export interface WordSegment {
     word: string;
     score: number;
     speaker?: string;
+    speaker_id?: string;
 }
 
 export interface TranscriptSegment {
@@ -84,6 +89,7 @@ export interface TranscriptSegment {
     end: number;
     text: string;
     speaker?: string;
+    speaker_id?: string;
 }
 
 export interface Transcript {

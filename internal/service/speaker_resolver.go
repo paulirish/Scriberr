@@ -44,8 +44,10 @@ func (r *SpeakerResolver) ResolveTranscript(ctx context.Context, jobID string, t
 	for i := range transcript.Segments {
 		segment := &transcript.Segments[i]
 		if segment.Speaker != nil {
-			resolvedName := r.ResolveSpeakerID(*segment.Speaker, mappingMap, speakerMap)
+			originalID := *segment.Speaker
+			resolvedName := r.ResolveSpeakerID(originalID, mappingMap, speakerMap)
 			segment.Speaker = &resolvedName
+			segment.SpeakerID = &originalID
 		}
 	}
 
@@ -53,8 +55,10 @@ func (r *SpeakerResolver) ResolveTranscript(ctx context.Context, jobID string, t
 	for i := range transcript.WordSegments {
 		word := &transcript.WordSegments[i]
 		if word.Speaker != nil {
-			resolvedName := r.ResolveSpeakerID(*word.Speaker, mappingMap, speakerMap)
+			originalID := *word.Speaker
+			resolvedName := r.ResolveSpeakerID(originalID, mappingMap, speakerMap)
 			word.Speaker = &resolvedName
+			word.SpeakerID = &originalID
 		}
 	}
 }

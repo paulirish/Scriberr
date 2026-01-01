@@ -48,12 +48,27 @@ interface SpeakerMapping {
   custom_name: string;
 }
 
+interface SpeakerInfo {
+  id: string;
+  name: string;
+}
+
 export const getSpeakersFromAudioFile = (file: { 
   transcript?: string; 
-  speaker_mappings?: SpeakerMapping[] 
-}): string[] => {
+  speaker_mappings?: SpeakerMapping[];
+  speakers?: SpeakerInfo[];
+}): SpeakerInfo[] => {
+  // Priority 1: Use pre-resolved speakers from the API (The "Modern" way)
+  if (file.speakers && file.speakers.length > 0) {
+    return file.speakers;
+  }
+
+  // Priority 2: Fallback to manual resolution (The "Legacy" way)
   if (!file.transcript) {
-    return file.speaker_mappings?.map(m => m.custom_name || m.original_speaker) || [];
+    return file.speaker_mappings?.map(m => ({
+      id: m.original_speaker,
+      name: m.custom_name || m.original_speaker
+    })) || [];
   }
 
   try {
@@ -75,9 +90,15 @@ export const getSpeakersFromAudioFile = (file: {
       mappingMap.set(m.original_speaker, m.custom_name);
     });
 
-    return Array.from(speakerIds).map(id => mappingMap.get(id) || id).sort();
+    return Array.from(speakerIds).map(id => ({
+      id: id,
+      name: mappingMap.get(id) || id
+    })).sort((a, b) => a.name.localeCompare(b.name));
   } catch (e) {
-    return file.speaker_mappings?.map(m => m.custom_name || m.original_speaker) || [];
+    return file.speaker_mappings?.map(m => ({
+      id: m.original_speaker,
+      name: m.custom_name || m.original_speaker
+    })) || [];
   }
 };
 

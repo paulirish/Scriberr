@@ -69,7 +69,7 @@ type JobRepository interface {
 	SaveSpeakerJobCentroids(ctx context.Context, centroids []models.SpeakerJobCentroid) error
 	GetSegmentsBySpeakerID(ctx context.Context, speakerID string) ([]models.SpeakerSegment, error)
 	GetSegmentsBySpeakerIDs(ctx context.Context, speakerIDs []string) ([]models.SpeakerSegment, error)
-	GetSpeakersByJobIDs(ctx context.Context, jobIDs []string) (map[string][]string, error)
+	GetSpeakersByJobIDs(ctx context.Context, jobIDs []string) (map[string][]models.SpeakerInfo, error)
 }
 
 type jobRepository struct {
@@ -247,16 +247,16 @@ func (r *jobRepository) GetSegmentsBySpeakerIDs(ctx context.Context, speakerIDs 
 	return segments, err
 }
 
-func (r *jobRepository) GetSpeakersByJobIDs(ctx context.Context, jobIDs []string) (map[string][]string, error) {
+func (r *jobRepository) GetSpeakersByJobIDs(ctx context.Context, jobIDs []string) (map[string][]models.SpeakerInfo, error) {
 	if len(jobIDs) == 0 {
-		return make(map[string][]string), nil
+		return make(map[string][]models.SpeakerInfo), nil
 	}
 
 	// This query gets all unique speaker IDs for the given jobs
 	// and joins them with global speaker names and local job overrides.
-	// We use a complex query to handle the hierarchy: Override > Global Name > ID
 	type ResolvedSpeaker struct {
 		JobID string `gorm:"column:job_id"`
+		ID    string `gorm:"column:speaker_id"`
 		Name  string `gorm:"column:resolved_name"`
 	}
 
@@ -268,12 +268,13 @@ func (r *jobRepository) GetSpeakersByJobIDs(ctx context.Context, jobIDs []string
 	// 3. Left join with speaker_mappings for local overrides
 	// 4. COALESCE to pick the best name
 	query := `
-		SELECT DISTINCT 
+		SELECT DISTINCT
 			ss.transcription_job_id as job_id,
+			ss.speaker_id,
 			COALESCE(sm.custom_name, s.name, ss.speaker_id) as resolved_name
 		FROM speaker_segments ss
 		LEFT JOIN speakers s ON ss.speaker_id = s.id
-		LEFT JOIN speaker_mappings sm ON ss.transcription_job_id = sm.transcription_job_id 
+		LEFT JOIN speaker_mappings sm ON ss.transcription_job_id = sm.transcription_job_id
 			AND ss.speaker_id = sm.original_speaker
 		WHERE ss.transcription_job_id IN ?
 	`
@@ -285,7 +286,7 @@ func (r *jobRepository) GetSpeakersByJobIDs(ctx context.Context, jobIDs []string
 	// Also handle multi-track files (which act as speakers in that mode)
 	var multiTrackResults []ResolvedSpeaker
 	multiTrackQuery := `
-		SELECT transcription_job_id as job_id, file_name as resolved_name
+		SELECT transcription_job_id as job_id, file_name as speaker_id, file_name as resolved_name
 		FROM multi_track_files
 		WHERE transcription_job_id IN ?
 	`
@@ -294,18 +295,21 @@ func (r *jobRepository) GetSpeakersByJobIDs(ctx context.Context, jobIDs []string
 	}
 
 	// Group results by JobID
-	resolvedMap := make(map[string][]string)
+	resolvedMap := make(map[string][]models.SpeakerInfo)
 	for _, res := range results {
-		// Avoid duplicates within a job (might happen if a speaker has multiple segments)
+		// Avoid duplicates within a job
 		exists := false
-		for _, existingName := range resolvedMap[res.JobID] {
-			if existingName == res.Name {
+		for _, existing := range resolvedMap[res.JobID] {
+			if existing.ID == res.ID {
 				exists = true
 				break
 			}
 		}
 		if !exists {
-			resolvedMap[res.JobID] = append(resolvedMap[res.JobID], res.Name)
+			resolvedMap[res.JobID] = append(resolvedMap[res.JobID], models.SpeakerInfo{
+				ID:   res.ID,
+				Name: res.Name,
+			})
 		}
 	}
 
@@ -594,10 +598,10 @@ func (r *chatRepository) GetLastMessagesBySessionIDs(ctx context.Context, sessio
 	var lastMessages []models.ChatMessage
 	err := r.db.WithContext(ctx).Where(`id IN (
 		SELECT id FROM chat_messages cm1
-		WHERE cm1.chat_session_id IN ? 
+		WHERE cm1.chat_session_id IN ?
 		AND cm1.created_at = (
-			SELECT MAX(cm2.created_at) 
-			FROM chat_messages cm2 
+			SELECT MAX(cm2.created_at)
+			FROM chat_messages cm2
 			WHERE cm2.chat_session_id = cm1.chat_session_id
 		)
 	)`, sessionIDs).Find(&lastMessages).Error

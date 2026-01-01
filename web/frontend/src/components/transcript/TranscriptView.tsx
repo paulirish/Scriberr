@@ -281,7 +281,7 @@ export const TranscriptView = forwardRef<HTMLDivElement, TranscriptViewProps>(({
                                         "font-medium truncate max-w-full px-2 py-0.5 rounded-full text-xs border",
                                         speakerColorClass
                                     )}
-                                    title={getDisplaySpeakerName(segment.speaker)}
+                                    title={segment.speaker_id || getDisplaySpeakerName(segment.speaker)}
                                 >
                                     {getDisplaySpeakerName(segment.speaker)}
                                 </span>

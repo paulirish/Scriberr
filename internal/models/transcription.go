@@ -384,6 +384,13 @@ func (Speaker) TableName() string {
 	return "speakers"
 }
 
+// SpeakerInfo represents basic speaker information for API responses
+type SpeakerInfo struct {
+	ID        string  `json:"id"`
+	Name      string  `json:"name"`
+	CreatedAt float64 `json:"created_at,omitempty"`
+}
+
 // SpeakerSegment represents a timestamped audio segment associated with a specific speaker
 type SpeakerSegment struct {
 	ID                 uint      `json:"id" gorm:"primaryKey;autoIncrement"`

@@ -915,16 +915,17 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 																<>
 																	<span className="text-gray-300 mx-0.5">•</span>
 																	<div className="flex flex-wrap gap-1.5 max-w-[450px]">
-																		{speakers.map((speakerName, idx) => (
+																		{speakers.map((speaker, idx) => (
 																			<span
 																				key={idx}
-																				style={getSpeakerColorStyles(speakerName)}
+																				style={getSpeakerColorStyles(speaker.name)}
+																				title={speaker.id}
 																				className={cn(
 																					"px-1.5 py-0.5 rounded-full text-[10px] font-medium leading-none border",
 																					speakerColorClass
 																				)}
 																			>
-																				{speakerName}
+																				{speaker.name}
 																			</span>
 																		))}
 																	</div>

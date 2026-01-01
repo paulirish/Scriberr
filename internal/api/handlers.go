@@ -950,7 +950,7 @@ func (h *Handler) ListTranscriptionJobs(c *gin.Context) {
 	// Transform to response with speakers
 	type JobResponse struct {
 		models.TranscriptionJob
-		Speakers []string `json:"speakers"`
+		Speakers []models.SpeakerInfo `json:"speakers"`
 	}
 	responseJobs := make([]JobResponse, len(jobs))
 	for i, job := range jobs {

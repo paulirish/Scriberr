@@ -61,6 +61,7 @@ type TranscriptSegment struct {
 	End         float64   `json:"end"`
 	Text        string    `json:"text"`
 	Speaker     *string   `json:"speaker,omitempty"`
+	SpeakerID   *string   `json:"speaker_id,omitempty"`
 	Confidence  float64   `json:"confidence,omitempty"`
 	Language    *string   `json:"language,omitempty"`
 	IsReference bool      `json:"is_reference,omitempty"`
@@ -69,11 +70,12 @@ type TranscriptSegment struct {
 
 // TranscriptWord represents word-level timing information
 type TranscriptWord struct {
-	Start   float64 `json:"start"`
-	End     float64 `json:"end"`
-	Word    string  `json:"word"`
-	Score   float64 `json:"score"`
-	Speaker *string `json:"speaker,omitempty"`
+	Start     float64 `json:"start"`
+	End       float64 `json:"end"`
+	Word      string  `json:"word"`
+	Score     float64 `json:"score"`
+	Speaker   *string `json:"speaker,omitempty"`
+	SpeakerID *string `json:"speaker_id,omitempty"`
 }
 
 // TranscriptResult represents the output of transcription
@@ -183,11 +185,7 @@ type SpeakerIdentificationAdapter interface {
 }
 
 // SpeakerInfo represents a speaker in the identity store
-type SpeakerInfo struct {
-	ID        string  `json:"id"`
-	Name      string  `json:"name"`
-	CreatedAt float64 `json:"created_at"`
-}
+type SpeakerInfo = models.SpeakerInfo
 
 // SpeakerManagementAdapter handles managing speaker identities in a persistent store
 type SpeakerManagementAdapter interface {
