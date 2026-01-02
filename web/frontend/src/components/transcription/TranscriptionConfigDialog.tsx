@@ -84,6 +84,7 @@ export interface WhisperXParams {
     attention_context_right: number;
     is_multi_track_enabled: boolean;
     api_key?: string;
+    max_new_tokens?: number;
 }
 
 interface TranscriptionConfigDialogProps {
@@ -149,6 +150,74 @@ const WHISPER_MODELS = [
 
 const LANGUAGES = [
     { value: "auto", label: "Auto-detect" },
+    { value: "af", label: "Afrikaans" },
+    { value: "ar", label: "Arabic" },
+    { value: "hy", label: "Armenian" },
+    { value: "az", label: "Azerbaijani" },
+    { value: "be", label: "Belarusian" },
+    { value: "bs", label: "Bosnian" },
+    { value: "bg", label: "Bulgarian" },
+    { value: "ca", label: "Catalan" },
+    { value: "zh", label: "Chinese" },
+    { value: "hr", label: "Croatian" },
+    { value: "cs", label: "Czech" },
+    { value: "da", label: "Danish" },
+    { value: "nl", label: "Dutch" },
+    { value: "en", label: "English" },
+    { value: "et", label: "Estonian" },
+    { value: "fi", label: "Finnish" },
+    { value: "fr", label: "French" },
+    { value: "gl", label: "Galician" },
+    { value: "de", label: "German" },
+    { value: "el", label: "Greek" },
+    { value: "he", label: "Hebrew" },
+    { value: "hi", label: "Hindi" },
+    { value: "hu", label: "Hungarian" },
+    { value: "is", label: "Icelandic" },
+    { value: "id", label: "Indonesian" },
+    { value: "it", label: "Italian" },
+    { value: "ja", label: "Japanese" },
+    { value: "kn", label: "Kannada" },
+    { value: "kk", label: "Kazakh" },
+    { value: "ko", label: "Korean" },
+    { value: "lv", label: "Latvian" },
+    { value: "lt", label: "Lithuanian" },
+    { value: "mk", label: "Macedonian" },
+    { value: "ms", label: "Malay" },
+    { value: "mr", label: "Marathi" },
+    { value: "mi", label: "Maori" },
+    { value: "ne", label: "Nepali" },
+    { value: "no", label: "Norwegian" },
+    { value: "fa", label: "Persian" },
+    { value: "pl", label: "Polish" },
+    { value: "pt", label: "Portuguese" },
+    { value: "ro", label: "Romanian" },
+    { value: "ru", label: "Russian" },
+    { value: "sr", label: "Serbian" },
+    { value: "sk", label: "Slovak" },
+    { value: "sl", label: "Slovenian" },
+    { value: "es", label: "Spanish" },
+    { value: "sw", label: "Swahili" },
+    { value: "sv", label: "Swedish" },
+    { value: "tl", label: "Tagalog" },
+    { value: "ta", label: "Tamil" },
+    { value: "th", label: "Thai" },
+    { value: "tr", label: "Turkish" },
+    { value: "uk", label: "Ukrainian" },
+    { value: "ur", label: "Urdu" },
+    { value: "vi", label: "Vietnamese" },
+    { value: "cy", label: "Welsh" },
+];
+
+const CANARY_LANGUAGES = [
+    { value: "en", label: "English" },
+    { value: "de", label: "German" },
+    { value: "es", label: "Spanish" },
+    { value: "fr", label: "French" },
+];
+
+const VOXTRAL_LANGUAGES = [
+    { value: "auto", label: "Auto-detect" },
     { value: "en", label: "English" },
     { value: "zh", label: "Chinese" },
     { value: "de", label: "German" },
@@ -171,13 +240,6 @@ const LANGUAGES = [
     { value: "he", label: "Hebrew" },
     { value: "uk", label: "Ukrainian" },
     { value: "el", label: "Greek" },
-];
-
-const CANARY_LANGUAGES = [
-    { value: "en", label: "English" },
-    { value: "de", label: "German" },
-    { value: "es", label: "Spanish" },
-    { value: "fr", label: "French" },
 ];
 
 const PARAM_DESCRIPTIONS = {
@@ -383,6 +445,9 @@ export const TranscriptionConfigDialog = memo(function TranscriptionConfigDialog
                                 <SelectItem value="nvidia_canary" className={selectItemClassName}>
                                     NVIDIA Canary
                                 </SelectItem>
+                                <SelectItem value="mistral_voxtral" className={selectItemClassName}>
+                                    Mistral Voxtral
+                                </SelectItem>
                                 <SelectItem value="openai" className={selectItemClassName}>
                                     OpenAI
                                 </SelectItem>
@@ -431,6 +496,13 @@ export const TranscriptionConfigDialog = memo(function TranscriptionConfigDialog
                             validationMessage={validationMessage}
                             availableModels={availableModels}
                             onValidate={validateAPIKey}
+                        />
+                    )}
+
+                    {params.model_family === "mistral_voxtral" && (
+                        <VoxtralConfig
+                            params={params}
+                            updateParam={updateParam}
                         />
                     )}
                 </div>
@@ -990,6 +1062,53 @@ function OpenAIConfig({
                     Word-level timestamps are only supported by whisper-1. Synchronized playback won't be available.
                 </InfoBanner>
             )}
+        </div>
+    );
+}
+
+function VoxtralConfig({ params, updateParam }: ConfigProps) {
+    return (
+        <div className="space-y-6">
+            {/* Voxtral Warning Banner */}
+            <InfoBanner variant="warning" title="Limited Features">
+                Voxtral does not support word-level timestamps. Synchronized playback, audio seeking, and timestamp-based features won't be available.
+            </InfoBanner>
+
+            <Section title="Language Settings">
+                <FormField label="Language" description="Source language for transcription">
+                    <Select value={params.language || "en"} onValueChange={(v) => updateParam('language', v)}>
+                        <SelectTrigger className={selectTriggerClassName}>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className={selectContentClassName}>
+                            {VOXTRAL_LANGUAGES.map((l) => (
+                                <SelectItem key={l.value} value={l.value} className={selectItemClassName}>{l.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </FormField>
+            </Section>
+
+            {/* Advanced Settings */}
+            <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="advanced" className="border border-[var(--border-subtle)] rounded-xl px-4">
+                    <AccordionTrigger className="text-sm font-medium text-[var(--text-primary)] hover:no-underline py-4">
+                        Advanced Settings
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-4 space-y-4">
+                        <FormField label="Max Tokens" description="Maximum number of tokens to generate. Voxtral has a 32k context window and handles up to 30-40 minutes of audio.">
+                            <Input
+                                type="number"
+                                min={1024}
+                                max={16384}
+                                value={params.max_new_tokens || 8192}
+                                onChange={(e) => updateParam('max_new_tokens', parseInt(e.target.value) || 8192)}
+                                className={inputClassName}
+                            />
+                        </FormField>
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
         </div>
     );
 }

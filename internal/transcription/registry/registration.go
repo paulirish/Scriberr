@@ -12,12 +12,15 @@ import (
 func RegisterStandardAdapters(cfg *config.Config) {
 	// Shared environment path for NVIDIA models (NeMo-based)
 	nvidiaEnvPath := filepath.Join(cfg.WhisperXEnv, "parakeet")
-	
+
 	// Dedicated environment path for PyAnnote (to avoid dependency conflicts)
 	pyannoteEnvPath := filepath.Join(cfg.WhisperXEnv, "pyannote")
 
-	logger.Info("Registering standard adapters", 
-		"nvidia_env", nvidiaEnvPath, 
+	// Dedicated environment path for Voxtral (Mistral AI model)
+	voxtralEnvPath := filepath.Join(cfg.WhisperXEnv, "voxtral")
+
+	logger.Info("Registering standard adapters",
+		"nvidia_env", nvidiaEnvPath,
 		"pyannote_env", pyannoteEnvPath)
 
 	// Register transcription adapters
@@ -25,13 +28,15 @@ func RegisterStandardAdapters(cfg *config.Config) {
 		adapters.NewParakeetAdapter(nvidiaEnvPath))
 	RegisterTranscriptionAdapter("canary",
 		adapters.NewCanaryAdapter(nvidiaEnvPath))
+  RegisterTranscriptionAdapter("voxtral",
+		adapters.NewVoxtralAdapter(voxtralEnvPath))
 	RegisterTranscriptionAdapter("openai_whisper",
 		adapters.NewOpenAIAdapter(cfg.OpenAIAPIKey))
 
 	// Register diarization adapters
 	RegisterDiarizationAdapter("sortformer",
 		adapters.NewSortformerAdapter(nvidiaEnvPath))
-	
+
 	// PyAnnote is registered here so it's available in the setup tool and server
 	RegisterDiarizationAdapter("pyannote",
 		adapters.NewPyAnnoteAdapter(pyannoteEnvPath))
