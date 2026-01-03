@@ -51,10 +51,10 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AudioFilesWeekCalendar } from "./AudioFilesWeekCalendar";
 import { AudioFilesMonthCalendar } from "./AudioFilesMonthCalendar";
 
-const JobStatusMonitor = memo(function JobStatusMonitor({ jobId }: { jobId: string }) {
+/* const JobStatusMonitor = memo(function JobStatusMonitor({ jobId }: { jobId: string }) {
 	useTranscriptionEvents(jobId);
 	return null;
-});
+}); */
 
 
 import { DebouncedSearchInput } from "@/components/DebouncedSearchInput";
@@ -1238,9 +1238,9 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 			</AlertDialog>
 
 			{/* Active Job Monitors */}
-			{activeJobs.map(job => (
+			{/* {activeJobs.map(job => (
 				<JobStatusMonitor key={job.id} jobId={job.id} />
-			))}
+			))} */}
 		</div >
 	);
 });
