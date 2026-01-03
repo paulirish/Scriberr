@@ -167,10 +167,19 @@ export const AudioFilesWeekCalendar = ({
                           {slots.map((slot, idx) => {
                             const hour = slot.hour;
                             const isGapBefore = !!slot.gapBefore;
+
+                            // Background colors for the time column
+                            const isGrayRange = hour >= 0 && hour < 6;
+                            const isBlueRange = hour >= 18;
+                            const isTransitionBlue = hour === 17; // 5:30 PM transition
+
                             return (
                               <div key={hour} className={cn(
                                 "h-[60px] text-[10px] font-medium text-[var(--text-tertiary)] text-right pr-2 pt-1 border-b border-[var(--border-subtle)]/30 relative",
-                                isGapBefore && "border-t border-t-[var(--brand-solid)]/40"
+                                isGapBefore && "border-t border-t-[var(--brand-solid)]/40",
+                                isGrayRange && "bg-slate-500/5 dark:bg-slate-400/5",
+                                isBlueRange && "bg-blue-500/5 dark:bg-blue-400/5",
+                                isTransitionBlue && "bg-gradient-to-b from-transparent from-50% to-blue-500/5 dark:to-blue-400/5"
                               )}>
                                 {isGapBefore && (
                                   <div className="absolute -top-3 left-1 z-20">
