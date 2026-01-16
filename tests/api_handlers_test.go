@@ -60,7 +60,7 @@ func (suite *APIHandlerTestSuite) SetupSuite() {
 	speakerService := service.NewSpeakerService(jobRepo)
 
 	// Initialize services
-	suite.unifiedProcessor = transcription.NewUnifiedJobProcessor(jobRepo)
+	suite.unifiedProcessor = transcription.NewUnifiedJobProcessor(jobRepo, suite.helper.Config.TempDir, suite.helper.Config.TranscriptsDir)
 	var err error
 	suite.quickTranscription, err = transcription.NewQuickTranscriptionService(suite.helper.Config, suite.unifiedProcessor, jobRepo)
 	assert.NoError(suite.T(), err)

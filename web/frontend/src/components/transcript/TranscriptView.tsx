@@ -63,7 +63,7 @@ export const TranscriptView = forwardRef<HTMLDivElement, TranscriptViewProps>(({
     // notes,
     // highlightedWordRef,
     speakerMappings,
-    // autoScrollEnabled,
+    autoScrollEnabled,
     onSeek,
     className,
     onTimestampClick
@@ -145,6 +145,33 @@ export const TranscriptView = forwardRef<HTMLDivElement, TranscriptViewProps>(({
             };
         });
     }, [transcript]);
+
+    // Compute which segment is currently active based on playback time
+    const activeSegmentIndex = useMemo(() => {
+        if (!expandedData.length) return -1;
+        // Find the latest segment that has started (search backwards)
+        for (let i = expandedData.length - 1; i >= 0; i--) {
+            if (expandedData[i].start <= currentTime) return i;
+        }
+        return 0;
+    }, [expandedData, currentTime]);
+
+    // Track previous active segment to only scroll on segment change
+    const prevActiveSegmentRef = useRef<number>(-1);
+
+    // Auto-scroll to active segment during playback
+    useEffect(() => {
+        if (mode !== 'expanded' || !autoScrollEnabled || !isPlaying) return;
+        if (activeSegmentIndex < 0) return;
+        // Only scroll when the segment actually changes
+        if (activeSegmentIndex === prevActiveSegmentRef.current) return;
+        prevActiveSegmentRef.current = activeSegmentIndex;
+
+        const el = segmentRefs.current[activeSegmentIndex];
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [activeSegmentIndex, autoScrollEnabled, isPlaying, mode]);
 
     // 2. Highlight Effect for Expanded View
     useEffect(() => {
@@ -249,6 +276,7 @@ export const TranscriptView = forwardRef<HTMLDivElement, TranscriptViewProps>(({
                     // Ensure text is the selection target, not the container
                     WebkitTouchCallout: 'default'
                 }}
+                data-transcript-text
             >
                 {/* The hook returns the built text string, so we just render it directly */}
                 {fullText}
@@ -265,7 +293,15 @@ export const TranscriptView = forwardRef<HTMLDivElement, TranscriptViewProps>(({
         return (
             <div className="space-y-1"> {/* Reduced spacing from space-y-6 */}
                 {expandedData.map((segment, i) => (
-                    <div key={i} className="group flex flex-col sm:flex-row items-start gap-4 rounded-lg hover:bg-carbon-50 dark:hover:bg-carbon-800/50 transition-colors border border-transparent hover:border-carbon-100 dark:hover:border-carbon-800">
+                    <div
+                        key={i}
+                        className={cn(
+                            "group flex flex-col sm:flex-row items-start gap-4 rounded-lg transition-colors border",
+                            i === activeSegmentIndex && isPlaying
+                                ? "bg-carbon-50 dark:bg-carbon-800/40 border-carbon-200 dark:border-carbon-700"
+                                : "hover:bg-carbon-50 dark:hover:bg-carbon-800/50 border-transparent hover:border-carbon-100 dark:hover:border-carbon-800"
+                        )}
+                    >
                         {/* Timestamp & Speaker */}
                         <div className="flex-shrink-0 w-36 sm:w-40 flex flex-row items-start sm:items-end gap-1 text-xs text-carbon-500 dark:text-carbon-400 select-none mt-1">
                             <span
@@ -306,6 +342,7 @@ export const TranscriptView = forwardRef<HTMLDivElement, TranscriptViewProps>(({
                                 touchAction: 'pan-y pinch-zoom',
                                 WebkitTouchCallout: 'default'
                             }}
+                            data-transcript-text
                         >
                             {segment.fullText || segment.text}
                         </div>
