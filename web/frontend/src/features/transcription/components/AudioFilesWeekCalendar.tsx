@@ -164,7 +164,7 @@ export const AudioFilesWeekCalendar = ({
 
           <div className="grid grid-cols-[60px_1fr]" style={{ height: `${totalHeight}px` }}>
                         <div className="border-r border-[var(--border-subtle)] bg-[var(--bg-main)]/50">
-                          {slots.map((slot, idx) => {
+                          {slots.map((slot) => {
                             const hour = slot.hour;
                             const isGapBefore = !!slot.gapBefore;
 
@@ -196,7 +196,7 @@ export const AudioFilesWeekCalendar = ({
                         <div className="grid grid-cols-7 relative">
                           {days.map(day => (
                             <div key={day.toISOString()} className="relative border-r border-[var(--border-subtle)] last:border-r-0">
-                              {slots.map((slot, idx) => (
+                              {slots.map((slot) => (
                                 <div key={slot.hour} className={cn(
                                   "h-[60px] border-b border-[var(--border-subtle)]/30 last:border-b-0 relative",
                                   slot.gapBefore && "border-t border-t-[var(--brand-solid)]/40"

@@ -34,8 +34,6 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-	formatAudioFileTitle,
-	parseTitleForDate,
 	cn,
 	getSpeakersFromAudioFile
 } from "@/lib/utils";
@@ -45,7 +43,6 @@ import { TranscribeDDialog } from "@/components/TranscribeDDialog";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAudioListInfinite, type AudioFile } from "@/features/transcription/hooks/useAudioFiles";
-import { useTranscriptionEvents } from "@/features/transcription/hooks/useTranscriptionEvents";
 import { getSpeakerColorStyles, speakerColorClass } from "@/lib/speakerColors";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AudioFilesWeekCalendar } from "./AudioFilesWeekCalendar";
@@ -122,21 +119,10 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 		sortOrder: sorting[0]?.desc ? 'desc' : 'asc'
 	});
 
-	// Get active jobs for real-time monitoring
-	const activeJobs = useMemo(() => {
-		if (!infiniteData) return [];
-		return infiniteData.pages.flatMap(page => page.jobs).filter(
-			job => job.status === 'processing' || job.status === 'pending'
-		);
-	}, [infiniteData]);
-
 	// Flatten data from pages
 	const data = useMemo(() => {
 		return infiniteData?.pages.flatMap(page => page.jobs) || [];
 	}, [infiniteData]);
-
-	const loading = queryLoading;
-	// Pagination state no longer needed in same way
 
 	// Infinite Scroll Trigger
 	const { ref: scrollRef, inView } = useInView({
