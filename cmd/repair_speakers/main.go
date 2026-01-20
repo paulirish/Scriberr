@@ -6,7 +6,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"scriberr/internal/config"
@@ -14,13 +17,90 @@ import (
 	"scriberr/internal/models"
 	"scriberr/internal/repository"
 	"scriberr/internal/transcription/interfaces"
+	"scriberr/internal/transcription/pipeline"
 	"scriberr/internal/transcription/registry"
 	"scriberr/pkg/logger"
 )
 
+type ffprobeOutput struct {
+	Streams []struct {
+		CodecType  string `json:"codec_type"`
+		SampleRate string `json:"sample_rate"`
+		Channels   int    `json:"channels"`
+		Duration   string `json:"duration"`
+		CodecName  string `json:"codec_name"`
+		BitRate    string `json:"bit_rate"`
+	} `json:"streams"`
+	Format struct {
+		Duration string `json:"duration"`
+		Size     string `json:"size"`
+	} `json:"format"`
+}
+
+func createAudioInput(audioPath string) (interfaces.AudioInput, error) {
+	fileInfo, err := os.Stat(audioPath)
+	if err != nil {
+		return interfaces.AudioInput{}, fmt.Errorf("failed to stat audio file: %w", err)
+	}
+
+	ext := strings.ToLower(filepath.Ext(audioPath))
+	format := strings.TrimPrefix(ext, ".")
+
+	audioInput := interfaces.AudioInput{
+		FilePath: audioPath,
+		Format:   format,
+		Size:     fileInfo.Size(),
+		Metadata: map[string]string{},
+	}
+
+	cmd := exec.Command("ffprobe",
+		"-v", "quiet",
+		"-print_format", "json",
+		"-show_format",
+		"-show_streams",
+		audioPath)
+
+	output, err := cmd.Output()
+	if err != nil {
+		audioInput.SampleRate = 16000
+		audioInput.Channels = 1
+		return audioInput, nil
+	}
+
+	var probeData ffprobeOutput
+	if err := json.Unmarshal(output, &probeData); err != nil {
+		audioInput.SampleRate = 16000
+		audioInput.Channels = 1
+		return audioInput, nil
+	}
+
+	for _, stream := range probeData.Streams {
+		if stream.CodecType == "audio" {
+			if sampleRate, err := strconv.Atoi(stream.SampleRate); err == nil {
+				audioInput.SampleRate = sampleRate
+			}
+			audioInput.Channels = stream.Channels
+			if duration, err := strconv.ParseFloat(stream.Duration, 64); err == nil {
+				audioInput.Duration = time.Duration(duration * float64(time.Second))
+			}
+			break
+		}
+	}
+
+	if audioInput.SampleRate == 0 {
+		audioInput.SampleRate = 16000
+	}
+	if audioInput.Channels == 0 {
+		audioInput.Channels = 1
+	}
+
+	return audioInput, nil
+}
+
 func main() {
 	dryRun := flag.Bool("dry-run", false, "Don't actually update the database")
 	jobID := flag.String("job", "", "Specific job ID to repair")
+	force := flag.Bool("force", false, "Repair even if speaker_0 is not found")
 	flag.Parse()
 
 	logger.Init("info")
@@ -34,7 +114,6 @@ func main() {
 
 	registry.RegisterStandardAdapters(cfg)
 	
-	// Initialize models synchronously
 	ctx := context.Background()
 	if err := registry.GetRegistry().InitializeModelsSync(ctx); err != nil {
 		fmt.Printf("Failed to initialize models: %v\n", err)
@@ -42,6 +121,7 @@ func main() {
 	}
 
 	jobRepo := repository.NewJobRepository(database.DB)
+	audioPipeline := pipeline.NewProcessingPipeline()
 
 	var jobs []models.TranscriptionJob
 	if *jobID != "" {
@@ -52,8 +132,10 @@ func main() {
 		}
 		jobs = []models.TranscriptionJob{*job}
 	} else {
-		// Find jobs updated today with generic speaker names
-		query := database.DB.Where("updated_at >= ? AND transcript LIKE ?", "2026-01-20", "%speaker_0%")
+		query := database.DB.Where("updated_at >= ?", "2026-01-20")
+		if !*force {
+			query = query.Where("transcript LIKE ?", "%speaker_0%")
+		}
 		if err := query.Find(&jobs).Error; err != nil {
 			fmt.Printf("Failed to fetch jobs: %v\n", err)
 			os.Exit(1)
@@ -86,7 +168,6 @@ func main() {
 			continue
 		}
 
-		// Convert TranscriptResult to DiarizationResult for IdentifySpeakers
 		diarizationResult := &interfaces.DiarizationResult{
 			Segments: make([]interfaces.DiarizationSegment, len(result.Segments)),
 		}
@@ -96,18 +177,30 @@ func main() {
 				speaker = *seg.Speaker
 			}
 			diarizationResult.Segments[i] = interfaces.DiarizationSegment{
-				Start:	seg.Start,
-				End:	seg.End,
-				Speaker:	speaker,
+				Start:   seg.Start,
+				End:     seg.End,
+				Speaker: speaker,
 			}
 		}
 
-		// Create audio input
-		audioInput := interfaces.AudioInput{
-			FilePath: job.AudioPath,
+		audioInput, err := createAudioInput(job.AudioPath)
+		if err != nil {
+			fmt.Printf("  Error probing audio: %v\n", err)
+			continue
 		}
 
-		// Processing Context (minimal)
+		fmt.Printf("  Preprocessing audio...\n")
+		processedInput, err := audioPipeline.ProcessAudio(ctx, audioInput, identificationAdapter.GetCapabilities())
+		if err != nil {
+			fmt.Printf("  Preprocessing failed: %v\n", err)
+			continue
+		}
+		
+		// Ensure cleanup of temporary file
+		if processedInput.TempFilePath != "" {
+			defer os.Remove(processedInput.TempFilePath)
+		}
+
 		procCtx := interfaces.ProcessingContext{
 			JobID:           job.ID,
 			OutputDirectory: filepath.Join(cfg.TempDir, "repair", job.ID),
@@ -116,14 +209,14 @@ func main() {
 		os.MkdirAll(procCtx.OutputDirectory, 0755)
 
 		fmt.Printf("  Running speaker identification...\n")
-		identifiedResult, err := identificationAdapter.IdentifySpeakers(ctx, audioInput, diarizationResult, nil, procCtx)
+		identifiedResult, err := identificationAdapter.IdentifySpeakers(ctx, processedInput, diarizationResult, nil, procCtx)
 		if err != nil {
 			fmt.Printf("  Identification failed: %v\n", err)
+			os.RemoveAll(procCtx.OutputDirectory)
 			continue
 		}
 
-		// Merge back
-		speakerMap := make(map[string]string) // local -> global
+		speakerMap := make(map[string]string)
 		for i, seg := range identifiedResult.Segments {
 			if i < len(result.Segments) {
 				oldSpeaker := ""
@@ -134,14 +227,12 @@ func main() {
 				newSpeaker := seg.Speaker
 				result.Segments[i].Speaker = &newSpeaker
 				
-				// Keep track of the mapping
 				if oldSpeaker != "" && oldSpeaker != newSpeaker {
 					speakerMap[oldSpeaker] = newSpeaker
 				}
 			}
 		}
 
-		// Also update word segments if they exist
 		for i := range result.WordSegments {
 			word := &result.WordSegments[i]
 			if word.Speaker != nil {
@@ -158,10 +249,8 @@ func main() {
 			transcriptStr := string(updatedTranscript)
 			if err := jobRepo.UpdateTranscript(ctx, job.ID, transcriptStr); err != nil {
 				fmt.Printf("  Failed to update transcript: %v\n", err)
-				continue
 			}
 
-			// Save speaker segments
 			speakerSegments := make([]models.SpeakerSegment, 0)
 			for _, seg := range result.Segments {
 				if !seg.IsReference {
@@ -191,7 +280,6 @@ func main() {
 				fmt.Printf("  Failed to save speaker segments: %v\n", err)
 			}
 
-			// Save centroids
 			if identifiedResult.SpeakerCentroids != nil {
 				centroids := make([]models.SpeakerJobCentroid, 0)
 				for spkID, centroid := range identifiedResult.SpeakerCentroids {
@@ -212,8 +300,10 @@ func main() {
 			fmt.Printf("  Dry run: found mapping %v\n", speakerMap)
 		}
 		
-		// Cleanup temp dir
 		os.RemoveAll(procCtx.OutputDirectory)
+		if processedInput.TempFilePath != "" {
+			os.Remove(processedInput.TempFilePath)
+		}
 	}
 
 	fmt.Println("Repair process completed.")
