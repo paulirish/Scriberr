@@ -54,4 +54,4 @@ scriberr  | time=02:55:54 level="INFO " msg="Model initialization completed"
 scriberr  | time=02:55:54 level="INFO " msg="Unified transcription service initialized successfully"
 scriberr  | [+] Initializing quick transcription service
 scriberr  | [+] Starting background processing
-scriberr  | time=02:55:54 level="INFO " msg="Scriberr is ready" url=http://0.0.0.0:8080
+scriberr  | time=02:55:54 level="INFO " msg="Scriberr is ready" url=http://0.0.0.0:5318

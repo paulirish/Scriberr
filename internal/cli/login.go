@@ -24,7 +24,7 @@ var serverURL string
 
 func init() {
 	rootCmd.AddCommand(loginCmd)
-	loginCmd.Flags().StringVarP(&serverURL, "server", "s", "http://localhost:8080", "Scriberr server URL")
+	loginCmd.Flags().StringVarP(&serverURL, "server", "s", "http://localhost:5318", "Scriberr server URL")
 }
 
 func runLogin(cmd *cobra.Command, args []string) {

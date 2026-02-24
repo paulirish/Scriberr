@@ -97,17 +97,17 @@ release:
   mode: replace
   header: |
     ## Scriberr {{ .Tag }}
-    
+
     Welcome to this new release of Scriberr!
-    
+
     ### Installation
-    
+
     #### Homebrew (macOS/Linux)
     ```bash
     brew tap rishikanthc/scriberr
     brew install scriberr
     ```
-    
+
     #### Manual Installation
     Download the appropriate archive for your platform below, extract it, and place the binary in your PATH.
 
@@ -135,9 +135,9 @@ brews:
     caveats: |
       Scriberr requires Python 3.11+ for transcription features.
       Install with: brew install python@3.11
-      
+
       To get started:
       1. Run: scriberr
-      2. Open: http://localhost:8080
-      
+      2. Open: http://localhost:5318
+
       The app will auto-configure itself on first run.

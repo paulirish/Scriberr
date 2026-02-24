@@ -221,7 +221,7 @@ export default function ApiReference() {
 }
 
 function BaseURL({ doc }: { doc: SwaggerDoc }) {
-    const loc = typeof window !== 'undefined' ? window.location : ({ protocol: 'http:', host: 'localhost:8080' } as any);
+    const loc = typeof window !== 'undefined' ? window.location : ({ protocol: 'http:', host: 'localhost:5318' } as any);
     const basePath = (doc as any).basePath || '';
     const base = doc.openapi ? (Array.isArray((doc as any).servers) && (doc as any).servers[0]?.url) || `${loc.protocol}//${loc.host}` : `${loc.protocol}//${doc.host || loc.host}${basePath}`;
     return (
@@ -233,7 +233,7 @@ function BaseURL({ doc }: { doc: SwaggerDoc }) {
 }
 
 function AuthIntro() {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080';
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5318';
     const apiBase = `${origin}/api/v1`;
 
     const examples = {
@@ -679,7 +679,7 @@ function formatMaybeJSON(value: any) {
 
 // Very basic curl generator
 function makeCurl(method: string, path: string, ct?: string, body?: any, authHeaders?: string[], params?: any[]) {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080';
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5318';
     const qParams = (params || []).filter((p) => p.in === 'query');
     const qs = method === 'GET' && qParams.length
         ? '?' + qParams.map((p) => `${encodeURIComponent(p.name)}=${encodeURIComponent(exampleForParam(p))}`).join('&')

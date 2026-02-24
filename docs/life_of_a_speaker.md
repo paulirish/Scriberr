@@ -102,12 +102,12 @@ You can list all enrolled speakers and their persisted segments using the API.
 
 **List Speakers:**
 ```bash
-curl -H "X-API-Key: $SCRIBERR_API_KEY" http://localhost:8080/api/v1/speakers/
+curl -H "X-API-Key: $SCRIBERR_API_KEY" http://localhost:5318/api/v1/speakers/
 ```
 
 **Fetch Speaker Segments (Samples):**
 ```bash
-curl -H "X-API-Key: $SCRIBERR_API_KEY" http://localhost:8080/api/v1/speakers/{uuid}/segments
+curl -H "X-API-Key: $SCRIBERR_API_KEY" http://localhost:5318/api/v1/speakers/{uuid}/segments
 ```
 
 **Direct Database Inspection:**

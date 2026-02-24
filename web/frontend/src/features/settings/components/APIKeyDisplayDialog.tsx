@@ -152,7 +152,7 @@ export function APIKeyDisplayDialog({
 							<div className="text-sm text-carbon-600 dark:text-carbon-400">
 								<div className="font-medium mb-1">Usage Example:</div>
 								<div className="font-mono text-xs bg-white dark:bg-carbon-900 p-2 rounded border">
-									curl -H "X-API-Key: {apiKey.key}" http://localhost:8080/api/v1/...
+									curl -H "X-API-Key: {apiKey.key}" http://localhost:5318/api/v1/...
 								</div>
 							</div>
 						</div>

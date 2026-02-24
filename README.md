@@ -146,7 +146,7 @@ brew install scriberr
 scriberr
 ```
 
-Open [http://localhost:8080](http://localhost:8080) in your browser.
+Open [http://localhost:5318](http://localhost:5318) in your browser.
 
 ### Configuration
 
@@ -158,10 +158,10 @@ Scriberr works out of the box. However, for Homebrew or manual installations, yo
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
-| `PORT` | The port the server listens on. | `8080` |
+| `PORT` | The port the server listens on. | `5318` |
 | `HOST` | The interface to bind to. | `0.0.0.0` |
 | `APP_ENV` | Application environment (`development` or `production`). | `development` |
-| `ALLOWED_ORIGINS` | CORS allowed origins (comma separated). | `http://localhost:5173,http://localhost:8080` |
+| `ALLOWED_ORIGINS` | CORS allowed origins (comma separated). | `http://localhost:5173,http://localhost:5318` |
 | `DATABASE_PATH` | Path to the SQLite database file. | `data/scriberr.db` |
 | `UPLOAD_DIR` | Directory for storing uploaded files. | `data/uploads` |
 | `TRANSCRIPTS_DIR` | Directory for storing transcripts. | `data/transcripts` |
@@ -174,7 +174,7 @@ Scriberr works out of the box. However, for Homebrew or manual installations, yo
 ```bash
 # Server settings
 HOST=localhost
-PORT=8080
+PORT=5318
 APP_ENV=production
 
 # Paths
@@ -205,7 +205,7 @@ services:
   scriberr:
     image: ghcr.io/rishikanthc/scriberr:v1.2.0
     ports:
-      - "8080:8080"
+      - "5318:5318"
     volumes:
       - scriberr_data:/app/data # volume for data
       - env_data:/app/whisperx-env # volume for models and python envs
@@ -241,7 +241,7 @@ services:
   scriberr:
     image: ghcr.io/rishikanthc/scriberr-cuda:v1.2.0
     ports:
-      - "8080:8080"
+      - "5318:5318"
     volumes:
       - scriberr_data:/app/data # volume for data
       - env_data:/app/whisperx-env # volume for models and python envs
@@ -310,7 +310,7 @@ The application needs to:
 
 **Subsequent runs will be much faster** because all models and environments are persisted to the `env_data` volume (or your local mapped folders).
 
-You will know the application is ready when you see the line: `msg="Scriberr is ready" url=http://0.0.0.0:8080`.
+You will know the application is ready when you see the line: `msg="Scriberr is ready" url=http://0.0.0.0:5318`.
 
 ### Troubleshooting
 

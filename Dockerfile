@@ -53,7 +53,7 @@ FROM python:3.11-slim AS runtime
 
 ENV PYTHONUNBUFFERED=1 \
   HOST=0.0.0.0 \
-  PORT=8080 \
+  PORT=5318 \
   DATABASE_PATH=/app/data/scriberr.db \
   UPLOAD_DIR=/app/data/uploads \
   WHISPERX_ENV=/app/whisperx-env \
@@ -106,7 +106,7 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
   && chown appuser:appuser /app/scriberr
 
 # Expose port and declare volume for persistence
-EXPOSE 8080
+EXPOSE 5318
 VOLUME ["/app/data"]
 
 # Start as root to allow user ID changes, entrypoint script will switch users

@@ -45,7 +45,7 @@ func (suite *SecurityTestSuite) SetupSuite() {
 
 	// Create test configuration
 	suite.config = &config.Config{
-		Port:         "8080",
+		Port:         "5318",
 		Host:         "localhost",
 		DatabasePath: "security_test.db",
 		JWTSecret:    "test-secret",

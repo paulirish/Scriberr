@@ -5,7 +5,7 @@ import path from "path"
 
 import { VitePWA } from 'vite-plugin-pwa'
 
-const BACKEND_PORT = process.env.PORT || '8080'
+const BACKEND_PORT = process.env.PORT || '5318'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({

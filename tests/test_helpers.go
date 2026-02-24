@@ -41,7 +41,7 @@ func NewTestHelper(t *testing.T, dbName string) *TestHelper {
 
 	// Create unique test config
 	cfg := &config.Config{
-		Port:         "8080",
+		Port:         "5318",
 		Host:         "localhost",
 		DatabasePath: dbName,
 		JWTSecret:    "test-secret-key-for-unit-tests",

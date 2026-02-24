@@ -57,10 +57,10 @@ func Load() *Config {
 	}
 
 	return &Config{
-		Port:           getEnv("PORT", "8080"),
+		Port:           getEnv("PORT", "5318"),
 		Host:           getEnv("HOST", "0.0.0.0"),
 		Environment:    getEnv("APP_ENV", "development"),
-		AllowedOrigins: strings.Split(getEnv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8080"), ","),
+		AllowedOrigins: strings.Split(getEnv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5318"), ","),
 		DatabasePath:   getEnv("DATABASE_PATH", "data/scriberr.db"),
 		JWTSecret:      getJWTSecret(),
 		UploadDir:      getEnv("UPLOAD_DIR", "data/uploads"),

@@ -23,12 +23,12 @@ sqlite3 data/scriberr.db "SELECT * FROM speaker_mappings WHERE original_speaker 
 
 Verify the segments endpoint for a specific speaker:
 ```bash
-curl -s -H "X-API-Key: $SCRIBERR_API_KEY" http://localhost:8080/api/v1/speakers/Speaker-1aba688e/segments | jq .
+curl -s -H "X-API-Key: $SCRIBERR_API_KEY" http://localhost:5318/api/v1/speakers/Speaker-1aba688e/segments | jq .
 ```
 
 Check the global speaker list:
 ```bash
-curl -s -L -H "X-API-Key: $SCRIBERR_API_KEY" http://localhost:8080/api/v1/speakers/ | jq .
+curl -s -L -H "X-API-Key: $SCRIBERR_API_KEY" http://localhost:5318/api/v1/speakers/ | jq .
 ```
 
 ## Backfilling Data
