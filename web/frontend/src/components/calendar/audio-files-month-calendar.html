@@ -1,0 +1,40 @@
+<div class="calendar-container glass-card rounded-[var(--radius-card)] overflow-hidden border border-[var(--border-subtle)] shadow-[var(--shadow-float)]">
+  <div class="calendar-header flex justify-between items-center p-4 border-b border-[var(--border-subtle)] bg-[var(--bg-card)]">
+    <h2 class="month-title text-lg font-bold text-[var(--text-primary)]"></h2>
+    <div class="flex gap-2">
+      <button class="prev-btn h-8 border border-[var(--border-subtle)] px-3 rounded-md hover:bg-[var(--bg-main)] transition-colors text-xs font-medium cursor-pointer">
+        &larr; Prev
+      </button>
+      <button class="next-btn h-8 border border-[var(--border-subtle)] px-3 rounded-md hover:bg-[var(--bg-main)] transition-colors text-xs font-medium cursor-pointer">
+        Next &rarr;
+      </button>
+    </div>
+  </div>
+  <div class="grid-container grid grid-cols-7 bg-[var(--border-subtle)]">
+    <!-- Day names will be injected here -->
+    <!-- Day cells will be injected here -->
+  </div>
+</div>
+
+<template id="day-name-template">
+  <div class="day-name text-center text-xs font-bold text-[var(--text-tertiary)] py-3 bg-[var(--bg-main)] uppercase tracking-wider"></div>
+</template>
+
+<template id="day-cell-template">
+  <div class="day-cell border border-[var(--border-subtle)] p-2 flex flex-col min-h-[120px] transition-colors bg-[var(--bg-card)]">
+    <span class="day-number text-sm font-medium mb-1 text-[var(--text-secondary)]"></span>
+    <div class="events-container mt-1 space-y-1"></div>
+  </div>
+</template>
+
+<template id="empty-cell-template">
+  <div class="empty-cell border border-[var(--border-subtle)] bg-[var(--bg-main)]/30"></div>
+</template>
+
+<template id="event-card-template">
+  <div class="event-card group bg-[#FFFAF0] dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 p-1.5 rounded-lg cursor-pointer hover:border-[var(--brand-solid)] hover:shadow-sm transition-all">
+    <div class="flex items-center gap-1.5 min-w-0">
+      <p class="event-title text-[10px] text-gray-700 dark:text-gray-300 truncate font-medium group-hover:text-[#FF6D20]"></p>
+    </div>
+  </div>
+</template>

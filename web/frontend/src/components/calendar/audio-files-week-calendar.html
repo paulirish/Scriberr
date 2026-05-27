@@ -1,0 +1,65 @@
+<div class="calendar-header">
+  <div class="flex flex-col">
+    <span class="text-sm font-medium text-[var(--text-tertiary)] uppercase tracking-wider">Viewing Period</span>
+    <h2 class="text-xl font-bold text-[var(--text-primary)]">Last 4 Weeks</h2>
+  </div>
+  <div class="flex gap-2">
+    <button class="prev-btn h-10 border border-[var(--border-subtle)] px-4 rounded-md hover:bg-[var(--bg-main)] transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer">
+      &larr; Previous 4 Weeks
+    </button>
+    <button class="next-btn h-10 border border-[var(--border-subtle)] px-4 rounded-md hover:bg-[var(--bg-main)] transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer">
+      Next 4 Weeks &rarr;
+    </button>
+  </div>
+</div>
+
+<div class="weeks-list space-y-12"></div>
+
+<template id="week-template">
+  <div class="week-container">
+    <div class="flex items-center gap-2 mb-4 px-4">
+      <h3 class="week-title text-lg font-bold text-[var(--text-primary)]"></h3>
+    </div>
+
+    <div class="week-grid-container grid grid-cols-[60px_1fr] border border-[var(--border-subtle)] rounded-[var(--radius-card)] overflow-hidden bg-[var(--bg-card)]">
+      <div class="border-r border-b border-[var(--border-subtle)] bg-[var(--bg-main)] flex items-center justify-center h-[45px]">
+        <span class="text-[var(--text-tertiary)] text-xs">TIME</span>
+      </div>
+      <div class="week-days-header grid grid-cols-7 border-b border-[var(--border-subtle)] bg-[var(--bg-main)]">
+        <!-- Days will be injected here -->
+      </div>
+
+      <div class="time-column border-r border-[var(--border-subtle)] bg-[var(--bg-main)]/50">
+        <!-- Time slots will be injected here -->
+      </div>
+      <div class="days-grid grid grid-cols-7 relative">
+        <!-- Day columns will be injected here -->
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="day-header-template">
+  <div class="day-column-header text-center py-3 border-r border-[var(--border-subtle)] last:border-r-0">
+    <div class="day-name text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider"></div>
+    <div class="day-number text-sm font-bold text-[var(--text-primary)]"></div>
+  </div>
+</template>
+
+<template id="hour-cell-template">
+  <div class="hour-cell h-[60px] text-[10px] font-medium text-[var(--text-tertiary)] text-right pr-2 pt-1 border-b border-[var(--border-subtle)]/30 relative"></div>
+</template>
+
+<template id="day-column-template">
+  <div class="day-column relative border-r border-[var(--border-subtle)] last:border-r-0">
+    <!-- Hour slots and events will be injected here -->
+  </div>
+</template>
+
+<template id="event-card-template">
+  <div class="event-card absolute left-1 right-1 p-1.5 bg-[#FFFAF0] dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 rounded-lg cursor-pointer hover:border-[var(--brand-solid)] hover:shadow-md transition-all z-10 overflow-hidden group shadow-sm" style="min-height: 24px;">
+    <div class="flex items-center gap-1 min-w-0">
+      <p class="event-title text-[10px] text-gray-700 dark:text-gray-300 truncate font-semibold group-hover:text-[#FF6D20]"></p>
+    </div>
+  </div>
+</template>
