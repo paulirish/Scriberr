@@ -559,3 +559,15 @@ body[style*="padding"] {
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
 }
 
+/* Automatically highlight labels when their associated input has focus or is invalid */
+.space-y-2:has(input:focus-visible) label,
+.space-y-2:has(textarea:focus-visible) label {
+  color: var(--brand-solid) !important;
+}
+
+.space-y-2:has(input:invalid:not(:placeholder-shown)) label,
+.space-y-2:has(textarea:invalid:not(:placeholder-shown)) label {
+  color: var(--error) !important;
+}
+
+
