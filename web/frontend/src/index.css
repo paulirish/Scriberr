@@ -424,3 +424,138 @@ body[style*="padding"] {
 .chat-sidebar {
   @apply font-sans text-sm;
 }
+
+/* ==========================================================================
+   Modern Web UI Modernizations (Native Web APIs)
+   ========================================================================== */
+
+/* Dialog & Alert Dialog Content Transitions using @starting-style & discrete display */
+[data-slot="dialog-content"],
+[data-slot="alert-dialog-content"] {
+  opacity: 0;
+  transform: translate(-50%, -48%) scale(0.96);
+  transition-property: opacity, transform, display, overlay;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  transition-behavior: allow-discrete;
+}
+
+[data-slot="dialog-content"][data-state="open"],
+[data-slot="alert-dialog-content"][data-state="open"] {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+
+  @starting-style {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.96);
+  }
+}
+
+/* Dialog & Alert Dialog Overlay Transitions */
+[data-slot="dialog-overlay"],
+[data-slot="alert-dialog-overlay"] {
+  opacity: 0;
+  transition-property: opacity, display, overlay;
+  transition-duration: 200ms;
+  transition-timing-function: linear;
+  transition-behavior: allow-discrete;
+}
+
+[data-slot="dialog-overlay"][data-state="open"],
+[data-slot="alert-dialog-overlay"][data-state="open"] {
+  opacity: 1;
+
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+/* Popover & Dropdown Menu & Select Content Transitions */
+[data-slot="popover-content"],
+[data-slot="dropdown-menu-content"],
+[data-slot="dropdown-menu-sub-content"],
+[data-slot="select-content"] {
+  opacity: 0;
+  transform: scale(0.96);
+  transition-property: opacity, transform, display, overlay;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  transition-behavior: allow-discrete;
+}
+
+[data-slot="popover-content"][data-state="open"],
+[data-slot="dropdown-menu-content"][data-state="open"],
+[data-slot="dropdown-menu-sub-content"][data-state="open"],
+[data-slot="select-content"][data-state="open"] {
+  opacity: 1;
+  transform: scale(1);
+
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+/* Tooltip Content Transition */
+[data-slot="tooltip-content"] {
+  opacity: 0;
+  transform: scale(0.96);
+  transition-property: opacity, transform, display, overlay;
+  transition-duration: 100ms;
+  transition-timing-function: ease-out;
+  transition-behavior: allow-discrete;
+}
+
+[data-slot="tooltip-content"][data-state="delayed-open"] {
+  opacity: 1;
+  transform: scale(1);
+
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+/* Scroll Indicators with CSS Scroll-Driven Animations */
+.scroll-indicator-x {
+  --indicator-color: rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+.dark .scroll-indicator-x {
+  --indicator-color: rgba(255, 255, 255, 0.08);
+}
+.scroll-indicator-x::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 32px;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--indicator-color));
+  animation: fade-indicator linear;
+  animation-timeline: scroll(self inline);
+}
+@keyframes fade-indicator {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Form group highlighting with CSS :has() selector */
+.form-group-modern {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-btn);
+  padding: 0.5rem 0.75rem;
+  background-color: var(--bg-main);
+  transition: border-color 0.2s, ring 0.2s;
+}
+.form-group-modern:has(input:focus-visible),
+.form-group-modern:has(textarea:focus-visible) {
+  border-color: var(--brand-solid);
+  box-shadow: 0 0 0 3px rgba(254, 154, 0, 0.15);
+}
+.form-group-modern:has(input:invalid:not(:placeholder-shown)) {
+  border-color: var(--error);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
