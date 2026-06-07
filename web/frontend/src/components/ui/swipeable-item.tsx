@@ -152,11 +152,11 @@ export function SwipeableItem({
     };
 
     // Close drawer when clicking outside (on the card content) while drawer is open
-    const handleContentClick = (e: React.MouseEvent) => {
+    const handleContentClickCapture = (e: React.MouseEvent) => {
         if (isOpen) {
             e.stopPropagation();
+            e.preventDefault();
             close();
-            return;
         }
     };
 
@@ -221,7 +221,7 @@ export function SwipeableItem({
                 onDragEnd={handleDragEnd}
                 animate={controls}
                 whileTap={isMobile && !isSelectionMode ? { scale: 0.98 } : undefined}
-                onClick={handleContentClick}
+                onClickCapture={handleContentClickCapture}
                 style={{
                     touchAction: isMobile ? "pan-y" : "auto",
                     x: 0

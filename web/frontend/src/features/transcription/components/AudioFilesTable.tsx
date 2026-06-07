@@ -40,7 +40,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { TranscriptionConfigDialog, type WhisperXParams } from "@/components/TranscriptionConfigDialog";
 import { TranscribeDDialog } from "@/components/TranscribeDDialog";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAudioListInfinite, type AudioFile } from "@/features/transcription/hooks/useAudioFiles";
 import { getSpeakerColorStyles, speakerColorClass } from "@/lib/speakerColors";
@@ -188,9 +188,6 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 	// Threshold to cancel long-press (in pixels)
 	const LONG_PRESS_CANCEL_THRESHOLD = 10;
 
-	const handleAudioClick = useCallback((audioId: string) => {
-		navigate(`/audio/${audioId}`);
-	}, [navigate]);
 
 	const toggleSelection = useCallback((id: string) => {
 		setRowSelection(prev => {
@@ -220,11 +217,13 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 	const handleRowClick = useCallback((file: AudioFile, e: React.MouseEvent) => {
 		// Suppress click if we just finished a swipe
 		if (Date.now() < suppressClickUntil.current || isSwipingRef.current) {
+			e.preventDefault();
 			e.stopPropagation();
 			return;
 		}
 
 		if (isLongPress.current) {
+			e.preventDefault();
 			isLongPress.current = false;
 			return; // Ignore click after long press
 		}
@@ -232,12 +231,11 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 		const isSelectionMode = Object.keys(rowSelection).length > 0;
 
 		if (isSelectionMode || e.shiftKey) {
+			e.preventDefault();
 			e.stopPropagation();
 			toggleSelection(file.id);
-		} else {
-			handleAudioClick(file.id);
 		}
-	}, [rowSelection, handleAudioClick, toggleSelection]);
+	}, [rowSelection, toggleSelection]);
 
 	const startLongPress = useCallback((id: string, e: React.TouchEvent | React.MouseEvent) => {
 		isLongPress.current = false;
@@ -867,11 +865,13 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 										onHintComplete={markHintShown}
 										onSwipeStateChange={handleSwipeStateChange}
 									>
-										<div
+										<Link
+											to={`/audio/${file.id}`}
 											className={cn(
 												"group relative flex justify-between items-center p-4",
 												"bg-[var(--bg-card)] rounded-xl border border-[var(--border-subtle)]",
 												"shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer select-none",
+												"no-underline hover:no-underline",
 												rowSelection[file.id as keyof typeof rowSelection] && "border-[var(--brand-solid)] ring-1 ring-[var(--brand-solid)]/10 bg-orange-50 dark:bg-orange-950"
 											)}
 											onClick={(e) => handleRowClick(file, e)}
@@ -926,7 +926,10 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 												{/* Desktop Actions (Hover) - Hidden on mobile */}
 												<div
 													className="hidden md:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-													onClick={(e) => e.stopPropagation()}
+													onClick={(e) => {
+														e.stopPropagation();
+														e.preventDefault();
+													}}
 												>
 													{(file.status !== "processing" && file.status !== "pending") && (
 														<>
@@ -996,7 +999,7 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 													{getStatusIcon(file)}
 												</div>
 											</div>
-										</div>
+										</Link>
 									</SwipeableItem>
 								))}
 							</div>
