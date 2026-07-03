@@ -60,7 +60,8 @@ export const getSpeakersFromAudioFile = (file: {
     const transcript = JSON.parse(file.transcript);
     const speakerIds = new Set<string>();
     
-    transcript.segments?.forEach((seg: any) => {
+    const segments = transcript.segments as Array<{ speaker?: string }> | undefined;
+    segments?.forEach((seg) => {
       if (seg.speaker) {
         speakerIds.add(seg.speaker);
       }
@@ -76,7 +77,7 @@ export const getSpeakersFromAudioFile = (file: {
     });
 
     return Array.from(speakerIds).map(id => mappingMap.get(id) || id).sort();
-  } catch (e) {
+  } catch {
     return file.speaker_mappings?.map(m => m.custom_name || m.original_speaker) || [];
   }
 };

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback, type RefObject } from "react";
 import { type AudioFile } from "@/features/transcription/hooks/useAudioFiles";
 import "@/components/calendar/audio-files-week-calendar";
 import weekHtml from "@/components/calendar/audio-files-week-calendar.html?raw";
@@ -10,12 +10,49 @@ interface AudioFilesWeekCalendarProps {
   onFileHoverEnd?: () => void;
 }
 
+interface CalendarElement extends HTMLElement {
+  data: AudioFile[];
+  baseDate: Date;
+}
+
 export const AudioFilesWeekCalendar = ({ 
   data, 
-  onFileClick
+  onFileClick,
+  onFileHoverStart,
+  onFileHoverEnd
 }: AudioFilesWeekCalendarProps) => {
   const [baseDate, setBaseDate] = useState(new Date());
-  const calendarRef = useRef<any>(null);
+  const calendarRef = useRef<CalendarElement>(null);
+
+  const handleFileClick = useCallback((e: Event) => {
+    const customEvent = e as CustomEvent<{ fileId: string }>;
+    onFileClick(customEvent.detail.fileId);
+  }, [onFileClick]);
+
+  const handleFileHoverStart = useCallback((e: Event) => {
+    const customEvent = e as CustomEvent<{ fileId: string }>;
+    onFileHoverStart?.(customEvent.detail.fileId);
+  }, [onFileHoverStart]);
+
+  const handleFileHoverEnd = useCallback(() => {
+    onFileHoverEnd?.();
+  }, [onFileHoverEnd]);
+
+  const handlePrevWeeks = useCallback(() => {
+    setBaseDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setDate(newDate.getDate() - 28);
+      return newDate;
+    });
+  }, []);
+
+  const handleNextWeeks = useCallback(() => {
+    setBaseDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setDate(newDate.getDate() + 28);
+      return newDate;
+    });
+  }, []);
 
   useEffect(() => {
     const calendar = calendarRef.current;
@@ -24,38 +61,25 @@ export const AudioFilesWeekCalendar = ({
     calendar.data = data;
     calendar.baseDate = baseDate;
 
-    const handleFileClick = (e: any) => onFileClick(e.detail.fileId);
-    const handlePrevWeeks = () => {
-      setBaseDate(prev => {
-        const newDate = new Date(prev);
-        newDate.setDate(newDate.getDate() - 28);
-        return newDate;
-      });
-    };
-    const handleNextWeeks = () => {
-      setBaseDate(prev => {
-        const newDate = new Date(prev);
-        newDate.setDate(newDate.getDate() + 28);
-        return newDate;
-      });
-    };
-
     calendar.addEventListener('file-click', handleFileClick);
+    calendar.addEventListener('file-hover-start', handleFileHoverStart);
+    calendar.addEventListener('file-hover-end', handleFileHoverEnd);
     calendar.addEventListener('prev-weeks', handlePrevWeeks);
     calendar.addEventListener('next-weeks', handleNextWeeks);
 
     return () => {
       calendar.removeEventListener('file-click', handleFileClick);
+      calendar.removeEventListener('file-hover-start', handleFileHoverStart);
+      calendar.removeEventListener('file-hover-end', handleFileHoverEnd);
       calendar.removeEventListener('prev-weeks', handlePrevWeeks);
       calendar.removeEventListener('next-weeks', handleNextWeeks);
     };
-  }, [data, baseDate, onFileClick]);
-
-  const CalendarTag = 'audio-files-week-calendar' as any;
+  }, [data, baseDate, handleFileClick, handleFileHoverStart, handleFileHoverEnd, handlePrevWeeks, handleNextWeeks]);
 
   return (
-    <CalendarTag
-      ref={calendarRef}
+    // @ts-expect-error - Custom element
+    <audio-files-week-calendar
+      ref={calendarRef as unknown as RefObject<HTMLElement>}
       dangerouslySetInnerHTML={{ __html: weekHtml }}
     />
   );

@@ -16,11 +16,11 @@ export class AudioFilesMonthCalendarElement extends HTMLElement {
     this._upgradeProperty('currentDate');
   }
 
-  private _upgradeProperty(prop: string) {
+  private _upgradeProperty(prop: keyof this) {
     if (Object.prototype.hasOwnProperty.call(this, prop)) {
-      const value = (this as any)[prop];
-      delete (this as any)[prop];
-      (this as any)[prop] = value;
+      const value = this[prop];
+      delete this[prop];
+      this[prop] = value;
     }
   }
 
@@ -42,10 +42,14 @@ export class AudioFilesMonthCalendarElement extends HTMLElement {
     }
     this.render();
     this.addEventListener('click', this._handleClick);
+    this.addEventListener('mouseover', this._handleMouseOver);
+    this.addEventListener('mouseout', this._handleMouseOut);
   }
 
   disconnectedCallback() {
     this.removeEventListener('click', this._handleClick);
+    this.removeEventListener('mouseover', this._handleMouseOver);
+    this.removeEventListener('mouseout', this._handleMouseOut);
   }
 
   private _handleClick = (e: MouseEvent) => {
@@ -71,6 +75,32 @@ export class AudioFilesMonthCalendarElement extends HTMLElement {
     }
   }
 
+  private _handleMouseOver = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const eventCard = target.closest('.event-card');
+    if (eventCard) {
+      const fileId = eventCard.getAttribute('data-file-id');
+      if (fileId) {
+        this.dispatchEvent(new CustomEvent('file-hover-start', {
+          detail: { fileId },
+          bubbles: true,
+          composed: true
+        }));
+      }
+    }
+  }
+
+  private _handleMouseOut = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const eventCard = target.closest('.event-card');
+    if (eventCard) {
+      this.dispatchEvent(new CustomEvent('file-hover-end', {
+        bubbles: true,
+        composed: true
+      }));
+    }
+  }
+
   private render() {
     const gridContainer = this.querySelector('.grid-container');
     const monthTitle = this.querySelector('.month-title');
@@ -83,7 +113,8 @@ export class AudioFilesMonthCalendarElement extends HTMLElement {
       const dayNameTemplate = (this.querySelector('#day-name-template') as HTMLTemplateElement);
       if (dayNameTemplate) {
         const node = dayNameTemplate.content.cloneNode(true) as DocumentFragment;
-        node.querySelector('.day-name')!.textContent = day;
+        const nameElem = node.querySelector('.day-name');
+        if (nameElem) nameElem.textContent = day;
         gridContainer.appendChild(node);
       }
     });
@@ -111,38 +142,50 @@ export class AudioFilesMonthCalendarElement extends HTMLElement {
       const cellTemplate = (this.querySelector('#day-cell-template') as HTMLTemplateElement);
       if (cellTemplate) {
         const node = cellTemplate.content.cloneNode(true) as DocumentFragment;
-        const cellDiv = node.querySelector('.day-cell')!;
-        if (isToday) cellDiv.classList.add('today');
+        const cellDiv = node.querySelector('.day-cell');
+        if (cellDiv && isToday) cellDiv.classList.add('today');
 
-        const numSpan = node.querySelector('.day-number')!;
-        numSpan.textContent = day.toString();
-        if (isToday) numSpan.classList.add('text-[var(--brand-solid)]');
+        const numSpan = node.querySelector('.day-number');
+        if (numSpan) {
+          numSpan.textContent = day.toString();
+          if (isToday) numSpan.classList.add('text-[var(--brand-solid)]');
+        }
 
         const eventsContainer = node.querySelector('.events-container')!;
         filesForDay.forEach(file => {
           const eventTemplate = (this.querySelector('#event-card-template') as HTMLTemplateElement);
           if (eventTemplate) {
             const eventNode = eventTemplate.content.cloneNode(true) as DocumentFragment;
-            const card = eventNode.querySelector('.event-card')!;
+            const card = eventNode.querySelector('.event-card') as HTMLElement;
             card.setAttribute('data-file-id', file.id);
-            eventNode.querySelector('.event-title')!.textContent = file.title ? formatAudioFileTitle(file.title) : `File ${file.id.substring(0, 8)}`;
 
-            // Add speaker data for tooltip
+            const titleElem = eventNode.querySelector('.event-title');
+            if (titleElem) {
+              titleElem.textContent = file.title ? formatAudioFileTitle(file.title) : `File ${file.id.substring(0, 8)}`;
+            }
+
+            // Tooltip population
+            const tooltipTitleElem = card.querySelector('.title-text');
+            if (tooltipTitleElem) {
+              tooltipTitleElem.textContent = file.title || `Recording ${file.id.substring(0, 8)}`;
+            }
+
             const speakers = getSpeakersFromAudioFile(file);
-            const tooltip = document.createElement('div');
-            tooltip.className = 'tooltip-content';
-            tooltip.innerHTML = `
-              <div class="font-bold border-b border-[var(--border-subtle)] pb-1 mb-2 truncate text-xs">${file.title || 'Recording'}</div>
-              <div class="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider mb-1">Speakers</div>
-              <div class="speakers-list flex flex-wrap gap-1">
-                ${speakers.length > 0 ? speakers.map(s => {
-                  const styles = getSpeakerColorStyles(s);
-                  const styleStr = Object.entries(styles).map(([k, v]) => `${k}:${v}`).join(';');
-                  return `<span class="speaker-badge" style="${styleStr}">${s}</span>`;
-                }).join('') : '<div class="italic text-[10px] text-[var(--text-tertiary)]">No speaker data</div>'}
-              </div>
-            `;
-            card.appendChild(tooltip);
+            const speakersList = card.querySelector('.speakers-list')!;
+            const noSpeakersMsg = card.querySelector('.no-speakers-msg')!;
+
+            if (speakers.length > 0) {
+              speakers.forEach(s => {
+                const badgeTemplate = (this.querySelector('#speaker-badge-template') as HTMLTemplateElement).content.cloneNode(true) as DocumentFragment;
+                const badge = badgeTemplate.querySelector('.speaker-badge') as HTMLElement;
+                badge.textContent = s;
+                const styles = getSpeakerColorStyles(s);
+                Object.entries(styles).forEach(([k, v]) => badge.style.setProperty(k, v as string));
+                speakersList.appendChild(badgeTemplate);
+              });
+            } else {
+              noSpeakersMsg.classList.remove('hidden');
+            }
 
             eventsContainer.appendChild(eventNode);
           }

@@ -5,6 +5,16 @@ import { getSpeakerColorStyles } from "@/lib/speakerColors";
 
 const HOUR_HEIGHT = 60;
 
+interface HourSlot {
+  hour: number;
+  gapBefore?: number;
+}
+
+interface ProcessedAudioFile extends AudioFile {
+  dateTime: Date;
+  duration: number;
+}
+
 export class AudioFilesWeekCalendarElement extends HTMLElement {
   private _data: AudioFile[] = [];
   private _baseDate: Date = new Date();
@@ -16,11 +26,11 @@ export class AudioFilesWeekCalendarElement extends HTMLElement {
     this._upgradeProperty('baseDate');
   }
 
-  private _upgradeProperty(prop: string) {
+  private _upgradeProperty(prop: keyof this) {
     if (Object.prototype.hasOwnProperty.call(this, prop)) {
-      const value = (this as any)[prop];
-      delete (this as any)[prop];
-      (this as any)[prop] = value;
+      const value = this[prop];
+      delete this[prop];
+      this[prop] = value;
     }
   }
 
@@ -42,10 +52,14 @@ export class AudioFilesWeekCalendarElement extends HTMLElement {
     }
     this.render();
     this.addEventListener('click', this._handleClick);
+    this.addEventListener('mouseover', this._handleMouseOver);
+    this.addEventListener('mouseout', this._handleMouseOut);
   }
 
   disconnectedCallback() {
     this.removeEventListener('click', this._handleClick);
+    this.removeEventListener('mouseover', this._handleMouseOver);
+    this.removeEventListener('mouseout', this._handleMouseOut);
   }
 
   private _handleClick = (e: MouseEvent) => {
@@ -71,6 +85,32 @@ export class AudioFilesWeekCalendarElement extends HTMLElement {
     }
   }
 
+  private _handleMouseOver = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const eventCard = target.closest('.event-card');
+    if (eventCard) {
+      const fileId = eventCard.getAttribute('data-file-id');
+      if (fileId) {
+        this.dispatchEvent(new CustomEvent('file-hover-start', {
+          detail: { fileId },
+          bubbles: true,
+          composed: true
+        }));
+      }
+    }
+  }
+
+  private _handleMouseOut = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const eventCard = target.closest('.event-card');
+    if (eventCard) {
+      this.dispatchEvent(new CustomEvent('file-hover-end', {
+        bubbles: true,
+        composed: true
+      }));
+    }
+  }
+
   private render() {
     const weeksList = this.querySelector('.weeks-list');
     if (!weeksList) return;
@@ -86,7 +126,10 @@ export class AudioFilesWeekCalendarElement extends HTMLElement {
       const weekNode = weekTemplate.content.cloneNode(true) as DocumentFragment;
       const weekContainer = weekNode.querySelector('.week-container')!;
 
-      weekNode.querySelector('.week-title')!.textContent = `Week of ${weekStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      const titleElem = weekNode.querySelector('.week-title');
+      if (titleElem) {
+        titleElem.textContent = `Week of ${weekStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      }
 
       const { weekFiles } = this._getWeekData(weekStart, filesWithDateTime);
       const { slots, hourToOffset, totalHeight } = this._calculateSlots(weekFiles);
@@ -102,12 +145,18 @@ export class AudioFilesWeekCalendarElement extends HTMLElement {
 
       days.forEach(day => {
         const dayHeader = (this.querySelector('#day-header-template') as HTMLTemplateElement).content.cloneNode(true) as DocumentFragment;
+        const columnHeader = dayHeader.querySelector('.day-column-header');
         const isToday = new Date().toDateString() === day.toDateString();
-        if (isToday) dayHeader.querySelector('.day-column-header')!.classList.add('bg-[var(--brand-solid)]/5');
+        if (isToday && columnHeader) columnHeader.classList.add('bg-[var(--brand-solid)]/5');
 
-        dayHeader.querySelector('.day-name')!.textContent = day.toLocaleString("default", { weekday: "short" });
-        dayHeader.querySelector('.day-number')!.textContent = day.getDate().toString();
-        if (isToday) dayHeader.querySelector('.day-number')!.classList.add('text-[var(--brand-solid)]');
+        const dayNameElem = dayHeader.querySelector('.day-name');
+        if (dayNameElem) dayNameElem.textContent = day.toLocaleString("default", { weekday: "short" });
+
+        const dayNumberElem = dayHeader.querySelector('.day-number');
+        if (dayNumberElem) {
+          dayNumberElem.textContent = day.getDate().toString();
+          if (isToday) dayNumberElem.classList.add('text-[var(--brand-solid)]');
+        }
 
         daysHeader.appendChild(dayHeader);
 
@@ -137,24 +186,34 @@ export class AudioFilesWeekCalendarElement extends HTMLElement {
             cardDiv.setAttribute('data-file-id', event.id);
             cardDiv.style.top = `${top}px`;
             cardDiv.style.height = `${height}px`;
-            cardDiv.querySelector('.event-title')!.textContent = event.title ? formatAudioFileTitle(event.title) : `File ${event.id.substring(0, 8)}`;
 
-            // Add speaker data for tooltip
+            const eventTitleElem = cardDiv.querySelector('.event-title');
+            if (eventTitleElem) {
+              eventTitleElem.textContent = event.title ? formatAudioFileTitle(event.title) : `File ${event.id.substring(0, 8)}`;
+            }
+
+            // Tooltip population
+            const tooltipTitleElem = cardDiv.querySelector('.title-text');
+            if (tooltipTitleElem) {
+              tooltipTitleElem.textContent = event.title || `Recording ${event.id.substring(0, 8)}`;
+            }
+
             const speakers = getSpeakersFromAudioFile(event);
-            const tooltip = document.createElement('div');
-            tooltip.className = 'tooltip-content';
-            tooltip.innerHTML = `
-              <div class="font-bold border-b border-[var(--border-subtle)] pb-1 mb-2 truncate">${event.title || 'Recording'}</div>
-              <div class="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider mb-1">Speakers</div>
-              <div class="speakers-list">
-                ${speakers.length > 0 ? speakers.map(s => {
-                  const styles = getSpeakerColorStyles(s);
-                  const styleStr = Object.entries(styles).map(([k, v]) => `${k}:${v}`).join(';');
-                  return `<span class="speaker-badge" style="${styleStr}">${s}</span>`;
-                }).join('') : '<div class="italic text-[10px] text-[var(--text-tertiary)]">No speaker data</div>'}
-              </div>
-            `;
-            cardDiv.appendChild(tooltip);
+            const speakersList = cardDiv.querySelector('.speakers-list')!;
+            const noSpeakersMsg = cardDiv.querySelector('.no-speakers-msg')!;
+
+            if (speakers.length > 0) {
+              speakers.forEach(s => {
+                const badgeTemplate = (this.querySelector('#speaker-badge-template') as HTMLTemplateElement).content.cloneNode(true) as DocumentFragment;
+                const badge = badgeTemplate.querySelector('.speaker-badge') as HTMLElement;
+                badge.textContent = s;
+                const styles = getSpeakerColorStyles(s);
+                Object.entries(styles).forEach(([k, v]) => badge.style.setProperty(k, v as string));
+                speakersList.appendChild(badgeTemplate);
+              });
+            } else {
+              noSpeakersMsg.classList.remove('hidden');
+            }
 
             columnDiv.appendChild(eventCard);
           });
@@ -174,7 +233,8 @@ export class AudioFilesWeekCalendarElement extends HTMLElement {
         }
         this._applyHourStyles(cellDiv, slot.hour);
         const hour = slot.hour;
-        cellDiv.textContent = hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`;
+        const label = hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`;
+        cellDiv.textContent = label;
         timeColumn.appendChild(hourCell);
       });
 
@@ -201,7 +261,7 @@ export class AudioFilesWeekCalendarElement extends HTMLElement {
     return result;
   }
 
-  private _processFiles() {
+  private _processFiles(): ProcessedAudioFile[] {
     return this._data.map(file => {
       if (file.title) {
         const parsed = parseTitleForDate(file.title);
@@ -211,14 +271,14 @@ export class AudioFilesWeekCalendarElement extends HTMLElement {
     });
   }
 
-  private _getWeekData(startOfWeek: Date, filesWithDateTime: any[]) {
+  private _getWeekData(startOfWeek: Date, filesWithDateTime: ProcessedAudioFile[]) {
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 7);
     const weekFiles = filesWithDateTime.filter(f => f.dateTime >= startOfWeek && f.dateTime < endOfWeek);
     return { endOfWeek, weekFiles };
   }
 
-  private _calculateSlots(weekFiles: any[]) {
+  private _calculateSlots(weekFiles: ProcessedAudioFile[]) {
     const hourHasActivity = new Array(24).fill(false);
     weekFiles.forEach(file => {
       const startHour = file.dateTime.getHours();
@@ -226,7 +286,7 @@ export class AudioFilesWeekCalendarElement extends HTMLElement {
       for (let h = startHour; h <= endHour; h++) if (h < 24) hourHasActivity[h] = true;
     });
 
-    const slots: { hour: number; gapBefore?: number }[] = [];
+    const slots: HourSlot[] = [];
     let currentGap: number[] = [];
     for (let h = 0; h < 24; h++) {
       if (hourHasActivity[h]) {

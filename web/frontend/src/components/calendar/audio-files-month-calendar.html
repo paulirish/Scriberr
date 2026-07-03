@@ -3,17 +3,16 @@
     <h2 class="month-title text-lg font-bold text-[var(--text-primary)]"></h2>
     <div class="flex gap-2">
       <button class="prev-btn h-8 border border-[var(--border-subtle)] px-3 rounded-md hover:bg-[var(--bg-main)] transition-colors text-xs font-medium cursor-pointer">
-        &larr; Prev
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-left mr-1"><path d="m15 18-6-6 6-6"/></svg>
+        Prev
       </button>
       <button class="next-btn h-8 border border-[var(--border-subtle)] px-3 rounded-md hover:bg-[var(--bg-main)] transition-colors text-xs font-medium cursor-pointer">
-        Next &rarr;
+        Next
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right ml-1"><path d="m9 18 6-6-6-6"/></svg>
       </button>
     </div>
   </div>
-  <div class="grid-container grid grid-cols-7 bg-[var(--border-subtle)]">
-    <!-- Day names will be injected here -->
-    <!-- Day cells will be injected here -->
-  </div>
+  <div class="grid-container grid grid-cols-7 bg-[var(--border-subtle)]"></div>
 </div>
 
 <template id="day-name-template">
@@ -32,9 +31,26 @@
 </template>
 
 <template id="event-card-template">
-  <div class="event-card group bg-[#FFFAF0] dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 p-1.5 rounded-lg cursor-pointer hover:border-[var(--brand-solid)] hover:shadow-sm transition-all">
+  <div class="event-card group relative bg-[#FFFAF0] dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 p-1.5 rounded-lg cursor-pointer hover:border-[var(--brand-solid)] hover:shadow-sm transition-all">
     <div class="flex items-center gap-1.5 min-w-0">
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-audio text-[#FF6D20] flex-shrink-0"><path d="M17.5 22h.5c.5 0 1-.2 1.4-.6.4-.4.6-.9.6-1.4V7.5L14.5 2H6c-.5 0-1 .2-1.4.6C4.2 3 4 3.5 4 4v3"/><polyline points="14 2 14 8 20 8"/><path d="M10 20v-1a2 2 0 1 1 4 0v1a2 2 0 1 1-4 0Z"/><path d="M6 20v-1a2 2 0 1 0-4 0v1a2 2 0 1 0 4 0Z"/><path d="M2 19v-3a6 6 0 0 1 12 0v3"/></svg>
       <p class="event-title text-[10px] text-gray-700 dark:text-gray-300 truncate font-medium group-hover:text-[#FF6D20]"></p>
     </div>
+    <div class="tooltip-content hidden absolute bottom-[110%] left-1/2 -translate-x-1/2 w-[200px] bg-[var(--bg-main)] border border-[var(--border-subtle)] rounded-[var(--radius-card)] p-3 shadow-xl z-[100] backdrop-blur-xl">
+      <div class="tooltip-title font-bold border-b border-[var(--border-subtle)] pb-2 mb-2 truncate text-sm flex items-center gap-2 text-[var(--text-primary)]">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-audio text-[#FF6D20]"><path d="M17.5 22h.5c.5 0 1-.2 1.4-.6.4-.4.6-.9.6-1.4V7.5L14.5 2H6c-.5 0-1 .2-1.4.6C4.2 3 4 3.5 4 4v3"/><polyline points="14 2 14 8 20 8"/><path d="M10 20v-1a2 2 0 1 1 4 0v1a2 2 0 1 1-4 0Z"/><path d="M6 20v-1a2 2 0 1 0-4 0v1a2 2 0 1 0 4 0Z"/><path d="M2 19v-3a6 6 0 0 1 12 0v3"/></svg>
+        <span class="title-text truncate"></span>
+      </div>
+      <div class="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider mb-1 flex items-center gap-1.5">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Speakers
+      </div>
+      <div class="speakers-list flex flex-wrap gap-1.5"></div>
+      <div class="no-speakers-msg text-xs text-[var(--text-tertiary)] italic hidden">No speaker data available</div>
+    </div>
   </div>
+</template>
+
+<template id="speaker-badge-template">
+  <span class="speaker-badge px-2 py-0.5 rounded-full text-[10px] font-medium border"></span>
 </template>

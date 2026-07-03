@@ -86,7 +86,7 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 	useEffect(() => {
 		const hash = location.hash.slice(1);
 		if (hash === "list" || hash === "week" || hash === "month") {
-			if (hash !== view) setView(hash as any);
+			if (hash !== view) setView(hash as "list" | "week" | "month");
 		} else if (!hash && view !== "week") {
 			// Default view when hash is removed
 			setView("week");
@@ -97,6 +97,10 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 		setView(newView);
 		navigate(`#${newView}`);
 	}, [navigate]);
+
+	const onValueChange = useCallback((v: string) => {
+		handleViewChange(v as "list" | "week" | "month");
+	}, [handleViewChange]);
 
 	// Table State
 	const sorting = [
@@ -796,7 +800,7 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 				<div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
 					<Tabs
 						value={view}
-						onValueChange={(v) => handleViewChange(v as any)}
+						onValueChange={onValueChange}
 						className="w-full sm:w-auto"
 					>
 						<TabsList className="grid w-full grid-cols-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] p-1 h-11">
