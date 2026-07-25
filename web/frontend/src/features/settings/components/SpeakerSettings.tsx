@@ -16,17 +16,22 @@ export function SpeakerSettings() {
   const [editName, setEditName] = useState("");
 
   // Single Audio Instance for voice samples
-  const audioRef = useRef<HTMLAudioElement>(new Audio());
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [activeSegmentId, setActiveSegmentId] = useState<number | null>(null);
 
   const stopAudio = useCallback(() => {
     const audio = audioRef.current;
-    audio.pause();
-    audio.ontimeupdate = null;
-    setActiveSegmentId(null);
+    if (audio) {
+      audio.pause();
+      audio.ontimeupdate = null;
+      setActiveSegmentId(null);
+    }
   }, []);
 
   const playSegment = useCallback((url: string, start: number, end: number, segmentId: number) => {
+    if (!audioRef.current) {
+        audioRef.current = new Audio();
+    }
     const audio = audioRef.current;
 
     // Stop current if any
@@ -52,14 +57,16 @@ export function SpeakerSettings() {
 
   // Cleanup on unmount
   useEffect(() => {
+    const audio = audioRef.current;
     return () => {
-      const audio = audioRef.current;
-      audio.pause();
-      audio.src = "";
+      if (audio) {
+        audio.pause();
+        audio.src = "";
+      }
     };
   }, []);
 
-  const fetchSpeakers = async () => {
+  const fetchSpeakers = useCallback(async () => {
     try {
       const data = await speakersApi.list(getAuthHeaders);
       setSpeakers(data);
@@ -69,11 +76,11 @@ export function SpeakerSettings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAuthHeaders]);
 
   useEffect(() => {
     fetchSpeakers();
-  }, []);
+  }, [fetchSpeakers]);
 
   const handleRename = async (id: string) => {
     try {
@@ -81,7 +88,7 @@ export function SpeakerSettings() {
       toast.success("Speaker renamed");
       setEditingId(null);
       fetchSpeakers();
-    } catch (error) {
+    } catch {
       toast.error("Failed to rename speaker");
     }
   };
@@ -92,7 +99,7 @@ export function SpeakerSettings() {
       await speakersApi.delete(id, getAuthHeaders);
       toast.success("Speaker deleted");
       fetchSpeakers();
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete speaker");
     }
   };
@@ -187,7 +194,7 @@ function SpeakerRow({
       }
     };
     fetchSegments();
-  }, [speaker.id]);
+  }, [speaker.id, getAuthHeaders]);
 
   return (
     <div className="p-4 border border-[var(--border-subtle)] rounded-lg bg-[var(--bg-main)]/30 transition-all hover:bg-[var(--bg-main)]/50">
@@ -212,7 +219,7 @@ function SpeakerRow({
           ) : (
             <>
               <h4 
-                style={getSpeakerColorStyles(speaker.name)}
+                style={getSpeakerColorStyles(speaker.name) as React.CSSProperties}
                 className={cn(
                   "font-medium px-2 py-0.5 rounded-full text-sm border",
                   speakerColorClass
@@ -279,7 +286,7 @@ function AudioChip({
       onMouseEnter={onPlay}
       onMouseLeave={onStop}
       onClick={onPlay}
-      style={getSpeakerColorStyles(speakerName)}
+      style={getSpeakerColorStyles(speakerName) as React.CSSProperties}
       className={cn(
         "group flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all",
         isPlaying

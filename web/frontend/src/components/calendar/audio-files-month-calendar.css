@@ -1,0 +1,152 @@
+@layer components {
+  audio-files-month-calendar {
+    display: block;
+  }
+
+  audio-files-month-calendar .calendar-container {
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-float);
+    background: var(--bg-card);
+  }
+
+  audio-files-month-calendar .calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-card);
+  }
+
+  audio-files-month-calendar .grid-container {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: var(--border-subtle);
+  }
+
+  audio-files-month-calendar .day-header {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    padding: 0.75rem 0;
+    background: var(--bg-main);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  audio-files-month-calendar .day-cell {
+    border: 1px solid var(--border-subtle);
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 120px;
+    transition: background-color 0.2s;
+    background: var(--bg-card);
+  }
+
+  audio-files-month-calendar .day-cell.today {
+    background: color-mix(in srgb, var(--brand-solid), transparent 95%);
+  }
+
+  audio-files-month-calendar .empty-cell {
+    background: color-mix(in srgb, var(--bg-main), transparent 70%);
+    border: 1px solid var(--border-subtle);
+  }
+
+  audio-files-month-calendar .day-number {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    color: var(--text-secondary);
+  }
+
+  audio-files-month-calendar .day-cell.today .day-number {
+    color: var(--brand-solid);
+  }
+
+  audio-files-month-calendar .events-container {
+    margin-top: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  audio-files-month-calendar .event-card {
+    background: #FFFAF0;
+    border: 1px solid #ffedd5;
+    padding: 0.375rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    position: relative;
+  }
+
+  :is(.dark audio-files-month-calendar .event-card) {
+    background: color-mix(in srgb, var(--color-orange-950), transparent 80%);
+    border-color: color-mix(in srgb, var(--color-orange-900), transparent 70%);
+  }
+
+  audio-files-month-calendar .event-card:hover {
+    border-color: var(--brand-solid);
+    box-shadow: var(--shadow-sm);
+  }
+
+  audio-files-month-calendar .event-title {
+    font-size: 10px;
+    color: #374151;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  :is(.dark audio-files-month-calendar .event-title) {
+    color: #d1d5db;
+  }
+
+  /* Native Tooltip Styling */
+  audio-files-month-calendar .tooltip-content {
+    display: none;
+    position: absolute;
+    bottom: 110%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    background: var(--bg-main);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-card);
+    padding: 0.75rem;
+    box-shadow: var(--shadow-xl);
+    z-index: 100;
+    backdrop-filter: blur(8px);
+  }
+
+  audio-files-month-calendar .event-card:hover .tooltip-content {
+    display: block;
+  }
+
+  audio-files-month-calendar .speaker-badge {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 500;
+    border: 1px solid var(--speaker-border);
+    background: var(--speaker-bg);
+    color: var(--speaker-text);
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+  }
+
+  :is(.dark audio-files-month-calendar .speaker-badge) {
+    background: var(--speaker-bg-dark);
+    border-color: var(--speaker-border-dark);
+    color: var(--speaker-text-dark);
+  }
+}
